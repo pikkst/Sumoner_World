@@ -1,3 +1,4 @@
+using SumonerWorld.Core.Cognition.Opinions;
 using SumonerWorld.Core.Data.Definitions;
 
 namespace SumonerWorld.Core.Cognition.Memory;
@@ -6,6 +7,25 @@ namespace SumonerWorld.Core.Cognition.Memory;
 /// <param name="Slot">Slot in the store.</param>
 /// <param name="Generation">Incremented every time the slot is released.</param>
 public readonly record struct MindHandle(int Slot, int Generation);
+
+/// <summary>The five needs (AI Bible §6.3), each 0–100, rising over time at species rates.</summary>
+public enum Need
+{
+    /// <summary>Wants food.</summary>
+    Hunger,
+
+    /// <summary>Wants sleep.</summary>
+    Rest,
+
+    /// <summary>Wants a safe place.</summary>
+    Safety,
+
+    /// <summary>Wants company.</summary>
+    Social,
+
+    /// <summary>Wants to patrol or claim its area.</summary>
+    Territory,
+}
 
 /// <summary>What <see cref="ICreatureMindStore.Remember"/> did.</summary>
 public enum MemoryOutcome : byte
@@ -27,7 +47,7 @@ public enum MemoryOutcome : byte
 public readonly record struct RememberResult(MemoryOutcome Outcome, bool EvictedAnother, PersonalityTrait? DriftedTrait);
 
 /// <summary>
-/// Creatures' personalities and memories (AI Bible §3–4). Fixed capacity per creature: <see cref="CoreCapacity"/> core slots
+/// Creatures' saved mind state (AI Bible §3–6, §4.6): personality, memories, long-term opinion baselines and needs. Fixed capacity per creature: <see cref="CoreCapacity"/> core slots
 /// and <see cref="EpisodicCapacity"/> episodic slots. Decay is lazy: nothing happens per tick; strength is computed on recall.
 /// Server-only; never replicated (AI Bible §1).
 /// </summary>
@@ -48,14 +68,23 @@ public interface ICreatureMindStore
     /// <summary>Highest strength a memory can have.</summary>
     public const int MaxSalience = 1000;
 
+    /// <summary>Subjects per creature with a long-term opinion baseline (AI Bible §4.4).</summary>
+    public const int OpinionCapacity = 24;
+
+    /// <summary>Largest long-term baseline per attitude, in attitude points.</summary>
+    public const int MaxBaseline = 50;
+
+    /// <summary>Highest need level.</summary>
+    public const int MaxNeed = 100;
+
     /// <summary>Most minds the store can hold.</summary>
     int Capacity { get; }
 
     /// <summary>Minds currently allocated.</summary>
     int Count { get; }
 
-    /// <summary>Creates an empty mind with the given birth personality.</summary>
-    MindHandle Allocate(Personality birth);
+    /// <summary>Creates an empty mind with the given birth personality and its species' need rates (all needs start at 0).</summary>
+    MindHandle Allocate(Personality birth, NeedRates needRates);
 
     /// <summary>Frees a mind and all its memories.</summary>
     void Release(MindHandle mind);
@@ -69,7 +98,10 @@ public interface ICreatureMindStore
     /// <summary>Current personality: birth plus drift from core memories.</summary>
     Personality GetPersonality(MindHandle mind);
 
-    /// <summary>Records an episode at tick <paramref name="now"/>, merging it with a still-remembered memory of the same event and subject.</summary>
+    /// <summary>
+    /// Records an episode at tick <paramref name="now"/>, merging it with a still-remembered memory of the same event and subject.
+    /// Also moves the long-term opinion baseline toward the subject by 10% of the episode's opinion weight (AI Bible §5).
+    /// </summary>
     RememberResult Remember(MindHandle mind, ushort eventType, MemorySubject subject, ulong now);
 
     /// <summary>
@@ -80,6 +112,15 @@ public interface ICreatureMindStore
 
     /// <summary>Like <see cref="Recall"/>, but only memories about <paramref name="subject"/>.</summary>
     int RecallAbout(MindHandle mind, MemorySubject subject, ulong now, Span<RecalledMemory> results);
+
+    /// <summary>Long-term opinion baseline about <paramref name="subject"/>, in attitude points (neutral if none is kept).</summary>
+    Opinion GetOpinionBaseline(MindHandle mind, MemorySubject subject);
+
+    /// <summary>A need's level at tick <paramref name="now"/>, in [0, 100].</summary>
+    int GetNeed(MindHandle mind, Need need, ulong now);
+
+    /// <summary>Lowers a need by <paramref name="amount"/> points at tick <paramref name="now"/> (eating, sleeping, company...).</summary>
+    void SatisfyNeed(MindHandle mind, Need need, int amount, ulong now);
 
     /// <summary>Core-slot records as stored (for saves and the AI Inspector).</summary>
     ReadOnlySpan<MemoryRecord> GetCoreRecords(MindHandle mind);

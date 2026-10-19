@@ -14,6 +14,9 @@ public interface IDataRegistry
     /// <summary>All species, ordered by id.</summary>
     IReadOnlyList<SpeciesDefinition> Species { get; }
 
+    /// <summary>Opinion weights per memory event type, ordered by event type (AI Bible §5).</summary>
+    IReadOnlyList<OpinionWeightsDefinition> OpinionWeights { get; }
+
     /// <summary>The memory event type with this id. Throws <see cref="KeyNotFoundException"/> if unknown.</summary>
     MemoryEventTypeDefinition GetMemoryEventType(ushort id);
 

@@ -4,7 +4,8 @@ namespace SumonerWorld.Core.Diagnostics;
 
 /// <summary>
 /// Incremental 64-bit FNV-1a hash of simulation state, for determinism checks and replays (TDD §2.3). Feed state in a fixed
-/// order; two runs are identical when every tick's hash matches. Only hash structs without padding (their bytes are their value).
+/// order; two runs are identical when every tick's hash matches. <b>Only hash structs without padding</b> through <see cref="Add{T}"/>:
+/// padding bytes can contain anything, so two identical states could hash differently. Hash padded structs field by field.
 /// </summary>
 public struct StateHash
 {

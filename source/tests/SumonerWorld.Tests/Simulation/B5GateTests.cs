@@ -33,6 +33,7 @@ public class B5GateTests
         Assert.Equal(B5Scenario.CreatureCount, scenario.LiveCreatures);
         Assert.Equal(B5Scenario.CreatureCount, scenario.LiveMinds);
         Assert.True(scenario.StoredMemories > 0, "B5 must exercise the memory store (M1-06).");
+        Assert.True(scenario.CreaturesShowingAnEmote > 0, "B5 must exercise opinions, emotions and emotes (M1-07).");
     }
 
     [Fact]
