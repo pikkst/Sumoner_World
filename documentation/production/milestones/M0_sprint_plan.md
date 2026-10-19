@@ -26,14 +26,14 @@ A deliberate violation file was compiled and **rejected**: RS0030 (banned `Syste
 Notes: repository root is `projects/sumoner-worl` → https://github.com/pikkst/Sumoner_World (set up 2026-10-19). CI lives in `.github/workflows/ci.yml`; CODEOWNERS = @pikkst.
 
 TASK: M0-03 Design pillars + GDD v0.1
-Agent: sr_game_designer · Est: 3d
+Agent: sr_game_designer · Est: 3d · **Status: Delivered 2026-10-19, review pending (stakeholder)**
 Rules: R28, R29, R50, R53, R57
 Acceptance criteria:
   1. 3 design pillars, with creature memory/bonding as Pillar #1
   2. Core loop (30 s / 5 min / session) written down
   3. Summoning uses contracts/rituals (no aim-and-throw capture)
   4. Hardcore audience: difficulty, death penalty and PvP stance defined
-Evidence: `documentation/design/gdd.md` reviewed by Producer
+Evidence: `documentation/design/gdd.md` v0.1. Criteria 1–4 covered (Pillars; Core Gameplay Loop; Systems §1 Pacts; Systems §8–9 PvP/Death/Difficulty).
 
 TASK: M0-04 AI Bible v0.1 (creature cognition contract)
 Agent: sr_game_designer + mechanics_developer · Est: 4d
@@ -74,7 +74,7 @@ Agent: producer_agent (stakeholder action) · Est: 1d
 Rules: R56
 Acceptance criteria: ~~decision on title spelling~~ (done 2026-10-19: "Sumoner World"); trademark search done; capture-mechanic design reviewed against the Nintendo patent claims
 
-TASK: M0-09 Art direction brief (blocked: stakeholder decision on visual style)
+TASK: M0-09 Art style guide v0.1 (unblocked: style decided in DEC-002)
 Agent: sr_game_artist + technical_artist · Est: 3d
 Rules: R22, R24
 Acceptance criteria: style pillars, creature silhouette rules, LOD/poly budgets aligned with the TDD
@@ -82,5 +82,5 @@ Acceptance criteria: style pillars, creature silhouette rules, LOD/poly budgets 
 ---
 ## M0 exit gate (Producer validation)
 - [ ] M0-01…M0-07 Done per DoD
-- [ ] Open decisions answered: monetization, visual style (title done: Sumoner World)
+- [x] Open decisions answered: title, monetization, visual style (DEC-002)
 - [ ] Stakeholder sign-off to start M1
