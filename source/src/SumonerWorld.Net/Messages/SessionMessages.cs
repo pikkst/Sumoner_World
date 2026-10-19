@@ -13,7 +13,8 @@ public readonly record struct Hello(ulong ResumeToken, string AuthTicket)
 /// <param name="SessionToken">Token for resuming after a disconnect.</param>
 /// <param name="AccountId">The player's account id (what creatures remember).</param>
 /// <param name="ServerTick">Server tick at the time of sending.</param>
-public readonly record struct Welcome(ulong SessionToken, ulong AccountId, ulong ServerTick);
+/// <param name="Resumed">True when an earlier session continues (unanswered intents may be resent); false for a new one.</param>
+public readonly record struct Welcome(ulong SessionToken, ulong AccountId, ulong ServerTick, bool Resumed);
 
 /// <summary>Server → client: the session was refused.</summary>
 /// <param name="Reason">Why.</param>
@@ -74,12 +75,13 @@ public sealed class WelcomeCodec : IMessageCodec<Welcome>
         writer.WriteUInt64(message.SessionToken);
         writer.WriteUInt64(message.AccountId);
         writer.WriteVarUInt(message.ServerTick);
+        writer.WriteBool(message.Resumed);
     }
 
     /// <inheritdoc />
     public Welcome Read(ref MessageReader reader)
     {
-        var message = new Welcome(reader.ReadUInt64(), reader.ReadUInt64(), reader.ReadVarUInt());
+        var message = new Welcome(reader.ReadUInt64(), reader.ReadUInt64(), reader.ReadVarUInt(), reader.ReadBool());
         reader.EnsureEnd();
         return message;
     }

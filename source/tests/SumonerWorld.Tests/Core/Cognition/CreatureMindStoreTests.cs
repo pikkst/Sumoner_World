@@ -6,6 +6,7 @@ using SumonerWorld.Core.Randomness;
 
 namespace SumonerWorld.Tests.Core.Cognition;
 
+[Collection(AllocationMeasurements.Name)]
 public class CreatureMindStoreTests
 {
     private const int TicksPerDay = 86_400;

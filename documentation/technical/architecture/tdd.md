@@ -167,6 +167,7 @@ intent {IntentId, type, args} ─► authorize (owner, range, cooldown, cost)
 - On disconnect the character **stays in the world for 30 s** (no combat logging in Hardcore), then logs out safely. Summoned creatures return to the Sanctum.
 - **Reconnect within 2 minutes** with the session token resumes the session: the server sends a full snapshot, the client resends unacknowledged intents, and the dedupe window drops duplicates.
 - Server restarts load the last committed state; clients reconnect automatically.
+- **Implemented in M1-16 (protocol 3):** `ServerEndpoint` suspends a session on disconnect and resumes it when a Hello carries its token from the same account within 3,600 ticks (the `Welcome` says `Resumed`); a foreign or expired token gets a new session; a second login replaces the first (one session per account). `GameServer` keeps the avatar in the world for 900 ticks, then parks it with its last position and puts it back on resume; input buffer and queued intents are reset, the applied-input sequence and the dedupe window are kept. `GameClient` restarts prediction from the next snapshot and resends unanswered intents with their sequences only when resumed (a new session counts them as lost). The Godot client retries every 2 s for 2 min. The loopback network now closes gracefully like ENet's `PeerDisconnectLater` (data sent before a disconnect still arrives; data to a closed connection is lost). Sanctum return of summoned creatures comes with summoning; resume after a server restart needs the world store (M1-17).
 
 ---
 

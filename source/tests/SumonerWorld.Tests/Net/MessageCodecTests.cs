@@ -45,7 +45,7 @@ public class MessageCodecTests
     public void Every_message_round_trips()
     {
         Assert.Equal(new Hello(42, "dev-token"), RoundTrip(new HelloCodec(), new Hello(42, "dev-token")));
-        Assert.Equal(new Welcome(7, 9_000_001, 123_456), RoundTrip(new WelcomeCodec(), new Welcome(7, 9_000_001, 123_456)));
+        Assert.Equal(new Welcome(7, 9_000_001, 123_456, true), RoundTrip(new WelcomeCodec(), new Welcome(7, 9_000_001, 123_456, true)));
         Assert.Equal(new Rejected(RejectReason.ServerFull, "16/16"), RoundTrip(new RejectedCodec(), new Rejected(RejectReason.ServerFull, "16/16")));
         var intent = new IntentRequest(5, IntentKind.OfferPact, 123_456, 0b11);
         Assert.Equal(intent, RoundTrip(new IntentRequestCodec(), intent));
@@ -123,14 +123,14 @@ public class MessageCodecTests
     }
 
     [Theory]
-    [InlineData(new byte[] { 0x02, 0x00 }, "truncated")]
+    [InlineData(new byte[] { 0x03, 0x00 }, "truncated")]
     [InlineData(new byte[] { 0x01, 0x00, 0x05 }, "Protocol version 1")]
-    [InlineData(new byte[] { 0x02, 0x00, 0x63 }, "Unknown message type 99")]
-    [InlineData(new byte[] { 0x02, 0x00, 0x04 }, "Unknown message type 4")]
-    [InlineData(new byte[] { 0x02, 0x00, 0x05, 0x01, 0x01, 0xA0, 0x1F, 0x00, 0x00 }, "outside")]
-    [InlineData(new byte[] { 0x02, 0x00, 0x05, 0x01, 0x01, 0x00, 0x00, 0x00, 0xFF }, "trailing")]
-    [InlineData(new byte[] { 0x02, 0x00, 0x05, 0x01, 0x00 }, "out of range")]
-    [InlineData(new byte[] { 0x02, 0x00, 0x05, 0x01, 0x02 }, "out of range")]
+    [InlineData(new byte[] { 0x03, 0x00, 0x63 }, "Unknown message type 99")]
+    [InlineData(new byte[] { 0x03, 0x00, 0x04 }, "Unknown message type 4")]
+    [InlineData(new byte[] { 0x03, 0x00, 0x05, 0x01, 0x01, 0xA0, 0x1F, 0x00, 0x00 }, "outside")]
+    [InlineData(new byte[] { 0x03, 0x00, 0x05, 0x01, 0x01, 0x00, 0x00, 0x00, 0xFF }, "trailing")]
+    [InlineData(new byte[] { 0x03, 0x00, 0x05, 0x01, 0x00 }, "out of range")]
+    [InlineData(new byte[] { 0x03, 0x00, 0x05, 0x01, 0x02 }, "out of range")]
     public void Malformed_input_is_rejected_with_a_reason(byte[] bytes, string expected)
     {
         var error = Assert.Throws<MalformedMessageException>(() =>

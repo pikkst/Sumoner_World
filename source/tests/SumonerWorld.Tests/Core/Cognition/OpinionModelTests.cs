@@ -5,6 +5,7 @@ using static SumonerWorld.Tests.Core.Cognition.CognitionTestData;
 
 namespace SumonerWorld.Tests.Core.Cognition;
 
+[Collection(AllocationMeasurements.Name)]
 public class OpinionModelTests
 {
     private static readonly Personality Calm = new(0, 0, 0, 0);

@@ -101,7 +101,57 @@ public class AuthoritativeLoopTests
     }
 
     [Fact]
-    public void Leaving_removes_the_avatar_and_a_client_sending_server_messages_is_dropped()
+    public void A_disconnected_avatar_lingers_30_s_and_comes_back_where_it_was_on_reconnect()
+    {
+        using var lan = new Lan(0);
+        GameClient alice = lan.Join(1001);
+        lan.Run(10, _ => MoveInput.None);
+        lan.Run(60, _ => new MoveInput(1000, 0));
+        lan.Run(10, _ => MoveInput.None);
+        Vector3 before = lan.ServerPosition(1001);
+
+        lan.TransportOf(alice).Disconnect(alice.Session.Connection);
+        lan.Run((int)GameServer.LingerTicks - 10, _ => MoveInput.None);
+        Assert.True(lan.Server.TryGetAvatar(1001, out _), "Still in the world while lingering.");
+        lan.Run(20, _ => MoveInput.None);
+        Assert.False(lan.Server.TryGetAvatar(1001, out _));
+        Assert.Equal(1, lan.Server.PlayerCount);
+
+        lan.Reconnect(alice);
+        lan.Run(10, _ => MoveInput.None);
+        lan.Run(30, _ => new MoveInput(0, 1000));
+        lan.Run(10, _ => MoveInput.None);
+
+        Assert.True(alice.Session.Session!.Value.Resumed);
+        Assert.Equal(before.X, lan.ServerPosition(1001).X);
+        Assert.True(lan.ServerPosition(1001).Z > before.Z + 5, "Moving again after the resume.");
+        Assert.Equal(lan.ServerPosition(1001), alice.Prediction.Position);
+    }
+
+    [Fact]
+    public void An_intent_whose_answer_was_lost_is_resent_on_resume_and_answered_from_the_dedupe_window()
+    {
+        using var lan = new Lan(0);
+        StableId creature = lan.SpawnCreature(lan.Settings.SpawnPoint + new Vector3(3, 0, 0));
+        GameClient alice = lan.Join(1001);
+        lan.Run(10, _ => MoveInput.None);
+
+        uint offer = alice.SendIntent(IntentKind.OfferPact, creature.Value, 0b1);
+        lan.Run(4, _ => MoveInput.None);
+        lan.TransportOf(alice).Disconnect(alice.Session.Connection);
+        lan.Run(5, _ => MoveInput.None);
+        Assert.Equal(1, alice.UnansweredIntents);
+
+        lan.Reconnect(alice);
+        lan.Run(15, _ => MoveInput.None);
+
+        Assert.True(alice.IntentResults[offer].IsApplied);
+        Assert.Equal(0, alice.UnansweredIntents);
+        Assert.Equal((1, 1), (lan.Server.Transactions.Applied, lan.Server.Transactions.Duplicates));
+    }
+
+    [Fact]
+    public void An_expired_session_removes_the_player_and_a_client_sending_server_messages_is_dropped()
     {
         using var lan = new Lan(0);
         GameClient alice = lan.Join(1001);
@@ -114,10 +164,28 @@ public class AuthoritativeLoopTests
         new IntentAckCodec().Write(ref writer, new IntentAck(1, IntentResult.Applied()));
         lan.TransportOf(bob).Send(bob.Session.Connection, Channel.ReliableOrdered, writer.WrittenSpan);
         lan.Run(10, _ => MoveInput.None);
+        Assert.Equal(ClientSessionState.Disconnected, bob.Session.State);
+        Assert.Equal(1, lan.Server.PlayerCount);
+
+        lan.Run((int)ServerEndpoint.ReconnectWindowTicks, _ => MoveInput.None);
 
         Assert.Equal(0, lan.Server.PlayerCount);
         Assert.Equal(0, lan.Server.World.World.Store<PlayerAvatar>().Count);
-        Assert.Equal(ClientSessionState.Disconnected, bob.Session.State);
+    }
+
+    [Fact]
+    public void Inputs_far_ahead_after_an_outage_skip_forward_instead_of_stalling()
+    {
+        using var lan = new Lan(0);
+        GameClient alice = lan.Join(1001);
+        lan.Run(10, _ => MoveInput.None);
+
+        var writer = new MessageWriter(new byte[Protocol.MaxMessageSize]);
+        InputBatch.Write(ref writer, [new PlayerInput(500, 1000, 0, 0), new PlayerInput(501, 1000, 0, 0)]);
+        lan.TransportOf(alice).Send(alice.Session.Connection, Channel.Unreliable, writer.WrittenSpan);
+        lan.Run(6, _ => MoveInput.None);
+
+        Assert.Equal(501U, lan.Server.LastAppliedInput(1001));
     }
 
     private sealed class Lan : IDisposable
@@ -153,6 +221,13 @@ public class AuthoritativeLoopTests
         }
 
         public LoopbackTransport TransportOf(GameClient client) => _clients.Single(entry => entry.Client == client).Transport;
+
+        public void Reconnect(GameClient client)
+        {
+            LoopbackTransport transport = TransportOf(client);
+            client.Reconnect(transport);
+            transport.Connect(_serverTransport);
+        }
 
         public StableId SpawnCreature(Vector3 position)
         {

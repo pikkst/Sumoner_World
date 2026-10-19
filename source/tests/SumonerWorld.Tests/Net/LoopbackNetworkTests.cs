@@ -3,6 +3,7 @@ using SumonerWorld.Net.Transport;
 
 namespace SumonerWorld.Tests.Net;
 
+[Collection(AllocationMeasurements.Name)]
 public class LoopbackNetworkTests
 {
     [Fact]

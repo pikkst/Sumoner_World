@@ -6,6 +6,7 @@ namespace SumonerWorld.Tests.Simulation;
 /// CI gates from M0-07 A3 on scenario B5 (sim-only): zero allocations per tick after warm-up, and identical runs
 /// (determinism). Timings are not gated here because CI hardware varies; the benchmark tool reports them.
 /// </summary>
+[Collection(AllocationMeasurements.Name)]
 public class B5GateTests
 {
     private const ulong Seed = 0x5357_0001UL;

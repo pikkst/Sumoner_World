@@ -36,10 +36,15 @@ public sealed class GameServerSettings
 /// <summary>
 /// The authoritative server loop (TDD §3.2): poll the transport → run one simulation tick (player inputs at stage 1, the creature
 /// systems, intents through the <see cref="ITransactionProcessor"/> at stage 9) → send snapshots. Clients send inputs and intents,
-/// never state (R31). Avatars appear when a session opens and leave when it closes (the 30 s linger arrives with M1-16).
+/// never state (R31). Sessions (TDD §3.5): an avatar appears when a session opens. When the connection is lost it stays in the world
+/// for <see cref="LingerTicks"/> (no escape from danger by disconnecting), then is parked; resuming within the reconnect window puts
+/// it back where it was, with the same intent dedupe window. When the session closes, the avatar leaves for good.
 /// </summary>
 public sealed class GameServer : IServerSessionHandler
 {
+    /// <summary>30 s at 30 Hz: how long a disconnected player's avatar stays in the world.</summary>
+    public const ulong LingerTicks = 900;
+
     private readonly CreatureWorld _world;
     private readonly ITransport _transport;
     private readonly ILog _log;
@@ -50,6 +55,7 @@ public sealed class GameServer : IServerSessionHandler
     private readonly CooldownTracker _cooldowns = new();
     private readonly List<PlayerSlot> _players = [];
     private readonly Dictionary<ConnectionId, PlayerSlot> _byConnection = [];
+    private readonly Dictionary<ulong, PlayerSlot> _bySession = [];
     private readonly PlayerInput[] _batch = new PlayerInput[InputBatch.MaxInputs];
     private readonly byte[] _buffer = new byte[Protocol.MaxMessageSize];
     private readonly IntentRequestCodec _intentCodec = new();
@@ -90,8 +96,11 @@ public sealed class GameServer : IServerSessionHandler
     /// <summary>Every state-changing intent goes through this.</summary>
     public TransactionProcessor Transactions { get; }
 
-    /// <summary>Players in the world.</summary>
+    /// <summary>Players with a session, connected or not.</summary>
     public int PlayerCount => _players.Count;
+
+    /// <summary>Players currently connected.</summary>
+    public int ConnectedCount => _byConnection.Count;
 
     /// <summary>Snapshot parts sent since the start.</summary>
     public int SnapshotPartsSent => _snapshots.PartsSent;
@@ -101,7 +110,7 @@ public sealed class GameServer : IServerSessionHandler
     {
         foreach (PlayerSlot player in _players)
         {
-            if (player.Account == accountId)
+            if (player.Account == accountId && player.InWorld)
             {
                 avatar = player.Avatar;
                 return true;
@@ -145,12 +154,16 @@ public sealed class GameServer : IServerSessionHandler
         _transport.Poll(_endpoint);
         _scheduler.RunTick();
         ulong tick = _world.Clock.Current.Index;
-        _endpoint.ServerTick = tick;
+        ParkLingeringAvatars(tick);
+        _endpoint.Update(tick);
         if (IsSnapshotTick(tick))
         {
             foreach (PlayerSlot player in _players)
             {
-                _snapshots.Send(player.Connection, player.Avatar, player.Inputs.LastApplied, tick);
+                if (player.Connection is ConnectionId connection && player.InWorld)
+                {
+                    _snapshots.Send(connection, player.Avatar, player.Inputs.LastApplied, tick);
+                }
             }
         }
 
@@ -163,21 +176,70 @@ public sealed class GameServer : IServerSessionHandler
     /// <inheritdoc />
     public void OnSessionOpened(ConnectionId connection, ulong accountId, ulong sessionId)
     {
-        var player = new PlayerSlot(connection, accountId, sessionId, _world.SpawnPlayerAvatar(accountId, _settings.SpawnPoint));
+        var player = new PlayerSlot(accountId, sessionId) { Connection = connection, LastPosition = _settings.SpawnPoint };
+        Enter(player);
         _players.Add(player);
         _byConnection.Add(connection, player);
+        _bySession.Add(sessionId, player);
     }
 
     /// <inheritdoc />
-    public void OnSessionClosed(ConnectionId connection, ulong accountId)
+    public void OnSessionSuspended(ulong sessionId)
     {
-        if (_byConnection.Remove(connection, out PlayerSlot? player))
+        if (_bySession.TryGetValue(sessionId, out PlayerSlot? player) && player.Connection is ConnectionId connection)
         {
-            _players.Remove(player);
-            _world.DespawnPlayerAvatar(player.Avatar);
-            _cooldowns.Forget(accountId);
-            _dedupe.Forget(player.Session);
+            _byConnection.Remove(connection);
+            player.Connection = null;
+            player.LingerUntil = _world.Clock.Current.Index + LingerTicks;
+            player.Inputs.Reset();
+            player.Intents.Clear();
         }
+    }
+
+    /// <inheritdoc />
+    public void OnSessionResumed(ConnectionId connection, ulong sessionId)
+    {
+        if (!_bySession.TryGetValue(sessionId, out PlayerSlot? player))
+        {
+            return;
+        }
+
+        if (player.Connection is ConnectionId old)
+        {
+            _byConnection.Remove(old);
+        }
+
+        player.Connection = connection;
+        _byConnection.Add(connection, player);
+        player.Inputs.Reset();
+        player.Intents.Clear();
+        if (!player.InWorld)
+        {
+            Enter(player);
+        }
+    }
+
+    /// <inheritdoc />
+    public void OnSessionClosed(ulong sessionId)
+    {
+        if (!_bySession.Remove(sessionId, out PlayerSlot? player))
+        {
+            return;
+        }
+
+        if (player.Connection is ConnectionId connection)
+        {
+            _byConnection.Remove(connection);
+        }
+
+        if (player.InWorld)
+        {
+            Leave(player);
+        }
+
+        _players.Remove(player);
+        _cooldowns.Forget(player.Account);
+        _dedupe.Forget(player.Session);
     }
 
     /// <inheritdoc />
@@ -211,6 +273,30 @@ public sealed class GameServer : IServerSessionHandler
         }
     }
 
+    private void Enter(PlayerSlot player)
+    {
+        player.Avatar = _world.SpawnPlayerAvatar(player.Account, player.LastPosition);
+        player.InWorld = true;
+    }
+
+    private void Leave(PlayerSlot player)
+    {
+        player.LastPosition = _world.World.GetComponent<Position>(player.Avatar).Value;
+        _world.DespawnPlayerAvatar(player.Avatar);
+        player.InWorld = false;
+    }
+
+    private void ParkLingeringAvatars(ulong tick)
+    {
+        foreach (PlayerSlot player in _players)
+        {
+            if (player.Connection is null && player.InWorld && tick >= player.LingerUntil)
+            {
+                Leave(player);
+            }
+        }
+    }
+
     private bool IsSnapshotTick(ulong tick)
     {
         ulong rate = (ulong)_settings.SnapshotsPerSecond;
@@ -224,6 +310,11 @@ public sealed class GameServer : IServerSessionHandler
         ComponentStore<Facing> facings = _world.World.Store<Facing>();
         foreach (PlayerSlot player in _players)
         {
+            if (player.Connection is null || !player.InWorld)
+            {
+                continue;
+            }
+
             int steps = player.Inputs.Buffered > PlayerInputBuffer.CatchUpThreshold ? 2 : 1;
             for (int i = 0; i < steps && player.Inputs.TryTakeNext(out PlayerInput input); i++)
             {
@@ -245,12 +336,17 @@ public sealed class GameServer : IServerSessionHandler
     {
         foreach (PlayerSlot player in _players)
         {
+            if (player.Connection is not ConnectionId connection)
+            {
+                continue;
+            }
+
             while (player.Intents.TryDequeue(out IntentRequest request))
             {
                 IntentResult result = Execute(player, request, now);
                 var writer = new MessageWriter(_buffer);
                 _ackCodec.Write(ref writer, new IntentAck(request.Sequence, result));
-                _transport.Send(player.Connection, Channel.ReliableOrdered, writer.WrittenSpan);
+                _transport.Send(connection, Channel.ReliableOrdered, writer.WrittenSpan);
                 if (!result.IsApplied && _log.IsEnabled(LogLevel.Debug))
                 {
                     _log.Write(LogLevel.Debug, "intent.rejected", $"account {player.Account} intent {request.Sequence} {request.Kind}: {result.Reason}");
@@ -272,17 +368,23 @@ public sealed class GameServer : IServerSessionHandler
         }
     }
 
-    private sealed class PlayerSlot(ConnectionId connection, ulong account, ulong session, Entity avatar)
+    private sealed class PlayerSlot(ulong account, ulong session)
     {
         public const int MaxQueuedIntents = 32;
-
-        public ConnectionId Connection { get; } = connection;
 
         public ulong Account { get; } = account;
 
         public ulong Session { get; } = session;
 
-        public Entity Avatar { get; } = avatar;
+        public ConnectionId? Connection { get; set; }
+
+        public Entity Avatar { get; set; }
+
+        public bool InWorld { get; set; }
+
+        public Vector3 LastPosition { get; set; }
+
+        public ulong LingerUntil { get; set; }
 
         public PlayerInputBuffer Inputs { get; } = new();
 

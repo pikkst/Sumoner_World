@@ -93,4 +93,5 @@ M1-01 → (M1-02, M1-03, M1-04) → M1-05 → Phase B. M1-13 can start after M1-
 | M1-15a | **Done** 2026-10-20 (merged under standing approval): creature systems promoted to `Core.World.CreatureWorld`; B5 is a thin scenario, state hash unchanged |
 | M1-15b | **Done** 2026-10-20 (merged under standing approval): movement model, IntentId dedupe, transaction processor, OfferPact transaction (Core) |
 | M1-15c | **Done** 2026-10-20 (merged under standing approval): protocol 2, authoritative server loop, prediction + reconciliation, 2 clients over loopback, Godot hosts; M1-15 complete |
-| M1-16 … M1-24 | Planned |
+| M1-16 | **Done** 2026-10-20 (merged under standing approval): suspend/resume sessions (2 min), 30 s avatar linger, one session per account, intent resend on resume, client auto-reconnect |
+| M1-17 … M1-24 | Planned |

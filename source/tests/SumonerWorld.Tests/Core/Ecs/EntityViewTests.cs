@@ -2,6 +2,7 @@ using SumonerWorld.Core.Ecs;
 
 namespace SumonerWorld.Tests.Core.Ecs;
 
+[Collection(AllocationMeasurements.Name)]
 public class EntityViewTests
 {
     private const int Capacity = 256;
