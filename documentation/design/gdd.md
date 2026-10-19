@@ -1,6 +1,6 @@
 # Sumoner World - Game Design Document
 Version: **0.1** (M0-03) · Date: 2026-10-19 · Owner: Sr Game Designer · Status: **Approved by stakeholder 2026-10-19** (PvE default, permanent creature death on Hardcore, 16-player target confirmed)
-Rules: R28, R29, R50, R53, R57 · Related: `DEC-002` (monetization/art), `ADR-001` (tech), AI Bible (M0-04, pending), TDD (M0-05, pending)
+Rules: R28, R29, R50, R53, R57 · Related: `DEC-002` (monetization/art), `ADR-001` (tech), AI Bible v0.1 (`systems/ai_bible.md`), TDD (M0-05, pending)
 
 > All numbers in this document are **design targets or starting values**. Real tuning values live in versioned data files (R08, R48), not in code or here.
 
@@ -61,7 +61,7 @@ Creatures are **never captured**. The player proposes a **Pact**, a magical cont
 - **Summoning:** bonded creatures live in the world or at the Sanctum. The player **calls** them through a sigil (it costs mana; there is a limit on active summons = **Bond Capacity**, which grows with mastery).
 - Ownership, bonding, progression and command rules are a single **versioned contract** shared by every creature (R29). It is defined in the AI Bible.
 
-### 2. Creature Mind (USP core; full spec in AI Bible, M0-04)
+### 2. Creature Mind (USP core; full spec in `systems/ai_bible.md`)
 - **Personality:** a few trait axes (e.g. bold↔timid, loyal↔independent, curious↔wary, aggressive↔gentle). These are inheritable and slowly shaped by experience.
 - **Memory:** episodic events with salience and decay (*"you saved me"*, *"you let my packmate die"*, *"you broke our pact"*, *"that player hunted my kind"*). Memories **persist in saves** (R14, R26).
 - **Opinions:** of players, other creatures and places. These drive obedience, positioning, initiative and refusal.
@@ -153,7 +153,7 @@ Premium early access at **$24.99** → 1.0 at **$29.99** → paid region expansi
 
 ## Open Design Questions (to be resolved by M1)
 1. Server size: 16 players. Validate against the network/sim budget in M1.
-2. How much can a creature's personality change: slow drift or milestone-based?
+2. How much can a creature's personality change: slow drift or milestone-based? *Resolved (AI Bible v0.1 §3, approved): slow drift from core memories, capped at ±25.*
 3. Can creatures breed? The proposal is yes, with inherited traits (not memories). This needs the Bonding contract first.
 4. Expansion story arcs (post-1.0).
 
