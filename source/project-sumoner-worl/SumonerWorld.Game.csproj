@@ -9,6 +9,7 @@
 
   <ItemGroup>
     <ProjectReference Include="..\src\SumonerWorld.Core\SumonerWorld.Core.csproj" />
+    <ProjectReference Include="..\src\SumonerWorld.Net\SumonerWorld.Net.csproj" />
   </ItemGroup>
 
 </Project>

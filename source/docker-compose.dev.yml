@@ -1,0 +1,34 @@
+# Local dev server (TDD §3.1a).
+#   Start:        docker compose -f docker-compose.dev.yml up --build -d
+#   Logs:         docker compose -f docker-compose.dev.yml logs -f server
+#   Smoke test:   docker compose -f docker-compose.dev.yml --profile smoke run --rm smoke-client
+#   Stop:         docker compose -f docker-compose.dev.yml down        (keeps the world volume)
+#   Wipe world:   docker compose -f docker-compose.dev.yml down -v
+# Connect a Windows client: Godot --path project-sumoner-worl -- --connect=127.0.0.1:7777
+services:
+  server:
+    build:
+      context: .
+      dockerfile: server/Dockerfile
+    image: sumoner-world-dev-server
+    ports:
+      - "127.0.0.1:7777:7777/udp"
+    environment:
+      SW_SERVER_MODE: dev
+      SW_DEV_SECRET: ${SW_DEV_SECRET:-local-dev-secret}
+      SW_MAX_PLAYERS: "16"
+    volumes:
+      - world-data:/data
+    restart: unless-stopped
+
+  smoke-client:
+    profiles: ["smoke"]
+    image: sumoner-world-dev-server
+    depends_on:
+      - server
+    environment:
+      SW_DEV_SECRET: ${SW_DEV_SECRET:-local-dev-secret}
+    command: ["--connect=server:7777", "--exit-on-welcome", "--account=2001"]
+
+volumes:
+  world-data:

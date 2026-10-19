@@ -1,0 +1,41 @@
+# Dev server image (TDD §3.1a, M1 spike 6): build the Docker image, start the headless server and connect a client to it.
+name: server-image
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  smoke:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    defaults:
+      run:
+        working-directory: source
+    steps:
+      - uses: actions/checkout@v4
+      - name: Build the dev server image
+        run: docker compose -f docker-compose.dev.yml build server
+      - name: Start the server
+        run: docker compose -f docker-compose.dev.yml up -d server
+      - name: Wait until it listens
+        run: |
+          for i in $(seq 1 60); do
+            if docker compose -f docker-compose.dev.yml logs server | grep -q '"server.listening"'; then exit 0; fi
+            sleep 2
+          done
+          echo "Server did not start"; docker compose -f docker-compose.dev.yml logs server; exit 1
+      - name: Connect a client (must be welcomed)
+        run: docker compose -f docker-compose.dev.yml --profile smoke run --rm smoke-client
+      - name: Restart and connect again
+        run: |
+          docker compose -f docker-compose.dev.yml restart server
+          sleep 10
+          docker compose -f docker-compose.dev.yml --profile smoke run --rm smoke-client
+      - name: Server log
+        if: always()
+        run: docker compose -f docker-compose.dev.yml logs server
+      - name: Stop
+        if: always()
+        run: docker compose -f docker-compose.dev.yml down -v
