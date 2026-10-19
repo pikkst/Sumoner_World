@@ -36,10 +36,10 @@ Rules: R02, R07, R12, R47, R49 · Related: ADR-001 (layers), TDD v0.1, AI Bible 
 ## 2. Core: player actions and authority
 | System | Namespace | Interface | Responsibility | Spec | Status |
 |---|---|---|---|---|---|
-| Intent validation | `Core.Intents` | `IIntentValidator` | Authorize intents: owner, range, cooldown, cost | TDD §3.2–3.3 | Planned (M1) |
-| Intent dedupe | `Core.Intents` | `IIntentDeduplicator` | `IntentId` window; repeated ids return the first result | TDD §3.4 | Planned (M1) |
-| Transactions | `Core.Transactions` | `ITransactionProcessor` | **The only path** for atomic multi-entity changes: trades, crafting, pacts, ownership, rewards | TDD §3.4 | Planned (M1) |
-| Movement | `Core.Movement` | `IMovementModel` | Character/creature movement shared by server and client prediction | TDD §3.2 | Planned (M1) |
+| Intent validation | `Core.Transactions` | `ITransaction` (`Validate`) | Authorize an intent (owner, range, cooldown, cost) without changing state; the first phase of every transaction, so validation and commit can never disagree (`CooldownTracker` in `Core.Intents`). Was planned as `IIntentValidator`; merged into `ITransaction` (rule 4) | TDD §3.2–3.3 | **Implemented** (M1-15b) |
+| Intent dedupe | `Core.Intents` | `IIntentDeduplicator` | `IntentId` window (last 1,024 per session, idle sessions pruned after 10 min); repeated ids return the first result, lower unseen ids are stale and never applied (`IntentDeduplicator`) | TDD §3.4 | **Implemented** (M1-15b) |
+| Transactions | `Core.Transactions` | `ITransactionProcessor` | **The only path** for atomic multi-entity changes: trades, crafting, pacts, ownership, rewards. Dedupe → validate → commit → record (`TransactionProcessor`; DB transaction from M1-17). First transaction: `OfferPactTransaction` (Core.World) | TDD §3.4 | **Implemented** (M1-15b) |
+| Movement | `Core.Movement` | `IMovementModel` | Character movement shared by server and client prediction: one `MoveInput` per tick, diagonals not faster, clamped to bounds (`MovementModel`); terrain and collision with M1-20 | TDD §3.2 | **Implemented** (M1-15b) |
 
 ## 3. Core: gameplay
 | System | Namespace | Interface | Responsibility | Spec | Status |
