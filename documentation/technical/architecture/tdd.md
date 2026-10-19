@@ -1,5 +1,5 @@
 # Sumoner World - Technical Design Document
-Version: **0.1** (M0-05) · Date: 2026-10-19 · Owner: Mechanics Developer · Status: **Delivered, review pending (stakeholder)**
+Version: **0.1** (M0-05) · Date: 2026-10-19 · Owner: Mechanics Developer · Status: **Approved by stakeholder 2026-10-19** (with local Docker dev server, §3.1a)
 Rules: R03, R11, R12, R17–R27, R30–R36, R48 · Related: ADR-001 (engine, layering), GDD v0.1, AI Bible v0.1, DEC-002
 
 > The TDD fixes the technical budgets and contracts the M1 prototype must prove. Items marked **[M1 spike]** are the preferred choice but must pass a spike before they are locked; if a spike fails, the fallback listed is used and this document is updated (R50).
@@ -117,6 +117,15 @@ Results from other threads are applied only at tick step 2, in job-id order.
 - Transport: Godot `ENetConnection` used at **packet level** (not Godot RPCs or `MultiplayerSynchronizer`) behind an `ITransport` interface in `SumonerWorld.Net`. Steam Networking Sockets (NAT traversal, invites) can be added later as a second `ITransport`.
 - Channels: `Unreliable` (snapshots, movement input), `ReliableOrdered` (intents, events, transactions, chat).
 
+### 3.1a Development server: local Docker (stakeholder decision 2026-10-19)
+During development the dedicated server runs as a **dev build in a local Docker container** (Linux engine) on the developer's machine. Game clients (Godot editor or Windows dev builds) connect to it on `localhost`.
+- **Why:** the Linux x64 server path is exercised from day one, the server environment is identical on every run, and the same image can run in CI (ubuntu) for the M1 net and persistence spikes.
+- **Image:** multi-stage build. Stage 1 builds the C# solution with the .NET SDK image; stage 2 is a slim Linux runtime with the **Godot 4.7.2-stable .NET Linux headless** server build (exported with a dedicated-server export preset; the export templates are pinned to 4.7.2). Godot and SDK versions are build arguments pinned to the versions in ADR-001 and `global.json`.
+- **Compose (`docker-compose.dev.yml`):** one `server` service; UDP game port **7777** published to localhost only; world data on a named volume (`world.db` + backups) so restarts keep the world; `SW_SERVER_MODE=dev` enables the signed dev token auth (§3.3), verbose structured logs (§6) and the debug state hash.
+- **Commands (planned):** `docker compose -f docker-compose.dev.yml up --build` starts it; `down` stops it and keeps the volume; `down -v` wipes the dev world.
+- **Scope:** dev and test only. Player-facing distribution stays the free dedicated-server download (Windows/Linux); an official Docker image for hosts is a post-EA option.
+- **When:** the Dockerfile and compose file are created in M1, together with the server entry point (there is nothing to run before that). Tracked as spike 6 in §8.
+
 ### 3.2 Intent → validate → replicate
 ```
 Client                           Server (authoritative)                        All relevant clients
@@ -227,6 +236,7 @@ Every dependency must be: permissive licence (MIT/BSD/Apache-2.0/zlib), actively
 3. **Persistence:** kill the server process during 1,000 random trades, restart, and verify no item is lost or duplicated.
 4. **Terrain & streaming:** fly across the 4 km region at sprint speed with no frame above 33 ms on the recommended spec.
 5. **Client frame:** 60 creatures animated in view at 60 FPS on the recommended spec.
+6. **Dev server in Docker (§3.1a):** `docker compose up` starts the headless server, a Windows client connects on localhost, the world survives a container restart, and CI builds the same image.
 
 ## 9. Open technical questions
 1. Steam Deck support level after EA.
@@ -235,3 +245,4 @@ Every dependency must be: permissive licence (MIT/BSD/Apache-2.0/zlib), actively
 
 ## Changelog
 - **0.1 (2026-10-19):** First version. Hardware targets and budgets, 30 Hz sim, ECS layout, two-level determinism, network model, persistence and migrations, chunking and streaming, M1 spikes.
+- **0.1 approved (2026-10-19):** Stakeholder approved via PR #3, with one addition: the dev server runs in local Docker (§3.1a, spike 6). Server-bound characters, headless-Godot server and the revised load targets confirmed.

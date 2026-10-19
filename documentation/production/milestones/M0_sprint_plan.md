@@ -46,7 +46,7 @@ Acceptance criteria:
 Evidence: `documentation/design/systems/ai_bible.md` v0.1. Criteria 1–4 covered (§4 memory model and persistence; §7 + §9 utility/BT and per-tier tick budgets; §10 Bonding Contract v1.0.0; §11 generative-AI policy).
 
 TASK: M0-05 TDD v0.1 (Technical Design Document)
-Agent: mechanics_developer · Est: 4d · **Status: Delivered 2026-10-19, review pending (stakeholder)**
+Agent: mechanics_developer · Est: 4d · **Status: Done (stakeholder approved 2026-10-19, PR #3)**
 Rules: R03, R11, R12, R22, R24, R26, R30–R34
 Acceptance criteria:
   1. Target hardware defined (min/rec spec) with CPU/GPU/memory budgets per frame (R22)
