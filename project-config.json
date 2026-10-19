@@ -237,12 +237,13 @@
         "CI green on empty solution",
         "All docs reviewed by Producer",
         "Rules compliance matrix approved"
-      ]
+      ],
+      "status": "Done (closed 2026-10-19)"
     },
     {
       "id": "M1",
       "name": "Core Tech Prototype (risk burn-down)",
-      "start": "2026-12-01",
+      "start": "2026-10-20",
       "target_date": "2027-03-31",
       "deliverables": [
         "Creature AI with memory (utility AI + BT), persistent state",
@@ -256,7 +257,8 @@
         "Playtesters notice creature memory within 10 min",
         "Server-authoritative loop with reconnect works",
         "GO / RE-SCOPE gate decision by stakeholder"
-      ]
+      ],
+      "status": "In progress"
     },
     {
       "id": "M2",
