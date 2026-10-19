@@ -80,5 +80,6 @@ M1-01 → (M1-02, M1-03, M1-04) → M1-05 → Phase B. M1-13 can start after M1-
 | M1-02b | **Done** 2026-10-19 (stakeholder approved, PR #12): `EcsWorld`, `StableIdAllocator`, 18 tests, benchmarks |
 | M1-03 | **Done** 2026-10-19 (stakeholder approved, PR #13): `SpatialGrid`, 10 tests, perception benchmark |
 | M1-04 | **Done** 2026-10-19 (stakeholder approved, PR #14): data registry, 18 memory event types, 3 placeholder species, 15 tests |
-| M1-05 | **Delivered** 2026-10-19, review pending: B5 scenario, CI gates (0 B/tick, identical runs), `b5` CSV tool |
-| M1-06 … M1-24 | Planned |
+| M1-05 | **Done** 2026-10-19 (stakeholder approved, PR #15): B5 scenario, CI gates (0 B/tick, identical runs), `b5` CSV tool |
+| M1-06 | **Delivered** 2026-10-20, review pending: memory store, decay, core memories, personality drift; in B5 gates |
+| M1-07 … M1-24 | Planned |

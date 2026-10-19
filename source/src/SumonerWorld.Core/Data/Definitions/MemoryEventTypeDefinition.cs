@@ -1,7 +1,7 @@
 namespace SumonerWorld.Core.Data.Definitions;
 
 /// <summary>What a memory can be about (AI Bible §4.1 <c>Subject</c>).</summary>
-public enum SubjectKind
+public enum SubjectKind : byte
 {
     /// <summary>A player account.</summary>
     Player,
@@ -17,6 +17,35 @@ public enum SubjectKind
 
     /// <summary>An item type.</summary>
     Item,
+}
+
+/// <summary>The four personality axes (AI Bible §3).</summary>
+public enum PersonalityTrait
+{
+    /// <summary>Timid (−100) to bold (+100).</summary>
+    Boldness,
+
+    /// <summary>Independent (−100) to loyal (+100).</summary>
+    Loyalty,
+
+    /// <summary>Wary (−100) to curious (+100).</summary>
+    Curiosity,
+
+    /// <summary>Gentle (−100) to aggressive (+100).</summary>
+    Temper,
+}
+
+/// <summary>How a core memory shifts personality when it forms (AI Bible §3: 1–5 points, capped at ±25 from birth).</summary>
+public sealed record TraitDrift
+{
+    /// <summary>Largest allowed shift per core memory.</summary>
+    public const int MaxAmount = 5;
+
+    /// <summary>The trait that shifts.</summary>
+    public required PersonalityTrait Trait { get; init; }
+
+    /// <summary>Signed shift in trait points, 1–5 in either direction.</summary>
+    public required int Amount { get; init; }
 }
 
 /// <summary>One row of the memory event table (AI Bible §4.2), loaded from <c>data/ai/memory_event_types.json</c>.</summary>
@@ -51,4 +80,7 @@ public sealed record MemoryEventTypeDefinition
 
     /// <summary>True for core memories (pinned, shape personality; AI Bible §4.4).</summary>
     public required bool IsCore { get; init; }
+
+    /// <summary>Personality shift applied once when this core memory forms; only allowed on core types.</summary>
+    public TraitDrift? TraitDrift { get; init; }
 }

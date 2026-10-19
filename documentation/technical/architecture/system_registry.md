@@ -59,7 +59,7 @@ Rules: R02, R07, R12, R47, R49 · Related: ADR-001 (layers), TDD v0.1, AI Bible 
 | System | Namespace | Interface | Responsibility | Spec | Status |
 |---|---|---|---|---|---|
 | Perception | `Core.Cognition.Perception` | `IPerception` | Sight, hearing, scent via `ISpatialIndex` | AI Bible §2 | Planned (M1) |
-| Creature minds | `Core.Cognition.Memory` | `ICreatureMindStore` | Memories, traits, opinions storage (bounded, pooled) | AI Bible §3–5 | Planned (M1) |
+| Creature minds | `Core.Cognition.Memory` | `ICreatureMindStore` | Personalities and memories (bounded, pooled): `CreatureMindStore`, `MemoryDecay`, `MemoryRules`, `Personality` | AI Bible §3–4 | **Implemented** (M1-06); opinions follow in M1-07 |
 | Opinions | `Core.Cognition.Opinions` | `IOpinionModel` | Trust / Fear / Affection / Respect from memories | AI Bible §5 | Planned (M1) |
 | Appraisal | `Core.Cognition.Appraisal` | `IAppraisal` | Short-term emotions, needs, emote selection | AI Bible §6 | Planned (M1) |
 | Goal selection | `Core.Cognition.Decision` | `IUtilityEvaluator` | Utility scoring of goals | AI Bible §7.1–7.2 | Planned (M1) |

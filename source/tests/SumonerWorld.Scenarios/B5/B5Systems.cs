@@ -1,4 +1,6 @@
 using System.Numerics;
+using SumonerWorld.Core.Cognition.Memory;
+using SumonerWorld.Core.Data.Definitions;
 using SumonerWorld.Core.Ecs;
 using SumonerWorld.Core.Events;
 using SumonerWorld.Core.Randomness;
@@ -66,12 +68,19 @@ internal sealed class WanderSystem(IEcsWorld world, IRandom random, float speed)
     }
 }
 
-/// <summary>Crowded creatures (more than 6 neighbours) pick a new heading on the next tick.</summary>
-internal sealed class CrowdReactionSystem(IEcsWorld world, IEventBus events) : ISimulationSystem
+/// <summary>
+/// Crowded creatures (more than 6 neighbours) remember the spot as dangerous (memory event <c>PlaceDanger</c>, subject = the
+/// 16 m grid cell) and pick a new heading on the next tick.
+/// </summary>
+internal sealed class CrowdReactionSystem(IEcsWorld world, IEventBus events, ICreatureMindStore minds, ushort placeDanger) : ISimulationSystem
 {
     private const int CrowdedNeighbours = 6;
+    private const float CellSize = SpatialGridSettings.DefaultCellSize;
+    private const ulong CellsPerRow = 1024;
 
     private readonly ComponentStore<WanderTimer> _timers = world.Store<WanderTimer>();
+    private readonly ComponentStore<Position> _positions = world.Store<Position>();
+    private readonly ComponentStore<MindRef> _minds = world.Store<MindRef>();
 
     public SimulationStage Stage => SimulationStage.Behaviour;
 
@@ -81,6 +90,9 @@ internal sealed class CrowdReactionSystem(IEcsWorld world, IEventBus events) : I
         {
             if (sensed.Count > CrowdedNeighbours)
             {
+                Vector3 position = _positions.Get(sensed.Creature).Value;
+                ulong cell = ((ulong)(position.Z / CellSize) * CellsPerRow) + (ulong)(position.X / CellSize);
+                minds.Remember(_minds.Get(sensed.Creature).Handle, placeDanger, new MemorySubject(SubjectKind.Place, cell), tick.Index);
                 _timers.Get(sensed.Creature) = new WanderTimer(1);
             }
         }

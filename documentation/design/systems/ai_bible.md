@@ -78,22 +78,22 @@ Four trait axes, each an integer in **[-100, +100]**:
 Values are **integers** so that decay, saves and replays are bit-exact (R11). Floats are allowed only in presentation.
 
 ### 4.2 Event types (v1 starting set, data file `data/ai/memory_event_types.json`)
-| Id | Event | Subject | Valence | Base salience | Half-life | Core? |
+| Id | Event | Subject | Valence | Base salience | Half-life | Core? (trait drift) |
 |---|---|---|---|---|---|---|
 | 1 | `FedBy` | player | +20 | 150 | 2 days | no |
 | 2 | `HealedBy` | player | +40 | 300 | 7 days | no |
-| 3 | `SavedLifeOf` (me) | player/creature | +90 | 900 | never | **yes** |
-| 4 | `ProtectedYoung` | player | +70 | 700 | 30 days | **yes** |
+| 3 | `SavedLifeOf` (me) | player/creature | +90 | 900 | never | **yes** (Loyalty +3) |
+| 4 | `ProtectedYoung` | player | +70 | 700 | 30 days | **yes** (Loyalty +2) |
 | 5 | `AttackedBy` | player/creature | −40 | 400 | 3 days | no |
 | 6 | `DefeatedButSpared` | player | +30 / respect | 500 | 14 days | no |
-| 7 | `KilledKin` (witnessed or rumoured) | player/creature | −90 | 900 | 60 days | **yes** |
+| 7 | `KilledKin` (witnessed or rumoured) | player/creature | −90 | 900 | 60 days | **yes** (Temper +3) |
 | 8 | `HuntedMyKind` | player | −50 | 400 | 10 days | no |
 | 9 | `PactOffered` | player | +5 | 100 | 2 days | no |
 | 10 | `PactTermKept` | player | +15 | 150 | 7 days | no |
-| 11 | `PactBroken` | player | −80 | 800 | 90 days | **yes** |
+| 11 | `PactBroken` | player | −80 | 800 | 90 days | **yes** (Loyalty −3) |
 | 12 | `CommandedIntoDanger` | player | −30 | 350 | 5 days | no |
 | 13 | `FoughtBeside` | player/creature | +25 | 250 | 7 days | no |
-| 14 | `BondedDied` | creature | −70 | 900 | never | **yes** |
+| 14 | `BondedDied` | creature | −70 | 900 | never | **yes** (Boldness −2) |
 | 15 | `OwnerDied` | player | −40 | 500 | 3 days | no |
 | 16 | `PlaceDanger` | place | −40 | 300 | 14 days | no |
 | 17 | `Mistreated` (hit, starved, ignored needs) | player | −50 | 450 | 14 days | no |
@@ -107,6 +107,13 @@ Values are **integers** so that decay, saves and replays are bit-exact (R11). Fl
   computed with integers: whole half-lives by bit shift, the remainder from a 16-entry fixed-point lookup table. No per-tick work for memories that are not read.
 - **Reinforcement:** the same `(EventType, Subject)` within its merge window updates the existing record instead of creating a new one: `Count++`, `Salience = min(1000, effective + Base × 0.6)`, `LastReinforcedTick = now`. Repetition makes memories stronger, so a creature fed every day really trusts you.
 - **Forgetting:** a memory below salience 20 is free for eviction. Core memories never decay below 300 while the creature lives.
+- **Implementation decisions (M1-06, `CreatureMindStore`):**
+  - **Merge window = still remembered:** a repeat of the same `(EventType, Subject)` reinforces the existing record while its effective salience is ≥ 20; once forgotten, a repeat starts a fresh record in the same slot. No separate merge-window value is needed.
+  - **Decay table:** 17 fixed-point points (2^(−i/16), i = 0..16) with linear interpolation between them; within 1% of the exact curve and never increasing over time (property-tested).
+  - **Trait drift** comes from data (`traitDrift` on core event types, values in the table above) and is applied once, when a core memory takes a core slot.
+  - **Core slots full:** a new core memory takes a slot only if it is stronger than the weakest pinned one; the displaced memory **continues as an ordinary episodic memory** instead of being lost. A core memory that is not stronger is stored as an ordinary episodic memory (no drift).
+  - **Ties** (eviction, recall order) are broken by least recently reinforced / oldest, then slot or id, so results are deterministic.
+  - The record field `Flags` is called `Tags` in code (.NET naming rule CA1711).
 
 ### 4.4 Capacity and eviction
 | Store | Capacity per creature | Eviction |
