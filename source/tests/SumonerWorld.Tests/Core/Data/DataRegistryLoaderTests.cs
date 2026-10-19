@@ -20,6 +20,13 @@ public class DataRegistryLoaderTests
         ] }
         """;
 
+    private const string ValidGoals = """
+        { "schemaVersion": 1, "kind": "goals", "entries": [
+          { "id": 4, "key": "Eat", "weight": 900, "interrupt": false, "personality": [],
+            "considerations": [ { "input": "needHunger", "curve": { "type": "quadratic", "slope": 1000 } } ] }
+        ] }
+        """;
+
     [Fact]
     public void The_shipped_game_data_is_valid()
     {
@@ -91,6 +98,7 @@ public class DataRegistryLoaderTests
         [
             new DataFile("events.json", ValidEventTypes),
             new DataFile("weights.json", ValidOpinionWeights),
+            new DataFile("goals.json", ValidGoals),
             new DataFile("a.json", badSpecies),
             new DataFile("b.json", duplicate),
             new DataFile("c.json", badTrait),
@@ -116,6 +124,36 @@ public class DataRegistryLoaderTests
         Assert.Contains(error.Errors, message => message.Contains(expectedFragment, StringComparison.Ordinal));
     }
 
+    [Theory]
+    [InlineData("\"weight\": 900", "\"weight\": 0", "weight = 0")]
+    [InlineData("\"considerations\": [ { \"input\": \"needHunger\", \"curve\": { \"type\": \"quadratic\", \"slope\": 1000 } } ]", "\"considerations\": []", "at least one consideration")]
+    [InlineData("\"type\": \"quadratic\", \"slope\": 1000", "\"type\": \"logistic\", \"centre\": 500, \"width\": 0", "width = 0")]
+    [InlineData("\"input\": \"needHunger\"", "\"input\": \"moonPhase\"", "input")]
+    [InlineData("\"personality\": []", "\"personality\": [ { \"trait\": \"boldness\", \"factor\": 50 } ]", "factor = 50")]
+    public void Invalid_goals_are_rejected(string find, string replace, string expectedFragment)
+    {
+        string broken = ValidGoals.Replace(find, replace, StringComparison.Ordinal);
+
+        var error = Assert.Throws<DataValidationException>(() => DataRegistryLoader.Load(
+            [new DataFile("events.json", ValidEventTypes), new DataFile("weights.json", ValidOpinionWeights), new DataFile("goals.json", broken)]));
+
+        Assert.Contains(error.Errors, message => message.Contains(expectedFragment, StringComparison.Ordinal));
+    }
+
+    [Fact]
+    public void A_species_using_an_unknown_goal_is_rejected()
+    {
+        string species = SpeciesJson("mossback").Replace("\"goals\": [\"Eat\"]", "\"goals\": [\"Eat\", \"Fly\"]", StringComparison.Ordinal);
+
+        var error = Assert.Throws<DataValidationException>(() => DataRegistryLoader.Load(
+        [
+            new DataFile("events.json", ValidEventTypes), new DataFile("weights.json", ValidOpinionWeights),
+            new DataFile("goals.json", ValidGoals), new DataFile("s.json", species),
+        ]));
+
+        Assert.Contains(error.Errors, message => message.Contains("goal 'Fly' is not defined", StringComparison.Ordinal));
+    }
+
     [Fact]
     public void A_missing_memory_event_file_is_an_error()
     {
@@ -130,7 +168,7 @@ public class DataRegistryLoaderTests
         string noNeeds = SpeciesJson("mossback").Replace("\"needs\": { \"hunger\": 60, \"rest\": 40, \"safety\": 50, \"social\": 70, \"territory\": 10 },", "\"needs\": null,", StringComparison.Ordinal);
 
         var error = Assert.Throws<DataValidationException>(() => DataRegistryLoader.Load(
-            [new DataFile("events.json", ValidEventTypes), new DataFile("weights.json", ValidOpinionWeights), new DataFile("s.json", noNeeds)]));
+            [new DataFile("events.json", ValidEventTypes), new DataFile("weights.json", ValidOpinionWeights), new DataFile("goals.json", ValidGoals), new DataFile("s.json", noNeeds)]));
 
         Assert.Contains(error.Errors, message => message.Contains("needs is required", StringComparison.Ordinal));
     }
@@ -141,7 +179,7 @@ public class DataRegistryLoaderTests
           "boldness": { "mean": -30, "spread": 25 }, "loyalty": { "mean": 40, "spread": 30 },
           "curiosity": { "mean": 10, "spread": 30 }, "temper": { "mean": -40, "spread": 20 },
           "needs": { "hunger": 60, "rest": 40, "safety": 50, "social": 70, "territory": 10 },
-          "pactThreshold": 450 } ] }
+          "pactThreshold": 450, "goals": ["Eat"] } ] }
         """;
 
     private static List<DataFile> ReadShippedData()

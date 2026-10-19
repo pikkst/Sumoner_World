@@ -1,5 +1,6 @@
 using System.Numerics;
 using SumonerWorld.Core.Cognition.Appraisal;
+using SumonerWorld.Core.Cognition.Decision;
 using SumonerWorld.Core.Cognition.Memory;
 using SumonerWorld.Core.Data.Definitions;
 using SumonerWorld.Core.Ecs;
@@ -39,8 +40,55 @@ internal sealed class PerceptionSystem(IEcsWorld world, ISpatialIndex grid, IEve
     }
 }
 
-/// <summary>Picks a new random heading when a creature's timer runs out.</summary>
-internal sealed class WanderSystem(IEcsWorld world, IRandom random, float speed) : ISimulationSystem
+/// <summary>
+/// Utility AI (M1-08): each creature decides at 2 Hz (time-sliced, AI Bible §9.2). The chosen goal sets its speed in
+/// <see cref="WanderSystem"/>; Eat and Rest satisfy their need while they last.
+/// </summary>
+internal sealed class DecisionSystem(IEcsWorld world, IUtilityEvaluator evaluator, ICreatureMindStore minds, GoalSet goals, IRandom random, B5Goals ids)
+    : ISimulationSystem
+{
+    private const int Slices = 15;
+    private const int FullHealth = 1000;
+    private const int SatisfyPerDecision = 2;
+
+    private readonly ComponentStore<CurrentGoal> _goals = world.Store<CurrentGoal>();
+    private readonly ComponentStore<MindRef> _minds = world.Store<MindRef>();
+
+    public SimulationStage Stage => SimulationStage.AiDecision;
+
+    public void Execute(in SimulationTick tick)
+    {
+        int slice = (int)(tick.Index % Slices);
+        ReadOnlySpan<Entity> entities = _goals.Entities;
+        Span<CurrentGoal> current = _goals.Components;
+        for (int i = 0; i < entities.Length; i++)
+        {
+            if (entities[i].Index % Slices != slice)
+            {
+                continue;
+            }
+
+            MindHandle mind = _minds.Get(entities[i]).Handle;
+            var context = new DecisionContext(goals, tick.Index, current[i].Goal, Focus: null, FocusDistance: 0, FullHealth);
+            current[i] = new CurrentGoal(evaluator.Decide(mind, context, random).Goal);
+
+            if (current[i].Goal == ids.Eat)
+            {
+                minds.SatisfyNeed(mind, Need.Hunger, SatisfyPerDecision, tick.Index);
+            }
+            else if (current[i].Goal == ids.Rest)
+            {
+                minds.SatisfyNeed(mind, Need.Rest, SatisfyPerDecision, tick.Index);
+            }
+        }
+    }
+}
+
+/// <summary>Goal ids the B5 stand-in behaviours react to, resolved from the shipped goal data.</summary>
+internal sealed record B5Goals(ushort Flee, ushort Eat, ushort Rest, ushort Socialize);
+
+/// <summary>Picks a new random heading when a creature's timer runs out; speed depends on the current goal.</summary>
+internal sealed class WanderSystem(IEcsWorld world, IRandom random, float speed, B5Goals ids) : ISimulationSystem
 {
     private const int MinWanderTicks = 30;
     private const int MaxWanderTicks = 150;
@@ -48,8 +96,9 @@ internal sealed class WanderSystem(IEcsWorld world, IRandom random, float speed)
 
     private readonly ComponentStore<WanderTimer> _timers = world.Store<WanderTimer>();
     private readonly ComponentStore<Velocity> _velocities = world.Store<Velocity>();
+    private readonly ComponentStore<CurrentGoal> _goals = world.Store<CurrentGoal>();
 
-    public SimulationStage Stage => SimulationStage.AiDecision;
+    public SimulationStage Stage => SimulationStage.Behaviour;
 
     public void Execute(in SimulationTick tick)
     {
@@ -62,8 +111,10 @@ internal sealed class WanderSystem(IEcsWorld world, IRandom random, float speed)
                 continue;
             }
 
+            ushort goal = _goals.Get(entities[i]).Goal;
+            float goalSpeed = goal == ids.Flee ? speed * 3 : goal == ids.Eat || goal == ids.Rest ? 0f : goal == ids.Socialize ? speed / 2 : speed;
             float angle = random.NextInt(0, Degrees) * (MathF.PI / 180f);
-            _velocities.Get(entities[i]) = new Velocity(new Vector3(MathF.Cos(angle), 0, MathF.Sin(angle)) * speed);
+            _velocities.Get(entities[i]) = new Velocity(new Vector3(MathF.Cos(angle), 0, MathF.Sin(angle)) * goalSpeed);
             timers[i] = new WanderTimer(random.NextInt(MinWanderTicks, MaxWanderTicks));
         }
     }

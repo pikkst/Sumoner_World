@@ -20,6 +20,11 @@ public static class DataRegistryLoader
     /// <summary>File kind for <see cref="OpinionWeightsDefinition"/> (exactly one file).</summary>
     public const string OpinionWeightsKind = "opinionWeights";
 
+    /// <summary>File kind for <see cref="GoalDefinition"/> (exactly one file).</summary>
+    public const string GoalsKind = "goals";
+
+    private const int CurveLimit = 2000;
+
     /// <summary>Schema version this build reads, for every kind.</summary>
     public const int CurrentSchemaVersion = 1;
 
@@ -48,6 +53,9 @@ public static class DataRegistryLoader
         var opinionWeights = new List<(OpinionWeightsDefinition Entry, string Where)>();
         var memoryEventFiles = new List<string>();
         var opinionWeightFiles = new List<string>();
+        var goals = new List<(GoalDefinition Entry, string Where)>();
+        var goalFiles = new List<string>();
+        var speciesGoalRefs = new List<(string Key, string Where)>();
         var speciesSources = new Dictionary<string, string>(StringComparer.Ordinal);
 
         foreach (DataFile file in files)
@@ -71,6 +79,11 @@ public static class DataRegistryLoader
                     {
                         string where = $"{file.Path}: entries[{index}]";
                         ValidateSpecies(entry, where, errors);
+                        foreach (string goalKey in entry.Goals ?? [])
+                        {
+                            speciesGoalRefs.Add((goalKey, where));
+                        }
+
                         if (entry.Id is not null && !speciesSources.TryAdd(entry.Id, where))
                         {
                             errors.Add($"{where}: duplicate species id '{entry.Id}' (first defined at {speciesSources[entry.Id]}).");
@@ -90,8 +103,18 @@ public static class DataRegistryLoader
                     }
 
                     break;
+                case GoalsKind:
+                    goalFiles.Add(file.Path);
+                    foreach ((GoalDefinition entry, int index) in ReadEntries<GoalDefinition>(file, errors))
+                    {
+                        string where = $"{file.Path}: entries[{index}]";
+                        ValidateGoal(entry, where, errors);
+                        goals.Add((entry, where));
+                    }
+
+                    break;
                 default:
-                    errors.Add($"{file.Path}: unknown kind '{kind}'. Known kinds: {MemoryEventTypesKind}, {SpeciesKind}, {OpinionWeightsKind}.");
+                    errors.Add($"{file.Path}: unknown kind '{kind}'. Known kinds: {MemoryEventTypesKind}, {SpeciesKind}, {OpinionWeightsKind}, {GoalsKind}.");
                     break;
             }
         }
@@ -106,6 +129,12 @@ public static class DataRegistryLoader
             errors.Add($"Expected exactly one '{OpinionWeightsKind}' file, found {opinionWeightFiles.Count} ({string.Join(", ", opinionWeightFiles)}).");
         }
 
+        if (goalFiles.Count != 1)
+        {
+            errors.Add($"Expected exactly one '{GoalsKind}' file, found {goalFiles.Count} ({string.Join(", ", goalFiles)}).");
+        }
+
+        ValidateGoalReferences(goals, speciesGoalRefs, errors);
         ValidateUniqueMemoryEventTypes(memoryEventTypes, errors);
         ValidateOpinionWeightReferences(opinionWeights, memoryEventTypes, errors);
 
@@ -117,7 +146,8 @@ public static class DataRegistryLoader
         return new DataRegistry(
             [.. memoryEventTypes.OrderBy(definition => definition.Id)],
             [.. species.OrderBy(definition => definition.Id, StringComparer.Ordinal)],
-            [.. opinionWeights.Select(item => item.Entry).OrderBy(definition => definition.EventType)]);
+            [.. opinionWeights.Select(item => item.Entry).OrderBy(definition => definition.EventType)],
+            [.. goals.Select(item => item.Entry).OrderBy(definition => definition.Id)]);
     }
 
     private static string? ReadKind(DataFile file, List<string> errors)
@@ -269,6 +299,97 @@ public static class DataRegistryLoader
         }
     }
 
+    private static void ValidateGoal(GoalDefinition entry, string where, List<string> errors)
+    {
+        if (entry.Id == 0)
+        {
+            errors.Add($"{where}: goal id 0 is reserved for 'idle'.");
+        }
+
+        if (!IsPascalCaseLetters(entry.Key))
+        {
+            errors.Add($"{where}: key '{entry.Key}' must be PascalCase letters, e.g. 'Flee'.");
+        }
+
+        CheckRange(entry.Weight, 1, GoalDefinition.MaxWeight, "weight", where, errors);
+
+        if (entry.Personality is null)
+        {
+            errors.Add($"{where}: personality must be a list (it may be empty).");
+        }
+        else
+        {
+            for (int i = 0; i < entry.Personality.Count; i++)
+            {
+                CheckRange(entry.Personality[i].Factor, -PersonalityFactor.MaxFactor, PersonalityFactor.MaxFactor, $"personality[{i}].factor", where, errors);
+            }
+        }
+
+        if (entry.Considerations is null || entry.Considerations.Count == 0)
+        {
+            errors.Add($"{where}: a goal needs at least one consideration.");
+            return;
+        }
+
+        for (int i = 0; i < entry.Considerations.Count; i++)
+        {
+            ValidateCurve(entry.Considerations[i]?.Curve, $"{where}: considerations[{i}].curve", errors);
+        }
+    }
+
+    private static void ValidateCurve(CurveDefinition? curve, string where, List<string> errors)
+    {
+        if (curve is null)
+        {
+            errors.Add($"{where} is required.");
+            return;
+        }
+
+        CheckRange(curve.Slope, -CurveLimit, CurveLimit, "slope", where, errors);
+        CheckRange(curve.Offset, -CurveLimit, CurveLimit, "offset", where, errors);
+        switch (curve.Type)
+        {
+            case CurveType.Logistic:
+                CheckRange(curve.Centre, 0, 1000, "centre", where, errors);
+                CheckRange(curve.Width, 1, 1000, "width", where, errors);
+                break;
+            case CurveType.Step:
+                CheckRange(curve.Threshold, 0, 1000, "threshold", where, errors);
+                CheckRange(curve.Low, 0, 1000, "low", where, errors);
+                CheckRange(curve.High, 0, 1000, "high", where, errors);
+                break;
+            default:
+                break;
+        }
+    }
+
+    private static void ValidateGoalReferences(
+        List<(GoalDefinition Entry, string Where)> goals, List<(string Key, string Where)> speciesGoalRefs, List<string> errors)
+    {
+        var ids = new HashSet<ushort>();
+        var keys = new HashSet<string>(StringComparer.Ordinal);
+        foreach ((GoalDefinition entry, string where) in goals)
+        {
+            if (!ids.Add(entry.Id))
+            {
+                errors.Add($"{where}: goal id {entry.Id} is defined more than once.");
+            }
+
+            if (entry.Key is not null && !keys.Add(entry.Key))
+            {
+                errors.Add($"{where}: goal key '{entry.Key}' is defined more than once.");
+            }
+        }
+
+        foreach ((string key, string where) in speciesGoalRefs)
+        {
+            if (!keys.Contains(key))
+            {
+                errors.Add($"{where}: goal '{key}' is not defined in the goals file.");
+            }
+        }
+    }
+
     private static void ValidateSpecies(SpeciesDefinition entry, string where, List<string> errors)
     {
         if (!IsSnakeCaseId(entry.Id))
@@ -300,6 +421,11 @@ public static class DataRegistryLoader
         }
 
         CheckRange(entry.PactThreshold, 0, MaxPactThreshold, "pactThreshold", where, errors);
+
+        if (entry.Goals is null || entry.Goals.Count == 0 || entry.Goals.Distinct(StringComparer.Ordinal).Count() != entry.Goals.Count)
+        {
+            errors.Add($"{where}: goals must be a non-empty list of goal keys without duplicates.");
+        }
     }
 
     private static void CheckTrait(TraitRange? trait, string name, string where, List<string> errors)

@@ -224,6 +224,14 @@ score(goal) = goal.Weight × personalityModifier(goal) × Π consideration_i(cur
 - **Selection:** highest score wins. If the top two are within 5%, the creature picks between them with its own seeded stream (personality-like variety, still deterministic). Exact ties go to the lower goal id.
 - **Interrupts:** `Flee`, `ProtectYoung` and `ProtectOwner` can pre-empt any goal immediately on a high-priority percept; all others wait for the next decision tick.
 
+**Implementation (M1-08, `UtilityEvaluator`):**
+- **Data:** `data/ai/goals.json` holds each goal with its considerations inline (no separate `considerations.json`). Each species lists the goal keys it can use (`goals` in its species file). Goal ids follow §7.1 order and are never reused; ids 9–16 (bonded and special goals) are added with the systems that need them.
+- **Inputs** (all normalised to 0–1000): `constant`, the five needs, the five emotions, `hasTarget`, opinion of the focus (`targetTrust`/`targetFear`/`targetAffection`/`targetRespect`, −100…100 mapped to 0…1000 with 500 = neutral), `targetDistance`, `health`, `timeOfDay`.
+- **Curves:** `linear`, `quadratic`, `logistic` and `step`, each optionally `invert`ed. **`logistic` is an integer smoothstep S-curve over centre ± width**, not a true exponential, so it is bit-exact on every platform (R11).
+- **Score** = weight × personality modifier / 1000 × Π curve(input) / 1000, then +10% for the current goal. **Personality modifier** = 1000 + Σ factor × trait, clamped to [0, 2000] (e.g. Flee has Boldness −5: a fully bold creature scores Flee at 50%, a fully timid one at 150%).
+- **Selection:** highest score; exact ties → lower id; runner-up within 5% → the creature's own random stream picks between the two, weighted by score; nothing above 0 → idle (goal 0).
+- **Starting goals (v1):** Flee (interrupt; fear S-curve, more when hurt), Fight (target, anger, closeness), Hunt (hunger, health), Eat (hunger², not when afraid), Rest (rest², not when afraid), Socialize (social need), Explore (curiosity, not when afraid), DefendTerritory (target, territory need, distrust), Approach (target, low fear of it, curiosity), Avoid (target, fear of it). Values are starting points for the M1 playtest.
+
 ### 7.3 Behaviour trees
 - Trees are **data-defined** (`data/ai/bt/*.json`), built once per species at load, and shared between creatures (flyweight). Per-creature state is a small fixed blackboard.
 - Node set v1: `Sequence`, `Selector`, `Parallel`, `Condition`, `Action`, `Wait`, `Cooldown`, `Repeat`, `Abort-on-goal-change`.
@@ -345,7 +353,7 @@ Bond level can **go down**. It is recalculated once per in-game day and immediat
 | `data/ai/species/*.json` | trait means/spreads, needs rates, enabled goals, tree ids, group type, Pact threshold |
 | `data/ai/memory_event_types.json` | §4.2 table |
 | `data/ai/opinion_weights.json` | event type → attitude weights |
-| `data/ai/goals.json` / `considerations.json` | §7 goals, inputs, curves |
+| `data/ai/goals.json` | §7 goals with their considerations and curves (implemented M1-08) |
 | `data/ai/bt/*.json` | behaviour trees |
 | `data/ai/pact_terms.json` | §10.2 term catalogue |
 | `data/ai/bond_levels.json` | §10.3 table |

@@ -22,6 +22,8 @@ internal static class CognitionTestData
 
     private static readonly Lazy<DataRegistry> Shipped = new(LoadShipped);
 
+    public static DataRegistry Registry => Shipped.Value;
+
     public static MemoryRules ShippedRules() =>
         new(Shipped.Value.MemoryEventTypes, Shipped.Value.OpinionWeights, TicksPerDay);
 

@@ -115,4 +115,7 @@ public sealed record SpeciesDefinition
 
     /// <summary>Pact acceptance threshold (AI Bible §10.2), in [0, 1000].</summary>
     public required int PactThreshold { get; init; }
+
+    /// <summary>Keys of the goals this species can choose (AI Bible §7.1: species enable a subset).</summary>
+    public required IReadOnlyList<string> Goals { get; init; }
 }

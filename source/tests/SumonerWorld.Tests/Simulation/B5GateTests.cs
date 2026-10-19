@@ -34,6 +34,7 @@ public class B5GateTests
         Assert.Equal(B5Scenario.CreatureCount, scenario.LiveMinds);
         Assert.True(scenario.StoredMemories > 0, "B5 must exercise the memory store (M1-06).");
         Assert.True(scenario.CreaturesShowingAnEmote > 0, "B5 must exercise opinions, emotions and emotes (M1-07).");
+        Assert.True(scenario.GoalCounts.Count(pair => pair.Key != 0) >= 3, "B5 creatures must choose between several goals (M1-08).");
     }
 
     [Fact]

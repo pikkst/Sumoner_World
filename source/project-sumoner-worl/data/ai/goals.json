@@ -1,0 +1,326 @@
+{
+  "schemaVersion": 1,
+  "kind": "goals",
+  "entries": [
+    {
+      "id": 1,
+      "key": "Flee",
+      "weight": 1200,
+      "interrupt": true,
+      "personality": [
+        {
+          "trait": "boldness",
+          "factor": -5
+        }
+      ],
+      "considerations": [
+        {
+          "input": "emotionFear",
+          "curve": {
+            "type": "logistic",
+            "centre": 550,
+            "width": 300
+          }
+        },
+        {
+          "input": "health",
+          "curve": {
+            "type": "linear",
+            "slope": -600,
+            "offset": 1000
+          }
+        }
+      ]
+    },
+    {
+      "id": 2,
+      "key": "Fight",
+      "weight": 900,
+      "interrupt": false,
+      "personality": [
+        {
+          "trait": "temper",
+          "factor": 5
+        },
+        {
+          "trait": "boldness",
+          "factor": 3
+        }
+      ],
+      "considerations": [
+        {
+          "input": "hasTarget",
+          "curve": {
+            "type": "step",
+            "threshold": 1,
+            "low": 0,
+            "high": 1000
+          }
+        },
+        {
+          "input": "emotionAnger",
+          "curve": {
+            "type": "logistic",
+            "centre": 500,
+            "width": 300
+          }
+        },
+        {
+          "input": "targetDistance",
+          "curve": {
+            "type": "linear",
+            "slope": -800,
+            "offset": 1000
+          }
+        }
+      ]
+    },
+    {
+      "id": 3,
+      "key": "Hunt",
+      "weight": 800,
+      "interrupt": false,
+      "personality": [
+        {
+          "trait": "boldness",
+          "factor": 2
+        }
+      ],
+      "considerations": [
+        {
+          "input": "needHunger",
+          "curve": {
+            "type": "logistic",
+            "centre": 600,
+            "width": 250
+          }
+        },
+        {
+          "input": "health",
+          "curve": {
+            "type": "linear",
+            "slope": 800,
+            "offset": 200
+          }
+        }
+      ]
+    },
+    {
+      "id": 4,
+      "key": "Eat",
+      "weight": 900,
+      "interrupt": false,
+      "personality": [],
+      "considerations": [
+        {
+          "input": "needHunger",
+          "curve": {
+            "type": "quadratic",
+            "slope": 1000,
+            "offset": 0
+          }
+        },
+        {
+          "input": "emotionFear",
+          "curve": {
+            "type": "linear",
+            "slope": -1000,
+            "offset": 1000
+          }
+        }
+      ]
+    },
+    {
+      "id": 5,
+      "key": "Rest",
+      "weight": 800,
+      "interrupt": false,
+      "personality": [],
+      "considerations": [
+        {
+          "input": "needRest",
+          "curve": {
+            "type": "quadratic",
+            "slope": 1000,
+            "offset": 0
+          }
+        },
+        {
+          "input": "emotionFear",
+          "curve": {
+            "type": "linear",
+            "slope": -1000,
+            "offset": 1000
+          }
+        }
+      ]
+    },
+    {
+      "id": 6,
+      "key": "Socialize",
+      "weight": 600,
+      "interrupt": false,
+      "personality": [
+        {
+          "trait": "loyalty",
+          "factor": 2
+        }
+      ],
+      "considerations": [
+        {
+          "input": "needSocial",
+          "curve": {
+            "type": "linear",
+            "slope": 1000,
+            "offset": 0
+          }
+        }
+      ]
+    },
+    {
+      "id": 7,
+      "key": "Explore",
+      "weight": 400,
+      "interrupt": false,
+      "personality": [
+        {
+          "trait": "curiosity",
+          "factor": 4
+        }
+      ],
+      "considerations": [
+        {
+          "input": "emotionCuriosity",
+          "curve": {
+            "type": "linear",
+            "slope": 700,
+            "offset": 300
+          }
+        },
+        {
+          "input": "emotionFear",
+          "curve": {
+            "type": "linear",
+            "slope": -800,
+            "offset": 1000
+          }
+        }
+      ]
+    },
+    {
+      "id": 8,
+      "key": "DefendTerritory",
+      "weight": 700,
+      "interrupt": false,
+      "personality": [
+        {
+          "trait": "temper",
+          "factor": 3
+        }
+      ],
+      "considerations": [
+        {
+          "input": "hasTarget",
+          "curve": {
+            "type": "step",
+            "threshold": 1,
+            "low": 0,
+            "high": 1000
+          }
+        },
+        {
+          "input": "needTerritory",
+          "curve": {
+            "type": "linear",
+            "slope": 1000,
+            "offset": 0
+          }
+        },
+        {
+          "input": "targetTrust",
+          "curve": {
+            "type": "logistic",
+            "centre": 500,
+            "width": 300,
+            "invert": true
+          }
+        }
+      ]
+    },
+    {
+      "id": 17,
+      "key": "Approach",
+      "weight": 600,
+      "interrupt": false,
+      "personality": [
+        {
+          "trait": "curiosity",
+          "factor": 3
+        },
+        {
+          "trait": "boldness",
+          "factor": 2
+        }
+      ],
+      "considerations": [
+        {
+          "input": "hasTarget",
+          "curve": {
+            "type": "step",
+            "threshold": 1,
+            "low": 0,
+            "high": 1000
+          }
+        },
+        {
+          "input": "targetFear",
+          "curve": {
+            "type": "logistic",
+            "centre": 550,
+            "width": 150,
+            "invert": true
+          }
+        },
+        {
+          "input": "emotionCuriosity",
+          "curve": {
+            "type": "linear",
+            "slope": 700,
+            "offset": 300
+          }
+        }
+      ]
+    },
+    {
+      "id": 18,
+      "key": "Avoid",
+      "weight": 800,
+      "interrupt": false,
+      "personality": [
+        {
+          "trait": "boldness",
+          "factor": -3
+        }
+      ],
+      "considerations": [
+        {
+          "input": "hasTarget",
+          "curve": {
+            "type": "step",
+            "threshold": 1,
+            "low": 0,
+            "high": 1000
+          }
+        },
+        {
+          "input": "targetFear",
+          "curve": {
+            "type": "logistic",
+            "centre": 600,
+            "width": 150
+          }
+        }
+      ]
+    }
+  ]
+}

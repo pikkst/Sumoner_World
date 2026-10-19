@@ -17,6 +17,9 @@ public interface IDataRegistry
     /// <summary>Opinion weights per memory event type, ordered by event type (AI Bible §5).</summary>
     IReadOnlyList<OpinionWeightsDefinition> OpinionWeights { get; }
 
+    /// <summary>Utility AI goals, ordered by id (AI Bible §7).</summary>
+    IReadOnlyList<GoalDefinition> Goals { get; }
+
     /// <summary>The memory event type with this id. Throws <see cref="KeyNotFoundException"/> if unknown.</summary>
     MemoryEventTypeDefinition GetMemoryEventType(ushort id);
 
