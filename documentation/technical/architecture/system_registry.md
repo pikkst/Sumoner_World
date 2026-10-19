@@ -27,8 +27,9 @@ Rules: R02, R07, R12, R47, R49 · Related: ADR-001 (layers), TDD v0.1, AI Bible 
 | Physics port | `Core.Physics` | `IPhysicsQueries` | Ray cast, sweep, overlap (implemented by Godot adapter) | TDD §2.4 | Planned (M1) |
 | Navigation port | `Core.Navigation` | `INavigation` | Async path requests (implemented by Godot adapter) | TDD §2.4 | Planned (M1) |
 | Game data | `Core.Data` | `IDataRegistry` | Loads and validates versioned data files; read-only lookups (`DataRegistryLoader`, `DataRegistry`) | TDD §7, AI Bible §12 | **Implemented** (M1-04): memory event types, species |
-| Logging | `Core.Diagnostics` | `ILog` | Structured log sink (implemented in Game) | TDD §6 | Planned (M1) |
-| Metrics | `Core.Diagnostics` | `IMetrics` | Per-tick stage timings and counters | TDD §6 | Planned (M1) |
+| Logging | `Core.Diagnostics` | `ILog` | Structured log sink (implemented in Game) | TDD §6 | Planned (M1-14, with the server host that first needs it) |
+| Metrics | `Core.Diagnostics` | `IMetrics` | Tick/stage boundaries from the scheduler; timing done by the implementation outside Core | TDD §6 | **Implemented** (M1-05) |
+| State hash | `Core.Diagnostics` | `StateHash` (struct) | FNV-1a 64 hash of deterministic state for determinism checks and replays | TDD §2.3 | **Implemented** (M1-05) |
 | Server rules | `Core.Rules` | `IServerRules` | Server preset values (Normal / Hardcore / Custom) | GDD §9 | Planned (M1) |
 
 ## 2. Core: player actions and authority
@@ -116,7 +117,8 @@ Rules: R02, R07, R12, R47, R49 · Related: ADR-001 (layers), TDD v0.1, AI Bible 
 |---|---|---|---|---|
 | Quality gates | `source/scripts/verify.sh`, CI | Format, analyzers, build, tests | Enforcement doc | **Implemented** |
 | Architecture tests | `tests/.../Architecture` | Layering, namespaces, this registry | ADR-001 | **Implemented** |
-| Benchmark harness | `tests/SumonerWorld.Benchmarks` | BenchmarkDotNet micro-benchmarks (ECS spike); 200-creature scenarios B1/B5 later | M0-07, ADR-002 | **Implemented** (M1-02 spike); scenarios Planned (M1-05) |
+| Benchmark harness | `tests/SumonerWorld.Benchmarks` | BenchmarkDotNet micro-benchmarks; `b5` mode writes per-tick/per-stage CSV | M0-07, ADR-002 | **Implemented** (M1-02, M1-05) |
+| Scenarios | `tests/SumonerWorld.Scenarios` | Repeatable simulation scenarios shared by CI gates and benchmarks (B5 now) | M0-07 | **Implemented** (M1-05) |
 | Bot clients | `tools/BotClient` | 16 simulated clients for net spike | TDD §8 | Planned (M1) |
 | Save dump | `tools/SaveDump` | Record → JSON for bug reports and fixtures | TDD §4.1 | Planned (M1) |
 | Dev server image | `docker-compose.dev.yml` | Local Docker headless server | TDD §3.1a | Planned (M1) |

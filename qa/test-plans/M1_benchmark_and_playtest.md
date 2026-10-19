@@ -17,7 +17,7 @@ All scenarios use a **fixed seed**, scripted input and a fixed duration, so two 
 | **B2** | Server-16 | Headless server in the **local Docker dev container** (TDD §3.1a), 200 creatures + 16 bot clients replaying recorded inputs; network shaped to **150 ms RTT, 2% loss** with `tc netem` on the container interface | 30 s warm-up + 10 min | Server ≤ 19 ms/tick at ≤ 60% load; bandwidth budgets (TDD §2.1, §3.2) |
 | **B3** | Stream-Run | Client flies a fixed route across the test region at sprint speed, then at 3× sprint | 5 min | No streaming hitch > 33 ms (TDD §1.3, §5) |
 | **B4** | Client-60 | 60 creatures animated in view, emotes cycling, full lighting (fog, shadows, glow) | 30 s warm-up + 3 min | GPU/CPU frame budget (TDD §1.1) |
-| **B5** | Sim-Only | Core simulation of B1 without Godot, run by the test harness | 9,000 ticks | Allocations/tick and determinism; runs in CI |
+| **B5** | Sim-Only | Core simulation of B1 without Godot, run by the test harness (`tests/SumonerWorld.Scenarios`; **implemented M1-05** with stand-in systems until Phase B AI lands) | 9,000 ticks | Allocations/tick and determinism; runs in CI (`B5GateTests`); timings via `-- b5 out.csv` |
 
 ### A2. Metrics captured
 | Metric | Source | Scenarios |

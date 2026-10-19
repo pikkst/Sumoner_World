@@ -1,3 +1,4 @@
+using SumonerWorld.Core.Diagnostics;
 using SumonerWorld.Core.Events;
 using SumonerWorld.Core.Simulation;
 
@@ -108,6 +109,23 @@ public class SimulationSchedulerTests
         Assert.Equal(0, allocated);
     }
 
+    [Fact]
+    public void Metrics_see_every_tick_and_stage_boundary_in_order()
+    {
+        var clock = new SimulationClock(SimulationSettings.Default);
+        var metrics = new RecordingMetrics();
+        var scheduler = new SimulationScheduler(clock, new EventBus(), metrics);
+        int stageCount = Enum.GetValues<SimulationStage>().Length;
+
+        scheduler.RunTick();
+
+        Assert.Equal("tick+0", metrics.Log[0]);
+        Assert.Equal("stage+ApplyInputs", metrics.Log[1]);
+        Assert.Equal("stage-Persistence", metrics.Log[^2]);
+        Assert.Equal("tick-0", metrics.Log[^1]);
+        Assert.Equal(2 + (2 * stageCount), metrics.Log.Count);
+    }
+
     private static (SimulationScheduler Scheduler, SimulationClock Clock, EventBus Events) CreateScheduler()
     {
         var clock = new SimulationClock(SimulationSettings.Default);
@@ -135,6 +153,19 @@ public class SimulationSchedulerTests
                 events.Publish(new SeenEvent(tick.Index));
             }
         }
+    }
+
+    private sealed class RecordingMetrics : IMetrics
+    {
+        public List<string> Log { get; } = [];
+
+        public void TickStarted(in SimulationTick tick) => Log.Add($"tick+{tick.Index}");
+
+        public void StageStarted(SimulationStage stage) => Log.Add($"stage+{stage}");
+
+        public void StageCompleted(SimulationStage stage) => Log.Add($"stage-{stage}");
+
+        public void TickCompleted(in SimulationTick tick) => Log.Add($"tick-{tick.Index}");
     }
 
     private sealed class PublishEveryTickSystem(EventBus events) : ISimulationSystem

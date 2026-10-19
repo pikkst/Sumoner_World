@@ -1,0 +1,14 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <!-- Repeatable simulation scenarios (M0-07 B1-B5) shared by the CI gates and the benchmark tool. -->
+  <PropertyGroup>
+    <TargetFramework>net8.0</TargetFramework>
+    <IsPackable>false</IsPackable>
+    <IsSimulationLayer>true</IsSimulationLayer>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\src\SumonerWorld.Core\SumonerWorld.Core.csproj" />
+  </ItemGroup>
+
+</Project>
