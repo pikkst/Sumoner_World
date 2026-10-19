@@ -62,12 +62,12 @@ Rules: R47, R49
 Acceptance criteria: `documentation/technical/architecture/system_registry.md` lists every planned system, its owner layer and its interface name
 
 TASK: M0-07 M1 benchmark & playtest plan
-Agent: qa_agent + data_scientist · Est: 2d
+Agent: qa_agent + data_scientist · Est: 2d · **Status: Delivered 2026-10-19, review pending (stakeholder)**
 Rules: R22, R23, R42, R43
 Acceptance criteria:
   1. Repeatable perf scenario: 200 active creatures, metrics captured (frame time p50/p99, sim ms/tick, allocations/tick)
   2. USP playtest script: "did the tester notice creature memory within 10 minutes?" (target ≥ 70%)
-Evidence: `qa/test-plans/M1_benchmark_and_playtest.md`
+Evidence: `qa/test-plans/M1_benchmark_and_playtest.md` v0.1. Criterion 1: scenarios B1–B5 with fixed seeds, metrics (A2) and thresholds (A3). Criterion 2: blind protocol, scoring and decision rule (Part B). Dev PC recorded as the minimum-profile benchmark machine.
 
 TASK: M0-08 Legal & naming check
 Agent: producer_agent (stakeholder action) · Est: 1d
