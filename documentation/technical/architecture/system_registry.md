@@ -28,7 +28,7 @@ Rules: R02, R07, R12, R47, R49 · Related: ADR-001 (layers), TDD v0.1, AI Bible 
 | Physics port | `Core.Physics` | `IPhysicsQueries` | Ray cast, sweep, overlap (implemented by Godot adapter) | TDD §2.4 | Planned (M1) |
 | Navigation port | `Core.Navigation` | `INavigation` | Async path requests (implemented by Godot adapter) | TDD §2.4 | Planned (M1) |
 | Game data | `Core.Data` | `IDataRegistry` | Loads and validates versioned data files; read-only lookups (`DataRegistryLoader`, `DataRegistry`) | TDD §7, AI Bible §12 | **Implemented** (M1-04): memory event types, species |
-| Logging | `Core.Diagnostics` | `ILog` | Structured log sink (implemented in Game) | TDD §6 | Planned (M1-14, with the server host that first needs it) |
+| Logging | `Core.Diagnostics` | `ILog` | Structured log sink (implemented in Game as JSON lines) | TDD §6 | **Implemented** (M1-14) |
 | Metrics | `Core.Diagnostics` | `IMetrics` | Tick/stage boundaries from the scheduler; timing done by the implementation outside Core | TDD §6 | **Implemented** (M1-05) |
 | State hash | `Core.Diagnostics` | `StateHash` (struct) | FNV-1a 64 hash of deterministic state for determinism checks and replays | TDD §2.3 | **Implemented** (M1-05) |
 | Server rules | `Core.Rules` | `IServerRules` | Server preset values (Normal / Hardcore / Custom) | GDD §9 | Planned (M1) |
@@ -85,8 +85,9 @@ Rules: R02, R07, R12, R47, R49 · Related: ADR-001 (layers), TDD v0.1, AI Bible 
 | Transport | `ITransport` | Channels (unreliable / reliable ordered), connect, poll, disconnect; `LoopbackTransport` in-process (tests, bots, listen server); Godot ENet adapter in the Game project (M1-14); Steam sockets later | TDD §3.1 | **Implemented** (M1-13): interface + loopback |
 | Transport events | `ITransportHandler` | Receives connected / disconnected / data from `ITransport.Poll` on the sim thread | TDD §3.1 | **Implemented** (M1-13) |
 | Message codec | `IMessageCodec` | Versioned (header: protocol version + type), size-limited (1,200 B) encoding with `MessageWriter`/`MessageReader`; every read error is a `MalformedMessageException`; Hello/Welcome/Rejected/PlayerInput | TDD §3.3 | **Implemented** (M1-13) |
-| Sessions | `ISessionManager` | Join, session token, 30 s linger, 2 min reconnect | TDD §3.5 | Planned (M1) |
-| Authentication | `IAuthenticator` | Steam tickets; dev token in Docker dev server | TDD §3.1a, §3.3 | Planned (M1) |
+| Sessions | `ServerEndpoint` / `ClientEndpoint` (planned interface `ISessionManager`) | Handshake Hello → Welcome / Rejected with random session token (M1-14); 30 s linger and 2 min reconnect in M1-16 | TDD §3.5 | **Partly implemented** (M1-14) |
+| Authentication | `IAuthenticator` | `DevTokenAuthenticator` (constant-time secret check) on the dev server; Steam tickets later | TDD §3.1a, §3.3 | **Implemented** (M1-14, dev) |
+| Host options | `HostOptions` (Net.Hosting) | Server/client/game mode from arguments and `SW_*` environment variables; unknown arguments are errors | TDD §3.1a | **Implemented** (M1-14) |
 | Rate limiting | `IRateLimiter` | Token buckets per message type | TDD §3.3 | Planned (M1) |
 | Interest | `IInterestManager` | Relevance radius and priority per client | TDD §3.2 | Planned (M1) |
 | Replication | `ISnapshotBuilder` | 20 Hz delta snapshots | TDD §3.2 | Planned (M1) |
@@ -104,10 +105,11 @@ Rules: R02, R07, R12, R47, R49 · Related: ADR-001 (layers), TDD v0.1, AI Bible 
 ## 7. Game (Godot project: presentation and adapters)
 | System | Type / interface | Responsibility | Spec | Status |
 |---|---|---|---|---|
-| Hosts | `ServerHost`, `ClientHost` | Start headless server / client, run the 30 Hz Core tick | TDD §2.5 | Planned (M1) |
+| Hosts | `Bootstrap`, `ServerHost`, `ClientHost` | `Main.tscn` entry; headless server runs ENet + session handshake + 30 Hz Core tick; client smoke mode (`--exit-on-welcome`) | TDD §2.5 | **Implemented** (M1-14) |
+| ENet adapter | `GodotENetTransport : ITransport` | Godot `ENetConnection` at packet level (channel 0 unreliable, 1 reliable) | TDD §3.1 | **Implemented** (M1-14) |
 | Physics adapter | `GodotPhysicsQueries : IPhysicsQueries` | Jolt queries for Core | TDD §2.4 | Planned (M1) |
 | Navigation adapter | `GodotNavigation : INavigation` | `NavigationServer3D` paths | TDD §2.4 | Planned (M1) |
-| Logging adapter | `GodotLog : ILog` | JSON lines (server), Godot output (client) | TDD §6 | Planned (M1) |
+| Logging adapter | `GodotLog : ILog` | JSON lines on stdout (collected by Docker) | TDD §6 | **Implemented** (M1-14) |
 | Entity views | `EntityViewSync` | Spawns/pools Godot nodes from snapshots; views never own state | ADR-001, R38 | Planned (M1) |
 | Input | `IInputSource` | Maps devices to inputs and intents | TDD §3.2 | Planned (M1) |
 | Chunk streaming | `ChunkStreamer` | Client rings: full / medium / far | TDD §5.2 | Planned (M1) |
@@ -126,7 +128,7 @@ Rules: R02, R07, R12, R47, R49 · Related: ADR-001 (layers), TDD v0.1, AI Bible 
 | Scenarios | `tests/SumonerWorld.Scenarios` | Repeatable simulation scenarios shared by CI gates and benchmarks (B5 now) | M0-07 | **Implemented** (M1-05) |
 | Bot clients | `tools/BotClient` | 16 simulated clients for net spike | TDD §8 | Planned (M1) |
 | Save dump | `tools/SaveDump` | Record → JSON for bug reports and fixtures | TDD §4.1 | Planned (M1) |
-| Dev server image | `docker-compose.dev.yml` | Local Docker headless server | TDD §3.1a | Planned (M1) |
+| Dev server image | `source/server/Dockerfile`, `source/docker-compose.dev.yml`, CI `server-image.yml` | Local Docker headless server + smoke client | TDD §3.1a | **Implemented** (M1-14) |
 
 ---
 

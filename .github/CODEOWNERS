@@ -7,3 +7,4 @@
 /source/.editorconfig                   @pikkst
 /.github/                               @pikkst
 /project-config.json                    @pikkst
+/source/server/                         @pikkst

@@ -128,6 +128,7 @@ During development the dedicated server runs as a **dev build in a local Docker 
 - **Commands (planned):** `docker compose -f docker-compose.dev.yml up --build` starts it; `down` stops it and keeps the volume; `down -v` wipes the dev world.
 - **Scope:** dev and test only. Player-facing distribution stays the free dedicated-server download (Windows/Linux); an official Docker image for hosts is a post-EA option.
 - **When:** the Dockerfile and compose file are created in M1, together with the server entry point (there is nothing to run before that). Tracked as spike 6 in §8.
+- **Implemented in M1-14:** `source/server/Dockerfile` (base `mcr.microsoft.com/dotnet/sdk:9.0` + .NET 8 runtime + **Godot 4.7.2 .NET Linux, SHA-256 pinned**) builds the C# solution and runs the project with `godot --headless -- --server`. For a dev image this runs the engine binary directly instead of an exported dedicated-server build, so no export templates are needed; an exported slim image is a post-EA option. `source/docker-compose.dev.yml` publishes UDP 7777 on localhost, keeps a `world-data` volume (used from M1-17) and has a `smoke` profile client. Verified: the Docker smoke client and a **Windows client on localhost** were both welcomed, and the server came back after `docker compose restart`. CI workflow `server-image.yml` repeats this on every PR. *World data surviving a restart* is completed in M1-17 (persistence).
 
 ### 3.2 Intent → validate → replicate
 ```
