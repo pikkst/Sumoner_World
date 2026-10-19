@@ -1,0 +1,37 @@
+{
+  "schemaVersion": 1,
+  "kind": "species",
+  "entries": [
+    {
+      "id": "hollow_owl",
+      "nameKey": "species.hollow_owl.name",
+      "role": "spirit",
+      "bodyType": "avian",
+      "group": "solitary",
+      "boldness": {
+        "mean": 0,
+        "spread": 20
+      },
+      "loyalty": {
+        "mean": -20,
+        "spread": 30
+      },
+      "curiosity": {
+        "mean": 40,
+        "spread": 30
+      },
+      "temper": {
+        "mean": -10,
+        "spread": 20
+      },
+      "needs": {
+        "hunger": 30,
+        "rest": 60,
+        "safety": 40,
+        "social": 10,
+        "territory": 30
+      },
+      "pactThreshold": 700
+    }
+  ]
+}
