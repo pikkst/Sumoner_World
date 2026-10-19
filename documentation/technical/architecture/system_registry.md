@@ -116,7 +116,7 @@ Rules: R02, R07, R12, R47, R49 · Related: ADR-001 (layers), TDD v0.1, AI Bible 
 |---|---|---|---|---|
 | Quality gates | `source/scripts/verify.sh`, CI | Format, analyzers, build, tests | Enforcement doc | **Implemented** |
 | Architecture tests | `tests/.../Architecture` | Layering, namespaces, this registry | ADR-001 | **Implemented** |
-| Benchmark harness | `tests/SumonerWorld.Benchmarks` | 200-creature perf scenario, CSV metrics | M0-07 | Planned (M1) |
+| Benchmark harness | `tests/SumonerWorld.Benchmarks` | BenchmarkDotNet micro-benchmarks (ECS spike); 200-creature scenarios B1/B5 later | M0-07, ADR-002 | **Implemented** (M1-02 spike); scenarios Planned (M1-05) |
 | Bot clients | `tools/BotClient` | 16 simulated clients for net spike | TDD §8 | Planned (M1) |
 | Save dump | `tools/SaveDump` | Record → JSON for bug reports and fixtures | TDD §4.1 | Planned (M1) |
 | Dev server image | `docker-compose.dev.yml` | Local Docker headless server | TDD §3.1a | Planned (M1) |

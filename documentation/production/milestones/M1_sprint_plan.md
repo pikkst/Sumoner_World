@@ -75,5 +75,7 @@ M1-01 → (M1-02, M1-03, M1-04) → M1-05 → Phase B. M1-13 can start after M1-
 ## Status
 | Task | Status |
 |---|---|
-| M1-01 | **Delivered** 2026-10-19, review pending (PR #9) |
-| M1-02 … M1-24 | Planned |
+| M1-01 | **Done** 2026-10-19 (stakeholder approved; merged as PR #10) |
+| M1-02 | Spike delivered 2026-10-19: ADR-002 proposes an in-house sparse-set ECS (review pending) |
+| M1-02b | Planned: implement `IEcsWorld` / `IStableIdAllocator` per ADR-002 after approval |
+| M1-03 … M1-24 | Planned |
