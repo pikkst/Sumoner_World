@@ -20,6 +20,9 @@ public interface IDataRegistry
     /// <summary>Utility AI goals, ordered by id (AI Bible §7).</summary>
     IReadOnlyList<GoalDefinition> Goals { get; }
 
+    /// <summary>One behaviour tree per goal, ordered by goal key (AI Bible §7.3).</summary>
+    IReadOnlyList<BehaviourTreeDefinition> BehaviourTrees { get; }
+
     /// <summary>The memory event type with this id. Throws <see cref="KeyNotFoundException"/> if unknown.</summary>
     MemoryEventTypeDefinition GetMemoryEventType(ushort id);
 

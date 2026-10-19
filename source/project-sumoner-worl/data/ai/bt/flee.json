@@ -1,0 +1,38 @@
+{
+  "schemaVersion": 1,
+  "kind": "behaviourTrees",
+  "entries": [
+    {
+      "goal": "Flee",
+      "root": {
+        "type": "sequence",
+        "children": [
+          {
+            "type": "action",
+            "intent": "emote",
+            "emote": "fear"
+          },
+          {
+            "type": "selector",
+            "children": [
+              {
+                "type": "action",
+                "intent": "moveTo",
+                "target": "awayFromFocus",
+                "speed": 300,
+                "timeout": 150
+              },
+              {
+                "type": "action",
+                "intent": "moveTo",
+                "target": "wander",
+                "speed": 300,
+                "timeout": 150
+              }
+            ]
+          }
+        ]
+      }
+    }
+  ]
+}

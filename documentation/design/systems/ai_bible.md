@@ -238,6 +238,14 @@ score(goal) = goal.Weight × personalityModifier(goal) × Π consideration_i(cur
 - Actions emit **intents** (`MoveTo`, `Attack`, `Cast`, `Emote`, `Interact`), which the simulation validates exactly like player intents (R30). AI cannot do anything a player-controlled body could not.
 - Pathfinding requests are asynchronous (§9.3). The tree waits on the result and never blocks the tick.
 
+**Implementation (M1-09, `BehaviourTreeRunner`):**
+- **Data:** one tree per goal in `data/ai/bt/<goal>.json` (kind `behaviourTrees`); the loader requires **exactly one tree for every goal**, at most **32 nodes** and **8 levels**.
+- **Nodes:** `sequence`, `selector` (remember their running child), `parallel` (`requireAll` / `requireOne`, up to 16 children), `condition` (any utility input compared with `lt`/`lte`/`gt`/`gte`; reads the same `InputSampler` as the utility AI), `action`, `wait`, `cooldown` (the timer survives the tree restarting), `repeat` (`times`, 0 = until failure).
+- **Abort-on-goal-change** is a runner rule instead of a node: when the utility AI picks another goal, the running tree is reset and a `Stop` intent is emitted.
+- **Intents:** `moveTo` (`wander` / `focus` / `awayFromFocus`, speed %, timeout), `stop`, `emote`, `interact` (`eat` / `rest` / `socialize` / `hunt`), `attack`, `cast` (later). MoveTo waits until the simulation reports arrival (`ReportOutcome`) or its timeout passes, so a tree can never hang.
+- **Flyweight:** each tree is compiled once to a flat pre-order array shared by all creatures; each creature keeps one int and one tick per node. No allocation per tick.
+- **Starting trees (v1):** Flee (fear emote, run away from the focus or anywhere fast), Fight, Hunt, Eat (walk to a spot, stop, eat, linger), Rest (stop, rest, 10 s), Socialize, Explore, DefendTerritory (grudge emote, move at the intruder), Approach (curiosity emote, slow approach), Avoid (fear emote, back away).
+
 ### 7.4 Commands from the owner
 A command is a server-validated intent (owner, range, cooldown, creature alive and summoned). The creature then chooses one of four responses:
 
@@ -354,7 +362,7 @@ Bond level can **go down**. It is recalculated once per in-game day and immediat
 | `data/ai/memory_event_types.json` | §4.2 table |
 | `data/ai/opinion_weights.json` | event type → attitude weights |
 | `data/ai/goals.json` | §7 goals with their considerations and curves (implemented M1-08) |
-| `data/ai/bt/*.json` | behaviour trees |
+| `data/ai/bt/*.json` | behaviour trees, one per goal (implemented M1-09) |
 | `data/ai/pact_terms.json` | §10.2 term catalogue |
 | `data/ai/bond_levels.json` | §10.3 table |
 

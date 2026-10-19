@@ -27,6 +27,16 @@ public class DataRegistryLoaderTests
         ] }
         """;
 
+    private const string ValidTree = """
+        { "schemaVersion": 1, "kind": "behaviourTrees", "entries": [
+          { "goal": "Eat", "root": { "type": "sequence", "children": [
+            { "type": "condition", "input": "needHunger", "op": "gte", "value": 100 },
+            { "type": "action", "intent": "moveTo", "target": "wander", "speed": 50, "timeout": 300 },
+            { "type": "action", "intent": "interact", "verb": "eat" },
+            { "type": "wait", "ticks": 90 } ] } }
+        ] }
+        """;
+
     [Fact]
     public void The_shipped_game_data_is_valid()
     {
@@ -99,6 +109,7 @@ public class DataRegistryLoaderTests
             new DataFile("events.json", ValidEventTypes),
             new DataFile("weights.json", ValidOpinionWeights),
             new DataFile("goals.json", ValidGoals),
+            new DataFile("tree.json", ValidTree),
             new DataFile("a.json", badSpecies),
             new DataFile("b.json", duplicate),
             new DataFile("c.json", badTrait),
@@ -138,6 +149,50 @@ public class DataRegistryLoaderTests
             [new DataFile("events.json", ValidEventTypes), new DataFile("weights.json", ValidOpinionWeights), new DataFile("goals.json", broken)]));
 
         Assert.Contains(error.Errors, message => message.Contains(expectedFragment, StringComparison.Ordinal));
+    }
+
+    [Theory]
+    [InlineData("\"children\": [\n", "\"children\": [ { \"type\": \"sequence\", \"children\": [] },\n", "needs at least one child")]
+    [InlineData("\"value\": 100", "\"value\": 2000", "value = 2000")]
+    [InlineData("\"speed\": 50", "\"speed\": 0", "speed = 0")]
+    [InlineData("\"intent\": \"interact\", \"verb\": \"eat\"", "\"intent\": \"emote\"", "needs an emote")]
+    [InlineData("\"ticks\": 90", "\"ticks\": 0", "ticks = 0")]
+    [InlineData("\"goal\": \"Eat\"", "\"goal\": \"Dance\"", "unknown goal 'Dance'")]
+    [InlineData("\"type\": \"wait\"", "\"type\": \"teleport\"", "type")]
+    public void Invalid_behaviour_trees_are_rejected(string find, string replace, string expectedFragment)
+    {
+        string broken = ValidTree.Replace(find, replace, StringComparison.Ordinal);
+
+        var error = Assert.Throws<DataValidationException>(() => DataRegistryLoader.Load(
+        [
+            new DataFile("events.json", ValidEventTypes), new DataFile("weights.json", ValidOpinionWeights),
+            new DataFile("goals.json", ValidGoals), new DataFile("tree.json", broken),
+        ]));
+
+        Assert.Contains(error.Errors, message => message.Contains(expectedFragment, StringComparison.Ordinal));
+    }
+
+    [Fact]
+    public void Every_goal_needs_exactly_one_tree_and_trees_have_a_size_limit()
+    {
+        var missing = Assert.Throws<DataValidationException>(() => DataRegistryLoader.Load(
+            [new DataFile("events.json", ValidEventTypes), new DataFile("weights.json", ValidOpinionWeights), new DataFile("goals.json", ValidGoals)]));
+        var twice = Assert.Throws<DataValidationException>(() => DataRegistryLoader.Load(
+        [
+            new DataFile("events.json", ValidEventTypes), new DataFile("weights.json", ValidOpinionWeights),
+            new DataFile("goals.json", ValidGoals), new DataFile("a.json", ValidTree), new DataFile("b.json", ValidTree),
+        ]));
+        string wait = "{ \"type\": \"wait\", \"ticks\": 1 }";
+        string huge = $"{{ \"schemaVersion\": 1, \"kind\": \"behaviourTrees\", \"entries\": [ {{ \"goal\": \"Eat\", \"root\": {{ \"type\": \"sequence\", \"children\": [ {string.Join(", ", Enumerable.Repeat(wait, 40))} ] }} }} ] }}";
+        var tooBig = Assert.Throws<DataValidationException>(() => DataRegistryLoader.Load(
+        [
+            new DataFile("events.json", ValidEventTypes), new DataFile("weights.json", ValidOpinionWeights),
+            new DataFile("goals.json", ValidGoals), new DataFile("huge.json", huge),
+        ]));
+
+        Assert.Contains(missing.Errors, message => message.Contains("Goal 'Eat' has no behaviour tree", StringComparison.Ordinal));
+        Assert.Contains(twice.Errors, message => message.Contains("more than one tree", StringComparison.Ordinal));
+        Assert.Contains(tooBig.Errors, message => message.Contains("41 nodes", StringComparison.Ordinal));
     }
 
     [Fact]

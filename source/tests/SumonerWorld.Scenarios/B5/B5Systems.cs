@@ -1,5 +1,6 @@
 using System.Numerics;
 using SumonerWorld.Core.Cognition.Appraisal;
+using SumonerWorld.Core.Cognition.Behaviour;
 using SumonerWorld.Core.Cognition.Decision;
 using SumonerWorld.Core.Cognition.Memory;
 using SumonerWorld.Core.Data.Definitions;
@@ -40,16 +41,11 @@ internal sealed class PerceptionSystem(IEcsWorld world, ISpatialIndex grid, IEve
     }
 }
 
-/// <summary>
-/// Utility AI (M1-08): each creature decides at 2 Hz (time-sliced, AI Bible §9.2). The chosen goal sets its speed in
-/// <see cref="WanderSystem"/>; Eat and Rest satisfy their need while they last.
-/// </summary>
-internal sealed class DecisionSystem(IEcsWorld world, IUtilityEvaluator evaluator, ICreatureMindStore minds, GoalSet goals, IRandom random, B5Goals ids)
-    : ISimulationSystem
+/// <summary>Utility AI (M1-08): each creature decides at 2 Hz (time-sliced, AI Bible §9.2).</summary>
+internal sealed class DecisionSystem(IEcsWorld world, IUtilityEvaluator evaluator, GoalSet goals, IRandom random) : ISimulationSystem
 {
     private const int Slices = 15;
     private const int FullHealth = 1000;
-    private const int SatisfyPerDecision = 2;
 
     private readonly ComponentStore<CurrentGoal> _goals = world.Store<CurrentGoal>();
     private readonly ComponentStore<MindRef> _minds = world.Store<MindRef>();
@@ -63,66 +59,40 @@ internal sealed class DecisionSystem(IEcsWorld world, IUtilityEvaluator evaluato
         Span<CurrentGoal> current = _goals.Components;
         for (int i = 0; i < entities.Length; i++)
         {
-            if (entities[i].Index % Slices != slice)
+            if (entities[i].Index % Slices == slice)
             {
-                continue;
-            }
-
-            MindHandle mind = _minds.Get(entities[i]).Handle;
-            var context = new DecisionContext(goals, tick.Index, current[i].Goal, Focus: null, FocusDistance: 0, FullHealth);
-            current[i] = new CurrentGoal(evaluator.Decide(mind, context, random).Goal);
-
-            if (current[i].Goal == ids.Eat)
-            {
-                minds.SatisfyNeed(mind, Need.Hunger, SatisfyPerDecision, tick.Index);
-            }
-            else if (current[i].Goal == ids.Rest)
-            {
-                minds.SatisfyNeed(mind, Need.Rest, SatisfyPerDecision, tick.Index);
+                var context = new DecisionContext(goals, tick.Index, current[i].Goal, Focus: null, FocusDistance: 0, FullHealth);
+                current[i] = new CurrentGoal(evaluator.Decide(_minds.Get(entities[i]).Handle, context, random).Goal);
             }
         }
     }
 }
 
-/// <summary>Goal ids the B5 stand-in behaviours react to, resolved from the shipped goal data.</summary>
-internal sealed record B5Goals(ushort Flee, ushort Eat, ushort Rest, ushort Socialize);
-
-/// <summary>Picks a new random heading when a creature's timer runs out; speed depends on the current goal.</summary>
-internal sealed class WanderSystem(IEcsWorld world, IRandom random, float speed, B5Goals ids) : ISimulationSystem
+/// <summary>Behaviour trees (M1-09): every creature's tree for its current goal runs each tick and emits intents.</summary>
+internal sealed class BehaviourSystem(IEcsWorld world, IBehaviourTreeRunner runner) : ISimulationSystem
 {
-    private const int MinWanderTicks = 30;
-    private const int MaxWanderTicks = 150;
-    private const int Degrees = 360;
+    private const int FullHealth = 1000;
 
-    private readonly ComponentStore<WanderTimer> _timers = world.Store<WanderTimer>();
-    private readonly ComponentStore<Velocity> _velocities = world.Store<Velocity>();
     private readonly ComponentStore<CurrentGoal> _goals = world.Store<CurrentGoal>();
+    private readonly ComponentStore<MindRef> _minds = world.Store<MindRef>();
 
     public SimulationStage Stage => SimulationStage.Behaviour;
 
     public void Execute(in SimulationTick tick)
     {
-        ReadOnlySpan<Entity> entities = _timers.Entities;
-        Span<WanderTimer> timers = _timers.Components;
+        ReadOnlySpan<Entity> entities = _goals.Entities;
+        Span<CurrentGoal> goals = _goals.Components;
         for (int i = 0; i < entities.Length; i++)
         {
-            if (--timers[i].TicksLeft > 0)
-            {
-                continue;
-            }
-
-            ushort goal = _goals.Get(entities[i]).Goal;
-            float goalSpeed = goal == ids.Flee ? speed * 3 : goal == ids.Eat || goal == ids.Rest ? 0f : goal == ids.Socialize ? speed / 2 : speed;
-            float angle = random.NextInt(0, Degrees) * (MathF.PI / 180f);
-            _velocities.Get(entities[i]) = new Velocity(new Vector3(MathF.Cos(angle), 0, MathF.Sin(angle)) * goalSpeed);
-            timers[i] = new WanderTimer(random.NextInt(MinWanderTicks, MaxWanderTicks));
+            var context = new BehaviourContext(entities[i], goals[i].Goal, tick.Index, Focus: null, FocusDistance: 0, FullHealth);
+            runner.Tick(_minds.Get(entities[i]).Handle, context);
         }
     }
 }
 
 /// <summary>
 /// Crowded creatures (more than 6 neighbours) remember the spot as dangerous (memory event <c>PlaceDanger</c>, subject = the
-/// 16 m grid cell), appraise it (opinion → emotions → emote, M1-07) and pick a new heading on the next tick.
+/// 16 m grid cell) and appraise it (opinion → emotions → emote, M1-07).
 /// </summary>
 internal sealed class CrowdReactionSystem(IEcsWorld world, IEventBus events, ICreatureMindStore minds, IAppraisal appraisal, ushort placeDanger) : ISimulationSystem
 {
@@ -130,7 +100,6 @@ internal sealed class CrowdReactionSystem(IEcsWorld world, IEventBus events, ICr
     private const float CellSize = SpatialGridSettings.DefaultCellSize;
     private const ulong CellsPerRow = 1024;
 
-    private readonly ComponentStore<WanderTimer> _timers = world.Store<WanderTimer>();
     private readonly ComponentStore<Position> _positions = world.Store<Position>();
     private readonly ComponentStore<MindRef> _minds = world.Store<MindRef>();
     private readonly ComponentStore<CurrentEmote> _emotes = world.Store<CurrentEmote>();
@@ -141,49 +110,129 @@ internal sealed class CrowdReactionSystem(IEcsWorld world, IEventBus events, ICr
     {
         foreach (NeighbourCount sensed in events.Read<NeighbourCount>())
         {
-            if (sensed.Count > CrowdedNeighbours)
+            if (sensed.Count <= CrowdedNeighbours)
             {
-                Vector3 position = _positions.Get(sensed.Creature).Value;
-                ulong cell = ((ulong)(position.Z / CellSize) * CellsPerRow) + (ulong)(position.X / CellSize);
-                MindHandle mind = _minds.Get(sensed.Creature).Handle;
-                var place = new MemorySubject(SubjectKind.Place, cell);
-                minds.Remember(mind, placeDanger, place, tick.Index);
-                _emotes.Get(sensed.Creature) = new CurrentEmote(appraisal.Appraise(mind, place, tick.Index));
-                _timers.Get(sensed.Creature) = new WanderTimer(1);
+                continue;
             }
+
+            Vector3 position = _positions.Get(sensed.Creature).Value;
+            ulong cell = ((ulong)(position.Z / CellSize) * CellsPerRow) + (ulong)(position.X / CellSize);
+            MindHandle mind = _minds.Get(sensed.Creature).Handle;
+            var place = new MemorySubject(SubjectKind.Place, cell);
+            minds.Remember(mind, placeDanger, place, tick.Index);
+            _emotes.Get(sensed.Creature) = new CurrentEmote(appraisal.Appraise(mind, place, tick.Index));
         }
     }
 }
 
-/// <summary>Moves creatures, bounces them off the region edges and updates the spatial index.</summary>
-internal sealed class MovementSystem(IEcsWorld world, ISpatialIndex grid, float regionSize) : ISimulationSystem
+/// <summary>
+/// Carries out behaviour tree intents (stand-in for the M1-15 authoritative intent pipeline): MoveTo Wander picks a point
+/// 10–40 m away; Stop halts; Interact satisfies its need; Emote sets the shown emote. Focus targets fail (B5 has no players).
+/// </summary>
+internal sealed class IntentSystem(
+    IEcsWorld world, IEventBus events, IBehaviourTreeRunner runner, ICreatureMindStore minds, IRandom random, float walkSpeed, float regionSize)
+    : ISimulationSystem
 {
-    private readonly ComponentStore<Velocity> _velocities = world.Store<Velocity>();
+    private const int MinWanderMetres = 10;
+    private const int MaxWanderMetres = 40;
+    private const int Degrees = 360;
+    private const int SatisfyPerInteraction = 10;
+    private const float Percent = 100f;
+
     private readonly ComponentStore<Position> _positions = world.Store<Position>();
+    private readonly ComponentStore<MoveTarget> _targets = world.Store<MoveTarget>();
+    private readonly ComponentStore<MindRef> _minds = world.Store<MindRef>();
+    private readonly ComponentStore<CurrentEmote> _emotes = world.Store<CurrentEmote>();
+
+    public SimulationStage Stage => SimulationStage.Movement;
+
+    public int Interactions { get; private set; }
+
+    public void Execute(in SimulationTick tick)
+    {
+        foreach (CreatureIntent intent in events.Read<CreatureIntent>())
+        {
+            MindHandle mind = _minds.Get(intent.Actor).Handle;
+            switch (intent.Kind)
+            {
+                case IntentKind.MoveTo when intent.Target == MoveTargetMode.Wander:
+                    _targets.Get(intent.Actor) = new MoveTarget(WanderPoint(intent.Actor), walkSpeed * intent.Speed / Percent, 1);
+                    break;
+                case IntentKind.MoveTo:
+                    runner.ReportOutcome(mind, succeeded: false);
+                    break;
+                case IntentKind.Stop:
+                    _targets.Get(intent.Actor) = _targets.Get(intent.Actor) with { Active = 0 };
+                    break;
+                case IntentKind.Interact:
+                    minds.SatisfyNeed(mind, NeedFor(intent.Verb), SatisfyPerInteraction, tick.Index);
+                    Interactions++;
+                    break;
+                case IntentKind.Emote:
+                    _emotes.Get(intent.Actor) = new CurrentEmote(intent.Emote);
+                    break;
+                default:
+                    break;
+            }
+        }
+    }
+
+    private static Need NeedFor(InteractVerb verb) => verb switch
+    {
+        InteractVerb.Eat or InteractVerb.Hunt => Need.Hunger,
+        InteractVerb.Rest => Need.Rest,
+        _ => Need.Social,
+    };
+
+    private Vector3 WanderPoint(Entity actor)
+    {
+        float angle = random.NextInt(0, Degrees) * (MathF.PI / 180f);
+        float distance = random.NextInt(MinWanderMetres, MaxWanderMetres);
+        Vector3 offset = new Vector3(MathF.Cos(angle), 0, MathF.Sin(angle)) * distance;
+        return Vector3.Clamp(_positions.Get(actor).Value + offset, Vector3.Zero, new Vector3(regionSize, 0, regionSize));
+    }
+}
+
+/// <summary>Moves creatures toward their targets, updates the spatial index and reports arrival to the behaviour tree.</summary>
+internal sealed class MovementSystem(IEcsWorld world, ISpatialIndex grid, IBehaviourTreeRunner runner) : ISimulationSystem
+{
+    private readonly ComponentStore<MoveTarget> _targets = world.Store<MoveTarget>();
+    private readonly ComponentStore<Position> _positions = world.Store<Position>();
+    private readonly ComponentStore<MindRef> _minds = world.Store<MindRef>();
 
     public SimulationStage Stage => SimulationStage.Movement;
 
     public void Execute(in SimulationTick tick)
     {
-        ReadOnlySpan<Entity> entities = _velocities.Entities;
-        Span<Velocity> velocities = _velocities.Components;
+        ReadOnlySpan<Entity> entities = _targets.Entities;
+        Span<MoveTarget> targets = _targets.Components;
         for (int i = 0; i < entities.Length; i++)
         {
-            ref Position position = ref _positions.Get(entities[i]);
-            Vector3 next = position.Value + velocities[i].Value;
-            if (next.X < 0 || next.X > regionSize || next.Z < 0 || next.Z > regionSize)
+            if (targets[i].Active == 0)
             {
-                velocities[i] = new Velocity(-velocities[i].Value);
-                next = Vector3.Clamp(next, Vector3.Zero, new Vector3(regionSize, 0, regionSize));
+                continue;
             }
 
-            position = new Position(next);
-            grid.Move(entities[i], next);
+            ref Position position = ref _positions.Get(entities[i]);
+            Vector3 toTarget = targets[i].Target - position.Value;
+            float distance = toTarget.Length();
+            if (distance <= targets[i].Speed)
+            {
+                position = new Position(targets[i].Target);
+                targets[i] = targets[i] with { Active = 0 };
+                runner.ReportOutcome(_minds.Get(entities[i]).Handle, succeeded: true);
+            }
+            else
+            {
+                position = new Position(position.Value + (toTarget / distance * targets[i].Speed));
+            }
+
+            grid.Move(entities[i], position.Value);
         }
     }
 }
 
-/// <summary>Every 30 ticks one creature dies and a new one spawns (ECS, spatial index and stable id churn).</summary>
+/// <summary>Every 30 ticks one creature dies and a new one spawns (ECS, spatial index, mind store and stable id churn).</summary>
 internal sealed class ChurnSystem(B5Scenario scenario, IEcsWorld world) : ISimulationSystem
 {
     private const int Interval = 30;

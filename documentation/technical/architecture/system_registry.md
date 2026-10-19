@@ -63,7 +63,8 @@ Rules: R02, R07, R12, R47, R49 · Related: ADR-001 (layers), TDD v0.1, AI Bible 
 | Opinions | `Core.Cognition.Opinions` | `IOpinionModel` | Trust / Fear / Affection / Respect from memories + baseline (`OpinionModel`) | AI Bible §5 | **Implemented** (M1-07) |
 | Appraisal | `Core.Cognition.Appraisal` | `IAppraisal` | Short-term emotions and emote selection (`AppraisalModel`); needs live in the mind store | AI Bible §6 | **Implemented** (M1-07) |
 | Goal selection | `Core.Cognition.Decision` | `IUtilityEvaluator` | Utility scoring and goal selection (`UtilityEvaluator`, `ResponseCurve`, `GoalSet`) | AI Bible §7.1–7.2 | **Implemented** (M1-08) |
-| Behaviour trees | `Core.Cognition.Behaviour` | `IBehaviourTreeRunner` | Data-defined trees that emit intents | AI Bible §7.3 | Planned (M1) |
+| Behaviour trees | `Core.Cognition.Behaviour` | `IBehaviourTreeRunner` | Data-defined trees that emit intents (`BehaviourTreeRunner`, `CreatureIntent`) | AI Bible §7.3 | **Implemented** (M1-09) |
+| Cognition inputs | `Core.Cognition.Decision` | `InputSampler` (class) | The one place that reads needs, emotions, opinion, distance, health, time as 0–1000 inputs; shared by utility AI and tree conditions | AI Bible §7.2 | **Implemented** (M1-09) |
 | Learning | `Core.Cognition.Learning` | `ILearningModel` | Tactic, habit and combo tables | AI Bible §8 | Planned (M2) |
 | AI LOD | `Core.Cognition` | `IAiLodPolicy` | Tier assignment and time slicing | AI Bible §9 | Planned (M1) |
 | Bonding rules | `Core.Bonding` | `IBondingRules` | Ownership states and transitions (Bonding Contract v1.0.0) | AI Bible §10.1 | Planned (M1) |

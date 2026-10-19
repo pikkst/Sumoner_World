@@ -23,6 +23,12 @@ public static class DataRegistryLoader
     /// <summary>File kind for <see cref="GoalDefinition"/> (exactly one file).</summary>
     public const string GoalsKind = "goals";
 
+    /// <summary>File kind for <see cref="BehaviourTreeDefinition"/> (one or more files).</summary>
+    public const string BehaviourTreesKind = "behaviourTrees";
+
+    private const int MaxSpeedPercent = 500;
+    private const int MaxParallelChildren = 16;
+
     private const int CurveLimit = 2000;
 
     /// <summary>Schema version this build reads, for every kind.</summary>
@@ -56,6 +62,7 @@ public static class DataRegistryLoader
         var goals = new List<(GoalDefinition Entry, string Where)>();
         var goalFiles = new List<string>();
         var speciesGoalRefs = new List<(string Key, string Where)>();
+        var trees = new List<(BehaviourTreeDefinition Entry, string Where)>();
         var speciesSources = new Dictionary<string, string>(StringComparer.Ordinal);
 
         foreach (DataFile file in files)
@@ -113,8 +120,17 @@ public static class DataRegistryLoader
                     }
 
                     break;
+                case BehaviourTreesKind:
+                    foreach ((BehaviourTreeDefinition entry, int index) in ReadEntries<BehaviourTreeDefinition>(file, errors))
+                    {
+                        string where = $"{file.Path}: entries[{index}]";
+                        ValidateTree(entry, where, errors);
+                        trees.Add((entry, where));
+                    }
+
+                    break;
                 default:
-                    errors.Add($"{file.Path}: unknown kind '{kind}'. Known kinds: {MemoryEventTypesKind}, {SpeciesKind}, {OpinionWeightsKind}, {GoalsKind}.");
+                    errors.Add($"{file.Path}: unknown kind '{kind}'. Known kinds: {MemoryEventTypesKind}, {SpeciesKind}, {OpinionWeightsKind}, {GoalsKind}, {BehaviourTreesKind}.");
                     break;
             }
         }
@@ -135,6 +151,7 @@ public static class DataRegistryLoader
         }
 
         ValidateGoalReferences(goals, speciesGoalRefs, errors);
+        ValidateTreeReferences(trees, goals, errors);
         ValidateUniqueMemoryEventTypes(memoryEventTypes, errors);
         ValidateOpinionWeightReferences(opinionWeights, memoryEventTypes, errors);
 
@@ -147,7 +164,8 @@ public static class DataRegistryLoader
             [.. memoryEventTypes.OrderBy(definition => definition.Id)],
             [.. species.OrderBy(definition => definition.Id, StringComparer.Ordinal)],
             [.. opinionWeights.Select(item => item.Entry).OrderBy(definition => definition.EventType)],
-            [.. goals.Select(item => item.Entry).OrderBy(definition => definition.Id)]);
+            [.. goals.Select(item => item.Entry).OrderBy(definition => definition.Id)],
+            [.. trees.Select(item => item.Entry).OrderBy(definition => definition.Goal, StringComparer.Ordinal)]);
     }
 
     private static string? ReadKind(DataFile file, List<string> errors)
@@ -387,6 +405,137 @@ public static class DataRegistryLoader
             {
                 errors.Add($"{where}: goal '{key}' is not defined in the goals file.");
             }
+        }
+    }
+
+    private static void ValidateTree(BehaviourTreeDefinition entry, string where, List<string> errors)
+    {
+        if (entry.Root is null)
+        {
+            errors.Add($"{where}: root is required.");
+            return;
+        }
+
+        int nodes = 0;
+        ValidateNode(entry.Root, $"{where}: root", depth: 1, ref nodes, errors);
+        if (nodes > BehaviourTreeDefinition.MaxNodes)
+        {
+            errors.Add($"{where}: {nodes} nodes; a tree may have at most {BehaviourTreeDefinition.MaxNodes}.");
+        }
+    }
+
+    private static void ValidateNode(BehaviourNodeDefinition? node, string where, int depth, ref int nodes, List<string> errors)
+    {
+        if (node is null)
+        {
+            errors.Add($"{where} is null.");
+            return;
+        }
+
+        nodes++;
+        if (depth > BehaviourTreeDefinition.MaxDepth)
+        {
+            errors.Add($"{where}: nested deeper than {BehaviourTreeDefinition.MaxDepth} levels.");
+            return;
+        }
+
+        switch (node.Type)
+        {
+            case BehaviourNodeType.Sequence or BehaviourNodeType.Selector or BehaviourNodeType.Parallel:
+                if (node.Children is null || node.Children.Count == 0)
+                {
+                    errors.Add($"{where}: a {node.Type} needs at least one child.");
+                    break;
+                }
+
+                if (node.Type == BehaviourNodeType.Parallel && node.Children.Count > MaxParallelChildren)
+                {
+                    errors.Add($"{where}: a parallel node may have at most {MaxParallelChildren} children.");
+                }
+
+                for (int i = 0; i < node.Children.Count; i++)
+                {
+                    ValidateNode(node.Children[i], $"{where}.children[{i}]", depth + 1, ref nodes, errors);
+                }
+
+                break;
+            case BehaviourNodeType.Cooldown or BehaviourNodeType.Repeat:
+                if (node.Child is null)
+                {
+                    errors.Add($"{where}: a {node.Type} needs a child.");
+                    break;
+                }
+
+                if (node.Type == BehaviourNodeType.Cooldown)
+                {
+                    CheckRange(node.Ticks, 1, int.MaxValue, "ticks", where, errors);
+                }
+                else
+                {
+                    CheckRange(node.Times, 0, ushort.MaxValue, "times", where, errors);
+                }
+
+                ValidateNode(node.Child, $"{where}.child", depth + 1, ref nodes, errors);
+                break;
+            case BehaviourNodeType.Condition:
+                if (node.Input is null)
+                {
+                    errors.Add($"{where}: a condition needs an input.");
+                }
+
+                CheckRange(node.Value, 0, 1000, "value", where, errors);
+                break;
+            case BehaviourNodeType.Wait:
+                CheckRange(node.Ticks, 1, int.MaxValue, "ticks", where, errors);
+                break;
+            case BehaviourNodeType.Action:
+                ValidateAction(node, where, errors);
+                break;
+            default:
+                errors.Add($"{where}: unknown node type.");
+                break;
+        }
+    }
+
+    private static void ValidateAction(BehaviourNodeDefinition node, string where, List<string> errors)
+    {
+        switch (node.Intent)
+        {
+            case null:
+                errors.Add($"{where}: an action needs an intent.");
+                break;
+            case IntentKind.MoveTo:
+                CheckRange(node.Speed, 1, MaxSpeedPercent, "speed", where, errors);
+                CheckRange(node.Timeout, 1, int.MaxValue, "timeout", where, errors);
+                break;
+            case IntentKind.Emote when node.Emote is null:
+                errors.Add($"{where}: an emote action needs an emote.");
+                break;
+            default:
+                break;
+        }
+    }
+
+    private static void ValidateTreeReferences(
+        List<(BehaviourTreeDefinition Entry, string Where)> trees, List<(GoalDefinition Entry, string Where)> goals, List<string> errors)
+    {
+        var goalKeys = goals.Select(goal => goal.Entry.Key).Where(key => key is not null).ToHashSet(StringComparer.Ordinal);
+        var seen = new HashSet<string>(StringComparer.Ordinal);
+        foreach ((BehaviourTreeDefinition entry, string where) in trees)
+        {
+            if (entry.Goal is null || !goalKeys.Contains(entry.Goal))
+            {
+                errors.Add($"{where}: tree for unknown goal '{entry.Goal}'.");
+            }
+            else if (!seen.Add(entry.Goal))
+            {
+                errors.Add($"{where}: goal '{entry.Goal}' has more than one tree.");
+            }
+        }
+
+        foreach (string missing in goalKeys.Where(key => !seen.Contains(key)).Order(StringComparer.Ordinal))
+        {
+            errors.Add($"Goal '{missing}' has no behaviour tree; every goal needs exactly one (AI Bible §7.3).");
         }
     }
 

@@ -15,21 +15,14 @@ namespace SumonerWorld.Core.Cognition.Decision;
 /// </summary>
 public sealed class UtilityEvaluator : IUtilityEvaluator
 {
-    private const int InputCount = (int)ConsiderationInput.TimeOfDay + 1;
     private const int PerMille = 1000;
     private const int MaxModifier = 2000;
     private const int MomentumDivisor = 10;
     private const int NearTiePercent = 95;
-    private const int ToPerMille = 10;
-    private const int OpinionOffset = 100;
-    private const int OpinionScale = 5;
 
     private readonly ICreatureMindStore _store;
-    private readonly IAppraisal _appraisal;
-    private readonly IOpinionModel _opinions;
     private readonly Dictionary<string, GoalDefinition> _goalsByKey;
-    private readonly int _ticksPerDay;
-    private readonly int[] _inputs = new int[InputCount];
+    private readonly InputSampler _sampler;
 
     /// <summary>Creates the evaluator over all loaded goals.</summary>
     public UtilityEvaluator(
@@ -42,10 +35,8 @@ public sealed class UtilityEvaluator : IUtilityEvaluator
         ArgumentOutOfRangeException.ThrowIfNegativeOrZero(ticksPerDay);
 
         _store = store;
-        _appraisal = appraisal;
-        _opinions = opinions;
+        _sampler = new InputSampler(store, appraisal, opinions, ticksPerDay);
         _goalsByKey = goals.ToDictionary(goal => goal.Key, StringComparer.Ordinal);
-        _ticksPerDay = ticksPerDay;
     }
 
     /// <inheritdoc />
@@ -62,14 +53,14 @@ public sealed class UtilityEvaluator : IUtilityEvaluator
     public Decision Decide(MindHandle mind, in DecisionContext context, IRandom random)
     {
         ArgumentNullException.ThrowIfNull(random);
-        GatherInputs(mind, context);
+        ReadOnlySpan<int> inputs = Sample(mind, context);
         Personality personality = _store.GetPersonality(mind);
 
         var best = new Decision(Decision.Idle, 0);
         var second = new Decision(Decision.Idle, 0);
         foreach (GoalDefinition goal in context.Goals.Items)
         {
-            var candidate = new Decision(goal.Id, ScoreGoal(goal, personality, context.CurrentGoal));
+            var candidate = new Decision(goal.Id, ScoreGoal(goal, personality, context.CurrentGoal, inputs));
             if (candidate.Score > best.Score)
             {
                 second = best;
@@ -93,7 +84,7 @@ public sealed class UtilityEvaluator : IUtilityEvaluator
     /// <inheritdoc />
     public Decision CheckInterrupt(MindHandle mind, in DecisionContext context)
     {
-        GatherInputs(mind, context);
+        ReadOnlySpan<int> inputs = Sample(mind, context);
         Personality personality = _store.GetPersonality(mind);
 
         int currentScore = 0;
@@ -102,11 +93,11 @@ public sealed class UtilityEvaluator : IUtilityEvaluator
         {
             if (goal.Id == context.CurrentGoal)
             {
-                currentScore = ScoreGoal(goal, personality, context.CurrentGoal);
+                currentScore = ScoreGoal(goal, personality, context.CurrentGoal, inputs);
             }
             else if (goal.Interrupt)
             {
-                int score = ScoreGoal(goal, personality, context.CurrentGoal);
+                int score = ScoreGoal(goal, personality, context.CurrentGoal, inputs);
                 if (score > best.Score)
                 {
                     best = new Decision(goal.Id, score);
@@ -120,20 +111,20 @@ public sealed class UtilityEvaluator : IUtilityEvaluator
     /// <inheritdoc />
     public int Score(MindHandle mind, ushort goal, in DecisionContext context)
     {
-        GatherInputs(mind, context);
+        ReadOnlySpan<int> inputs = Sample(mind, context);
         Personality personality = _store.GetPersonality(mind);
         foreach (GoalDefinition definition in context.Goals.Items)
         {
             if (definition.Id == goal)
             {
-                return ScoreGoal(definition, personality, context.CurrentGoal);
+                return ScoreGoal(definition, personality, context.CurrentGoal, inputs);
             }
         }
 
         throw new ArgumentOutOfRangeException(nameof(goal), goal, "Goal is not in this species' goal set.");
     }
 
-    private int ScoreGoal(GoalDefinition goal, Personality personality, ushort currentGoal)
+    private static int ScoreGoal(GoalDefinition goal, Personality personality, ushort currentGoal, ReadOnlySpan<int> inputs)
     {
         // Indexed loops: foreach over IReadOnlyList would box an enumerator per call (R21).
         long modifier = PerMille;
@@ -147,7 +138,7 @@ public sealed class UtilityEvaluator : IUtilityEvaluator
         for (int i = 0; i < goal.Considerations.Count; i++)
         {
             ConsiderationDefinition consideration = goal.Considerations[i];
-            score = score * ResponseCurve.Evaluate(consideration.Curve, _inputs[(int)consideration.Input]) / PerMille;
+            score = score * ResponseCurve.Evaluate(consideration.Curve, inputs[(int)consideration.Input]) / PerMille;
             if (score == 0)
             {
                 return 0;
@@ -162,32 +153,9 @@ public sealed class UtilityEvaluator : IUtilityEvaluator
         return (int)score;
     }
 
-    private void GatherInputs(MindHandle mind, in DecisionContext context)
+    private ReadOnlySpan<int> Sample(MindHandle mind, in DecisionContext context)
     {
         ArgumentNullException.ThrowIfNull(context.Goals);
-        ulong now = context.Now;
-        _inputs[(int)ConsiderationInput.Constant] = PerMille;
-        _inputs[(int)ConsiderationInput.NeedHunger] = _store.GetNeed(mind, Need.Hunger, now) * ToPerMille;
-        _inputs[(int)ConsiderationInput.NeedRest] = _store.GetNeed(mind, Need.Rest, now) * ToPerMille;
-        _inputs[(int)ConsiderationInput.NeedSafety] = _store.GetNeed(mind, Need.Safety, now) * ToPerMille;
-        _inputs[(int)ConsiderationInput.NeedSocial] = _store.GetNeed(mind, Need.Social, now) * ToPerMille;
-        _inputs[(int)ConsiderationInput.NeedTerritory] = _store.GetNeed(mind, Need.Territory, now) * ToPerMille;
-
-        EmotionState emotions = _appraisal.GetEmotions(mind, now);
-        _inputs[(int)ConsiderationInput.EmotionFear] = emotions.Fear * ToPerMille;
-        _inputs[(int)ConsiderationInput.EmotionAnger] = emotions.Anger * ToPerMille;
-        _inputs[(int)ConsiderationInput.EmotionJoy] = emotions.Joy * ToPerMille;
-        _inputs[(int)ConsiderationInput.EmotionCuriosity] = emotions.Curiosity * ToPerMille;
-        _inputs[(int)ConsiderationInput.EmotionStress] = emotions.Stress * ToPerMille;
-
-        Opinion opinion = context.Focus is MemorySubject focus ? _opinions.GetOpinion(mind, focus, now) : Opinion.Neutral;
-        _inputs[(int)ConsiderationInput.HasTarget] = context.Focus is null ? 0 : PerMille;
-        _inputs[(int)ConsiderationInput.TargetTrust] = (opinion.Trust + OpinionOffset) * OpinionScale;
-        _inputs[(int)ConsiderationInput.TargetFear] = (opinion.Fear + OpinionOffset) * OpinionScale;
-        _inputs[(int)ConsiderationInput.TargetAffection] = (opinion.Affection + OpinionOffset) * OpinionScale;
-        _inputs[(int)ConsiderationInput.TargetRespect] = (opinion.Respect + OpinionOffset) * OpinionScale;
-        _inputs[(int)ConsiderationInput.TargetDistance] = Math.Clamp(context.FocusDistance, 0, PerMille);
-        _inputs[(int)ConsiderationInput.Health] = Math.Clamp(context.Health, 0, PerMille);
-        _inputs[(int)ConsiderationInput.TimeOfDay] = (int)(now % (ulong)_ticksPerDay * PerMille / (ulong)_ticksPerDay);
+        return _sampler.Sample(mind, context.Now, context.Focus, context.FocusDistance, context.Health);
     }
 }

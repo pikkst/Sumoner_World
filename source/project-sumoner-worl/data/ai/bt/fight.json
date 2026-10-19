@@ -1,0 +1,40 @@
+{
+  "schemaVersion": 1,
+  "kind": "behaviourTrees",
+  "entries": [
+    {
+      "goal": "Fight",
+      "root": {
+        "type": "sequence",
+        "children": [
+          {
+            "type": "condition",
+            "input": "hasTarget",
+            "op": "gte",
+            "value": 1000
+          },
+          {
+            "type": "action",
+            "intent": "emote",
+            "emote": "grudge"
+          },
+          {
+            "type": "action",
+            "intent": "moveTo",
+            "target": "focus",
+            "speed": 200,
+            "timeout": 300
+          },
+          {
+            "type": "action",
+            "intent": "attack"
+          },
+          {
+            "type": "wait",
+            "ticks": 30
+          }
+        ]
+      }
+    }
+  ]
+}

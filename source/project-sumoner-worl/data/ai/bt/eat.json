@@ -1,0 +1,34 @@
+{
+  "schemaVersion": 1,
+  "kind": "behaviourTrees",
+  "entries": [
+    {
+      "goal": "Eat",
+      "root": {
+        "type": "sequence",
+        "children": [
+          {
+            "type": "action",
+            "intent": "moveTo",
+            "target": "wander",
+            "speed": 50,
+            "timeout": 300
+          },
+          {
+            "type": "action",
+            "intent": "stop"
+          },
+          {
+            "type": "action",
+            "intent": "interact",
+            "verb": "eat"
+          },
+          {
+            "type": "wait",
+            "ticks": 90
+          }
+        ]
+      }
+    }
+  ]
+}

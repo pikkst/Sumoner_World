@@ -1,0 +1,27 @@
+{
+  "schemaVersion": 1,
+  "kind": "behaviourTrees",
+  "entries": [
+    {
+      "goal": "Rest",
+      "root": {
+        "type": "sequence",
+        "children": [
+          {
+            "type": "action",
+            "intent": "stop"
+          },
+          {
+            "type": "action",
+            "intent": "interact",
+            "verb": "rest"
+          },
+          {
+            "type": "wait",
+            "ticks": 300
+          }
+        ]
+      }
+    }
+  ]
+}
