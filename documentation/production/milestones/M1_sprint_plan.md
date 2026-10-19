@@ -90,4 +90,5 @@ M1-01 → (M1-02, M1-03, M1-04) → M1-05 → Phase B. M1-13 can start after M1-
 | M1-12 | **Done** 2026-10-20 (merged under standing approval, PR #22): rumours, reputation, job scheduler; Phase B complete |
 | M1-13 | **Done** 2026-10-20 (merged under standing approval, PR #23): Net project, transport + loopback, message codec |
 | M1-14 | **Done** 2026-10-20 (merged under standing approval, PR #24): Docker dev server, ENet adapter, server/client hosts, handshake |
-| M1-15 … M1-24 | Planned |
+| M1-15a | **Done** 2026-10-20 (merged under standing approval): creature systems promoted to `Core.World.CreatureWorld`; B5 is a thin scenario, state hash unchanged |
+| M1-15b … M1-24 | Planned |
