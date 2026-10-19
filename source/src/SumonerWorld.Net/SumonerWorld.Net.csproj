@@ -1,0 +1,13 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <!-- Networking layer (ADR-001): transport abstraction, messages, server authority. No Godot reference; the Godot ENet adapter lives in the Game project. -->
+  <PropertyGroup>
+    <TargetFramework>net8.0</TargetFramework>
+    <IsSimulationLayer>true</IsSimulationLayer>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\SumonerWorld.Core\SumonerWorld.Core.csproj" />
+  </ItemGroup>
+
+</Project>

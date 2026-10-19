@@ -8,16 +8,16 @@ public class ArchitectureRegistryTests
 {
     private const string RegistryRelativePath = "documentation/technical/architecture/system_registry.md";
 
-    private static readonly Assembly CoreAssembly = typeof(IRandom).Assembly;
+    private static readonly Assembly[] RegisteredAssemblies = [typeof(IRandom).Assembly, typeof(SumonerWorld.Net.Transport.ITransport).Assembly];
 
     [Fact]
-    public void Every_public_core_interface_is_listed_in_the_system_registry()
+    public void Every_public_core_and_net_interface_is_listed_in_the_system_registry()
     {
         var registry = File.ReadAllText(FindRegistry());
 
-        var unregistered = CoreAssembly.GetExportedTypes()
+        var unregistered = RegisteredAssemblies.SelectMany(assembly => assembly.GetExportedTypes())
             .Where(type => type.IsInterface)
-            .Select(type => type.Name)
+            .Select(type => type.Name.Split('`')[0])
             .Where(name => !registry.Contains($"`{name}`", StringComparison.Ordinal))
             .ToArray();
 
