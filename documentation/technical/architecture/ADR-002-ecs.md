@@ -63,7 +63,24 @@ Anything beyond this list needs a new ADR.
 - (−) Iteration is ~1.6× slower than Arch. If the M1 benchmark (B1/B5) ever shows the ECS above 0.5 ms/tick, revisit with a profile (R23), not by default.
 - The TDD (§2.2, §7) is updated to match this ADR.
 
-## Next step (M1-02b, after approval)
+## Implementation results (M1-02b, 2026-10-19)
+The production `EcsWorld` adds safety the spike did not have: every lookup checks the entity's generation (stale handles can never touch a reused slot), operations on dead entities throw, and views detect structural changes during iteration. Measured with `CoreEcsBenchmarks` (raw: `qa/performance-logs/2026-10-19_M1-02b_core_ecs_dev-pc.md`):
+
+| Operation | 200: production | 200: spike | 200: Arch | 10,000: production | 10,000: Arch |
+|---|---|---|---|---|---|
+| Movement via `View<,>` | 1.56 µs | 0.46 µs | 0.31 µs | 59.7 µs | 14.1 µs |
+| Movement, dense fast path | **0.66 µs** | | | **35.3 µs** | |
+| TierQuery via `View<,,>` | 1.17 µs | 0.25 µs | 0.25 µs | 60.5 µs | 7.7 µs |
+| TierChurn | **0.30 µs** | 0.07 µs | 1.69 µs | **16.3 µs** | 89.7 µs |
+| Spawn | **0.78 µs** | 0.78 µs | 0.87 µs | 55.3 µs | 46.7 µs |
+
+All 0 bytes allocated.
+- **Honest correction:** with the safety checks, the production ECS is about **5× faster than Arch at tier churn** (not the 25–30× the bare spike showed) and **2–8× slower at iteration**.
+- At the M1 target it still costs **under 2 µs per system per tick** (≈ 0.01% of the 19 ms budget), so the decision stands.
+- **Fast path for hot systems:** iterate the store whose component you update (`store.Entities` + `store.Components`) and look up only the other components; this halves movement cost. Use it for systems that run every tick over many entities.
+- Revisit trigger unchanged: if B1/B5 show the ECS above 0.5 ms per tick, profile first (R23); typed views with ref fields are the next optimization.
+
+## Next step (M1-02b)
 Implement `IEcsWorld`, `IStableIdAllocator` and the views in `SumonerWorld.Core.Ecs` with unit and property tests (no allocations per tick, generation checks, swap-remove correctness, deterministic slot reuse). The spike code stays in the benchmark project for re-measurement; Arch is referenced only there.
 
 ## Reproduce
