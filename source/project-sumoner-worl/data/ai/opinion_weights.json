@@ -113,6 +113,27 @@
       "fear": -40,
       "affection": 20,
       "respect": 0
+    },
+    {
+      "eventType": 19,
+      "trust": 60,
+      "fear": 0,
+      "affection": 30,
+      "respect": 30
+    },
+    {
+      "eventType": 20,
+      "trust": -20,
+      "fear": 0,
+      "affection": 0,
+      "respect": -10
+    },
+    {
+      "eventType": 21,
+      "trust": -40,
+      "fear": 0,
+      "affection": -20,
+      "respect": 0
     }
   ]
 }

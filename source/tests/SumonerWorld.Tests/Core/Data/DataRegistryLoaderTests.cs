@@ -37,6 +37,19 @@ public class DataRegistryLoaderTests
         ] }
         """;
 
+    private const string ValidPactTerms = """
+        { "schemaVersion": 1, "kind": "pactTerms", "entries": [
+          { "key": "FeedDaily", "base": 60, "need": "hunger", "needWeight": 120, "personality": [] }
+        ] }
+        """;
+
+    private const string ValidBondLevels = """
+        { "schemaVersion": 1, "kind": "bondLevels", "entries": [
+          { "level": 0, "key": "Wary", "minTrust": -100, "minAffection": -100, "coreMemoriesWithOwner": 0, "minDaysBonded": 0 },
+          { "level": 1, "key": "Accepting", "minTrust": 20, "minAffection": 20, "coreMemoriesWithOwner": 0, "minDaysBonded": 0 }
+        ] }
+        """;
+
     [Fact]
     public void The_shipped_game_data_is_valid()
     {
@@ -61,7 +74,7 @@ public class DataRegistryLoaderTests
         MemoryEventTypeDefinition pactBroken = registry.GetMemoryEventType(11);
         Assert.Equal(-80, pactBroken.Valence);
         Assert.Equal(90, pactBroken.HalfLifeDays);
-        Assert.Equal(18, registry.MemoryEventTypes.Count);
+        Assert.Equal(21, registry.MemoryEventTypes.Count);
     }
 
     [Fact]
@@ -110,6 +123,8 @@ public class DataRegistryLoaderTests
             new DataFile("weights.json", ValidOpinionWeights),
             new DataFile("goals.json", ValidGoals),
             new DataFile("tree.json", ValidTree),
+            new DataFile("terms.json", ValidPactTerms),
+            new DataFile("levels.json", ValidBondLevels),
             new DataFile("a.json", badSpecies),
             new DataFile("b.json", duplicate),
             new DataFile("c.json", badTrait),
@@ -193,6 +208,23 @@ public class DataRegistryLoaderTests
         Assert.Contains(missing.Errors, message => message.Contains("Goal 'Eat' has no behaviour tree", StringComparison.Ordinal));
         Assert.Contains(twice.Errors, message => message.Contains("more than one tree", StringComparison.Ordinal));
         Assert.Contains(tooBig.Errors, message => message.Contains("41 nodes", StringComparison.Ordinal));
+    }
+
+    [Theory]
+    [InlineData("terms", "\"base\": 60", "\"base\": 900", "base = 900")]
+    [InlineData("terms", "\"key\": \"FeedDaily\"", "\"key\": \"feed daily\"", "unique PascalCase")]
+    [InlineData("terms", "\"need\": \"hunger\"", "\"need\": \"gold\"", "need")]
+    [InlineData("levels", "\"level\": 1", "\"level\": 3", "without gaps")]
+    [InlineData("levels", "\"minTrust\": 20", "\"minTrust\": -200", "minTrust = -200")]
+    public void Invalid_pact_terms_and_bond_levels_are_rejected(string file, string find, string replace, string expectedFragment)
+    {
+        string terms = file == "terms" ? ValidPactTerms.Replace(find, replace, StringComparison.Ordinal) : ValidPactTerms;
+        string levels = file == "levels" ? ValidBondLevels.Replace(find, replace, StringComparison.Ordinal) : ValidBondLevels;
+
+        var error = Assert.Throws<DataValidationException>(() => DataRegistryLoader.Load(
+            [new DataFile("terms.json", terms), new DataFile("levels.json", levels)]));
+
+        Assert.Contains(error.Errors, message => message.Contains(expectedFragment, StringComparison.Ordinal));
     }
 
     [Fact]

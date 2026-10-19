@@ -23,6 +23,12 @@ public interface IDataRegistry
     /// <summary>One behaviour tree per goal, ordered by goal key (AI Bible §7.3).</summary>
     IReadOnlyList<BehaviourTreeDefinition> BehaviourTrees { get; }
 
+    /// <summary>The Pact Term catalogue in file order; a term's index is its bit in saved Pacts (AI Bible §10.2).</summary>
+    IReadOnlyList<PactTermDefinition> PactTerms { get; }
+
+    /// <summary>Bond levels 0…N (AI Bible §10.3).</summary>
+    IReadOnlyList<BondLevelDefinition> BondLevels { get; }
+
     /// <summary>The memory event type with this id. Throws <see cref="KeyNotFoundException"/> if unknown.</summary>
     MemoryEventTypeDefinition GetMemoryEventType(ushort id);
 

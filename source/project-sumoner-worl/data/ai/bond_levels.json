@@ -1,0 +1,54 @@
+{
+  "schemaVersion": 1,
+  "kind": "bondLevels",
+  "entries": [
+    {
+      "level": 0,
+      "key": "Wary",
+      "minTrust": -100,
+      "minAffection": -100,
+      "coreMemoriesWithOwner": 0,
+      "minDaysBonded": 0
+    },
+    {
+      "level": 1,
+      "key": "Accepting",
+      "minTrust": 20,
+      "minAffection": 20,
+      "coreMemoriesWithOwner": 0,
+      "minDaysBonded": 0
+    },
+    {
+      "level": 2,
+      "key": "Companion",
+      "minTrust": 40,
+      "minAffection": 40,
+      "coreMemoriesWithOwner": 0,
+      "minDaysBonded": 0
+    },
+    {
+      "level": 3,
+      "key": "Trusted",
+      "minTrust": 60,
+      "minAffection": 60,
+      "coreMemoriesWithOwner": 0,
+      "minDaysBonded": 0
+    },
+    {
+      "level": 4,
+      "key": "Devoted",
+      "minTrust": 80,
+      "minAffection": 80,
+      "coreMemoriesWithOwner": 1,
+      "minDaysBonded": 0
+    },
+    {
+      "level": 5,
+      "key": "Soulbound",
+      "minTrust": 95,
+      "minAffection": 95,
+      "coreMemoriesWithOwner": 2,
+      "minDaysBonded": 30
+    }
+  ]
+}

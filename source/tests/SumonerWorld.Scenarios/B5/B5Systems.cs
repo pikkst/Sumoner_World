@@ -1,4 +1,5 @@
 using System.Numerics;
+using SumonerWorld.Core.Bonding;
 using SumonerWorld.Core.Cognition.Appraisal;
 using SumonerWorld.Core.Cognition.Behaviour;
 using SumonerWorld.Core.Cognition.Decision;
@@ -399,6 +400,55 @@ internal sealed class MovementSystem(IEcsWorld world, ISpatialIndex grid, IBehav
             }
 
             grid.Move(entities[i], position.Value);
+        }
+    }
+}
+
+/// <summary>
+/// Every 10 s each stand-in player offers a Pact (feed daily + protect young) to the wild creatures that are watching it from close
+/// by (M1-11). Most strangers refuse; the refusals are remembered.
+/// </summary>
+internal sealed class PactOfferSystem(IEcsWorld world, IBondingRules bonding, B5SubjectResolver resolver, SpeciesDefinition species, PactTerms terms)
+    : ISimulationSystem
+{
+    private const int Interval = 300;
+    private const int CloseEnough = 400;
+
+    private readonly ComponentStore<FocusRef> _focus = world.Store<FocusRef>();
+    private readonly ComponentStore<MindRef> _minds = world.Store<MindRef>();
+    private readonly ComponentStore<PlayerTag> _players = world.Store<PlayerTag>();
+
+    public SimulationStage Stage => SimulationStage.Transactions;
+
+    public int Offers { get; private set; }
+
+    public int Accepted { get; private set; }
+
+    public void Execute(in SimulationTick tick)
+    {
+        if (tick.Index % Interval != 0)
+        {
+            return;
+        }
+
+        ReadOnlySpan<Entity> creatures = _focus.Entities;
+        Span<FocusRef> focus = _focus.Components;
+        for (int i = 0; i < creatures.Length; i++)
+        {
+            if (focus[i].Has == 0 || focus[i].Distance > CloseEnough || !_players.Has(focus[i].Entity)
+                || resolver.FocusSubject(focus[i]) is not MemorySubject player)
+            {
+                continue;
+            }
+
+            MindHandle mind = _minds.Get(creatures[i]).Handle;
+            if (bonding.GetBond(mind).State != OwnershipState.Wild)
+            {
+                continue;
+            }
+
+            Offers++;
+            Accepted += bonding.OfferPact(mind, species, player, terms, reputation: 0, tick.Index, out _) == BondingOutcome.Accepted ? 1 : 0;
         }
     }
 }

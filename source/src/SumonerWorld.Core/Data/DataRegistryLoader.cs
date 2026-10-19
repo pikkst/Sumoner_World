@@ -26,6 +26,14 @@ public static class DataRegistryLoader
     /// <summary>File kind for <see cref="BehaviourTreeDefinition"/> (one or more files).</summary>
     public const string BehaviourTreesKind = "behaviourTrees";
 
+    /// <summary>File kind for <see cref="PactTermDefinition"/> (exactly one file).</summary>
+    public const string PactTermsKind = "pactTerms";
+
+    /// <summary>File kind for <see cref="BondLevelDefinition"/> (exactly one file).</summary>
+    public const string BondLevelsKind = "bondLevels";
+
+    private const int MaxTermValue = 300;
+
     private const int MaxSpeedPercent = 500;
     private const int MaxParallelChildren = 16;
 
@@ -53,119 +61,151 @@ public static class DataRegistryLoader
     {
         ArgumentNullException.ThrowIfNull(files);
 
-        var errors = new List<string>();
-        var memoryEventTypes = new List<MemoryEventTypeDefinition>();
-        var species = new List<SpeciesDefinition>();
-        var opinionWeights = new List<(OpinionWeightsDefinition Entry, string Where)>();
-        var memoryEventFiles = new List<string>();
-        var opinionWeightFiles = new List<string>();
-        var goals = new List<(GoalDefinition Entry, string Where)>();
-        var goalFiles = new List<string>();
-        var speciesGoalRefs = new List<(string Key, string Where)>();
-        var trees = new List<(BehaviourTreeDefinition Entry, string Where)>();
-        var speciesSources = new Dictionary<string, string>(StringComparer.Ordinal);
-
+        var collected = new Collected();
         foreach (DataFile file in files)
         {
-            string? kind = ReadKind(file, errors);
+            string? kind = ReadKind(file, collected.Errors);
+            if (kind is not null)
+            {
+                collected.Add(kind, file);
+            }
+        }
+
+        return collected.Build();
+    }
+
+    // Everything read so far, per kind; Build runs the cross-file checks and creates the registry.
+    private sealed class Collected
+    {
+        private static readonly string[] SingleFileKinds = [MemoryEventTypesKind, OpinionWeightsKind, GoalsKind, PactTermsKind, BondLevelsKind];
+
+        private readonly List<MemoryEventTypeDefinition> _memoryEventTypes = [];
+        private readonly List<SpeciesDefinition> _species = [];
+        private readonly List<(OpinionWeightsDefinition Entry, string Where)> _opinionWeights = [];
+        private readonly List<(GoalDefinition Entry, string Where)> _goals = [];
+        private readonly List<(string Key, string Where)> _speciesGoalRefs = [];
+        private readonly List<(BehaviourTreeDefinition Entry, string Where)> _trees = [];
+        private readonly List<PactTermDefinition> _pactTerms = [];
+        private readonly List<BondLevelDefinition> _bondLevels = [];
+        private readonly Dictionary<string, string> _speciesSources = new(StringComparer.Ordinal);
+        private readonly Dictionary<string, List<string>> _filesByKind = new(StringComparer.Ordinal);
+
+        public List<string> Errors { get; } = [];
+
+        public void Add(string kind, DataFile file)
+        {
+            if (!_filesByKind.TryGetValue(kind, out List<string>? paths))
+            {
+                _filesByKind[kind] = paths = [];
+            }
+
+            paths.Add(file.Path);
             switch (kind)
             {
-                case null:
-                    break;
                 case MemoryEventTypesKind:
-                    memoryEventFiles.Add(file.Path);
-                    foreach ((MemoryEventTypeDefinition entry, int index) in ReadEntries<MemoryEventTypeDefinition>(file, errors))
+                    foreach ((MemoryEventTypeDefinition entry, int index) in ReadEntries<MemoryEventTypeDefinition>(file, Errors))
                     {
-                        ValidateMemoryEventType(entry, $"{file.Path}: entries[{index}]", errors);
-                        memoryEventTypes.Add(entry);
+                        ValidateMemoryEventType(entry, $"{file.Path}: entries[{index}]", Errors);
+                        _memoryEventTypes.Add(entry);
                     }
 
                     break;
                 case SpeciesKind:
-                    foreach ((SpeciesDefinition entry, int index) in ReadEntries<SpeciesDefinition>(file, errors))
-                    {
-                        string where = $"{file.Path}: entries[{index}]";
-                        ValidateSpecies(entry, where, errors);
-                        foreach (string goalKey in entry.Goals ?? [])
-                        {
-                            speciesGoalRefs.Add((goalKey, where));
-                        }
-
-                        if (entry.Id is not null && !speciesSources.TryAdd(entry.Id, where))
-                        {
-                            errors.Add($"{where}: duplicate species id '{entry.Id}' (first defined at {speciesSources[entry.Id]}).");
-                        }
-
-                        species.Add(entry);
-                    }
-
+                    AddSpecies(file);
                     break;
                 case OpinionWeightsKind:
-                    opinionWeightFiles.Add(file.Path);
-                    foreach ((OpinionWeightsDefinition entry, int index) in ReadEntries<OpinionWeightsDefinition>(file, errors))
+                    foreach ((OpinionWeightsDefinition entry, int index) in ReadEntries<OpinionWeightsDefinition>(file, Errors))
                     {
                         string where = $"{file.Path}: entries[{index}]";
-                        ValidateOpinionWeights(entry, where, errors);
-                        opinionWeights.Add((entry, where));
+                        ValidateOpinionWeights(entry, where, Errors);
+                        _opinionWeights.Add((entry, where));
                     }
 
                     break;
                 case GoalsKind:
-                    goalFiles.Add(file.Path);
-                    foreach ((GoalDefinition entry, int index) in ReadEntries<GoalDefinition>(file, errors))
+                    foreach ((GoalDefinition entry, int index) in ReadEntries<GoalDefinition>(file, Errors))
                     {
                         string where = $"{file.Path}: entries[{index}]";
-                        ValidateGoal(entry, where, errors);
-                        goals.Add((entry, where));
+                        ValidateGoal(entry, where, Errors);
+                        _goals.Add((entry, where));
                     }
 
                     break;
                 case BehaviourTreesKind:
-                    foreach ((BehaviourTreeDefinition entry, int index) in ReadEntries<BehaviourTreeDefinition>(file, errors))
+                    foreach ((BehaviourTreeDefinition entry, int index) in ReadEntries<BehaviourTreeDefinition>(file, Errors))
                     {
                         string where = $"{file.Path}: entries[{index}]";
-                        ValidateTree(entry, where, errors);
-                        trees.Add((entry, where));
+                        ValidateTree(entry, where, Errors);
+                        _trees.Add((entry, where));
                     }
 
                     break;
+                case PactTermsKind:
+                    List<(PactTermDefinition Entry, int Index)> terms = ReadEntries<PactTermDefinition>(file, Errors);
+                    ValidatePactTerms(terms, file.Path, Errors);
+                    _pactTerms.AddRange(terms.Select(term => term.Entry));
+                    break;
+                case BondLevelsKind:
+                    List<(BondLevelDefinition Entry, int Index)> levels = ReadEntries<BondLevelDefinition>(file, Errors);
+                    ValidateBondLevels(levels, file.Path, Errors);
+                    _bondLevels.AddRange(levels.Select(level => level.Entry));
+                    break;
                 default:
-                    errors.Add($"{file.Path}: unknown kind '{kind}'. Known kinds: {MemoryEventTypesKind}, {SpeciesKind}, {OpinionWeightsKind}, {GoalsKind}, {BehaviourTreesKind}.");
+                    Errors.Add($"{file.Path}: unknown kind '{kind}'. Known kinds: {MemoryEventTypesKind}, {SpeciesKind}, {OpinionWeightsKind}, {GoalsKind}, {BehaviourTreesKind}, {PactTermsKind}, {BondLevelsKind}.");
                     break;
             }
         }
 
-        if (memoryEventFiles.Count != 1)
+        public DataRegistry Build()
         {
-            errors.Add($"Expected exactly one '{MemoryEventTypesKind}' file, found {memoryEventFiles.Count} ({string.Join(", ", memoryEventFiles)}).");
+            foreach (string kind in SingleFileKinds)
+            {
+                List<string> paths = _filesByKind.GetValueOrDefault(kind) ?? [];
+                if (paths.Count != 1)
+                {
+                    Errors.Add($"Expected exactly one '{kind}' file, found {paths.Count} ({string.Join(", ", paths)}).");
+                }
+            }
+
+            ValidateGoalReferences(_goals, _speciesGoalRefs, Errors);
+            ValidateTreeReferences(_trees, _goals, Errors);
+            ValidateUniqueMemoryEventTypes(_memoryEventTypes, Errors);
+            ValidateOpinionWeightReferences(_opinionWeights, _memoryEventTypes, Errors);
+
+            if (Errors.Count > 0)
+            {
+                throw new DataValidationException(Errors);
+            }
+
+            return new DataRegistry(
+                [.. _memoryEventTypes.OrderBy(definition => definition.Id)],
+                [.. _species.OrderBy(definition => definition.Id, StringComparer.Ordinal)],
+                [.. _opinionWeights.Select(item => item.Entry).OrderBy(definition => definition.EventType)],
+                [.. _goals.Select(item => item.Entry).OrderBy(definition => definition.Id)],
+                [.. _trees.Select(item => item.Entry).OrderBy(definition => definition.Goal, StringComparer.Ordinal)],
+                _pactTerms,
+                [.. _bondLevels.OrderBy(level => level.Level)]);
         }
 
-        if (opinionWeightFiles.Count != 1)
+        private void AddSpecies(DataFile file)
         {
-            errors.Add($"Expected exactly one '{OpinionWeightsKind}' file, found {opinionWeightFiles.Count} ({string.Join(", ", opinionWeightFiles)}).");
+            foreach ((SpeciesDefinition entry, int index) in ReadEntries<SpeciesDefinition>(file, Errors))
+            {
+                string where = $"{file.Path}: entries[{index}]";
+                ValidateSpecies(entry, where, Errors);
+                foreach (string goalKey in entry.Goals ?? [])
+                {
+                    _speciesGoalRefs.Add((goalKey, where));
+                }
+
+                if (entry.Id is not null && !_speciesSources.TryAdd(entry.Id, where))
+                {
+                    Errors.Add($"{where}: duplicate species id '{entry.Id}' (first defined at {_speciesSources[entry.Id]}).");
+                }
+
+                _species.Add(entry);
+            }
         }
-
-        if (goalFiles.Count != 1)
-        {
-            errors.Add($"Expected exactly one '{GoalsKind}' file, found {goalFiles.Count} ({string.Join(", ", goalFiles)}).");
-        }
-
-        ValidateGoalReferences(goals, speciesGoalRefs, errors);
-        ValidateTreeReferences(trees, goals, errors);
-        ValidateUniqueMemoryEventTypes(memoryEventTypes, errors);
-        ValidateOpinionWeightReferences(opinionWeights, memoryEventTypes, errors);
-
-        if (errors.Count > 0)
-        {
-            throw new DataValidationException(errors);
-        }
-
-        return new DataRegistry(
-            [.. memoryEventTypes.OrderBy(definition => definition.Id)],
-            [.. species.OrderBy(definition => definition.Id, StringComparer.Ordinal)],
-            [.. opinionWeights.Select(item => item.Entry).OrderBy(definition => definition.EventType)],
-            [.. goals.Select(item => item.Entry).OrderBy(definition => definition.Id)],
-            [.. trees.Select(item => item.Entry).OrderBy(definition => definition.Goal, StringComparer.Ordinal)]);
     }
 
     private static string? ReadKind(DataFile file, List<string> errors)
@@ -536,6 +576,68 @@ public static class DataRegistryLoader
         foreach (string missing in goalKeys.Where(key => !seen.Contains(key)).Order(StringComparer.Ordinal))
         {
             errors.Add($"Goal '{missing}' has no behaviour tree; every goal needs exactly one (AI Bible §7.3).");
+        }
+    }
+
+    // File order is each term's bit in saved Pacts, so the order itself is part of the save format (R26).
+    private static void ValidatePactTerms(List<(PactTermDefinition Entry, int Index)> terms, string path, List<string> errors)
+    {
+        if (terms.Count == 0 || terms.Count > PactTermDefinition.MaxTerms)
+        {
+            errors.Add($"{path}: needs 1 to {PactTermDefinition.MaxTerms} pact terms, found {terms.Count}.");
+        }
+
+        var keys = new HashSet<string>(StringComparer.Ordinal);
+        foreach ((PactTermDefinition term, int index) in terms)
+        {
+            string where = $"{path}: entries[{index}]";
+            if (!IsPascalCaseLetters(term.Key) || !keys.Add(term.Key))
+            {
+                errors.Add($"{where}: key '{term.Key}' must be unique PascalCase letters.");
+            }
+
+            CheckRange(term.Base, 0, MaxTermValue, "base", where, errors);
+            CheckRange(term.NeedWeight, 0, MaxTermValue, "needWeight", where, errors);
+            if (term.Personality is null)
+            {
+                errors.Add($"{where}: personality must be a list (it may be empty).");
+                continue;
+            }
+
+            for (int i = 0; i < term.Personality.Count; i++)
+            {
+                CheckRange(term.Personality[i].Factor, -PersonalityFactor.MaxFactor, PersonalityFactor.MaxFactor, $"personality[{i}].factor", where, errors);
+            }
+        }
+    }
+
+    private static void ValidateBondLevels(List<(BondLevelDefinition Entry, int Index)> levels, string path, List<string> errors)
+    {
+        BondLevelDefinition? previous = null;
+        foreach ((BondLevelDefinition level, int index) in levels.OrderBy(item => item.Entry.Level))
+        {
+            string where = $"{path}: entries[{index}]";
+            if (level.Level != (previous?.Level ?? -1) + 1)
+            {
+                errors.Add($"{where}: bond levels must be numbered 0, 1, 2… without gaps; found {level.Level}.");
+            }
+
+            CheckRange(level.MinTrust, -100, 100, "minTrust", where, errors);
+            CheckRange(level.MinAffection, -100, 100, "minAffection", where, errors);
+            CheckRange(level.CoreMemoriesWithOwner, 0, 8, "coreMemoriesWithOwner", where, errors);
+            CheckRange(level.MinDaysBonded, 0, 3650, "minDaysBonded", where, errors);
+            if (previous is not null && (level.MinTrust < previous.MinTrust || level.MinAffection < previous.MinAffection
+                || level.CoreMemoriesWithOwner < previous.CoreMemoriesWithOwner || level.MinDaysBonded < previous.MinDaysBonded))
+            {
+                errors.Add($"{where}: requirements must not be lower than level {previous.Level}'s.");
+            }
+
+            previous = level;
+        }
+
+        if (levels.Count == 0)
+        {
+            errors.Add($"{path}: at least bond level 0 is required.");
         }
     }
 
