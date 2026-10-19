@@ -31,7 +31,16 @@
         "social": 10,
         "territory": 30
       },
-      "pactThreshold": 700
+      "pactThreshold": 700,
+      "goals": [
+        "Flee",
+        "Eat",
+        "Rest",
+        "Explore",
+        "DefendTerritory",
+        "Approach",
+        "Avoid"
+      ]
     }
   ]
 }

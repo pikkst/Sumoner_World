@@ -53,6 +53,18 @@ public class NeedsTests
     }
 
     [Fact]
+    public void A_need_can_be_set_and_keeps_rising_from_there()
+    {
+        var (store, mind) = StoreWithMind(Calm);
+
+        store.SetNeed(mind, Need.Hunger, 70, TicksPerDay);
+
+        Assert.Equal(70, store.GetNeed(mind, Need.Hunger, TicksPerDay));
+        Assert.Equal(100, store.GetNeed(mind, Need.Hunger, 2UL * TicksPerDay));
+        Assert.Throws<ArgumentOutOfRangeException>(() => store.SetNeed(mind, Need.Hunger, 101, 2UL * TicksPerDay));
+    }
+
+    [Fact]
     public void Invalid_need_operations_fail_loudly()
     {
         var (store, mind) = StoreWithMind(Calm);

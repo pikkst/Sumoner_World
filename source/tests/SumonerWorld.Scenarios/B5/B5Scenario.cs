@@ -1,8 +1,10 @@
 using System.Numerics;
 using SumonerWorld.Core.Cognition;
 using SumonerWorld.Core.Cognition.Appraisal;
+using SumonerWorld.Core.Cognition.Decision;
 using SumonerWorld.Core.Cognition.Memory;
 using SumonerWorld.Core.Cognition.Opinions;
+using SumonerWorld.Core.Data;
 using SumonerWorld.Core.Data.Definitions;
 using SumonerWorld.Core.Diagnostics;
 using SumonerWorld.Core.Ecs;
@@ -15,7 +17,8 @@ namespace SumonerWorld.Scenarios.B5;
 
 /// <summary>
 /// Benchmark scenario B5 "Sim-Only" (M0-07 A1): 200 creatures in the 512 m M1 test region, simulated by Core without Godot.
-/// Creatures have minds (rolled personality, memory store), wander, perceive neighbours (time-sliced), remember crowded spots as
+/// Creatures (species <c>mossback</c> from the shipped data) have minds (rolled personality, memory store), choose goals with the
+/// utility AI at 2 Hz (M1-08), wander at a goal-dependent speed, perceive neighbours (time-sliced), remember crowded spots as
 /// dangerous (M1-06), react with emotions and an emote (M1-07) and are replaced by churn. Until the real creature
 /// AI exists (Phase B) these systems stand in for it; each later system is added here so the gates keep covering it.
 /// Used by the CI gates (0 allocations per tick, identical runs) and by the benchmark tool (timings).
@@ -35,36 +38,7 @@ public sealed class B5Scenario
     private const float Speed = 0.1f;
     private const int EntityCapacity = 256;
     private const int EventCapacity = 256;
-    private const ushort PlaceDanger = 16;
-
-    // Stand-in species and memory rules (values from the shipped data) so the scenario does not read files.
-    private static readonly SpeciesDefinition Species = new()
-    {
-        Id = "b5_grazer",
-        NameKey = "b5",
-        Role = CreatureRole.Grazer,
-        BodyType = BodyType.Quadruped,
-        Group = GroupType.Herd,
-        Boldness = new TraitRange { Mean = -30, Spread = 25 },
-        Loyalty = new TraitRange { Mean = 40, Spread = 30 },
-        Curiosity = new TraitRange { Mean = 10, Spread = 30 },
-        Temper = new TraitRange { Mean = -40, Spread = 20 },
-        Needs = new NeedRates { Hunger = 60, Rest = 40, Safety = 50, Social = 70, Territory = 10 },
-        PactThreshold = 450,
-    };
-
-    private static readonly MemoryEventTypeDefinition PlaceDangerDefinition = new()
-    {
-        Id = PlaceDanger,
-        Key = "PlaceDanger",
-        Subjects = [SubjectKind.Place],
-        Valence = -40,
-        BaseSalience = 300,
-        HalfLifeDays = 14,
-        IsCore = false,
-    };
-
-    private static readonly OpinionWeightsDefinition PlaceDangerWeights = new() { EventType = PlaceDanger, Trust = 0, Fear = 60, Affection = 0, Respect = 0 };
+    private const string SpeciesId = "mossback";
 
     private readonly EcsWorld _world;
     private readonly SpatialGrid _grid;
@@ -72,6 +46,7 @@ public sealed class B5Scenario
     private readonly StableIdAllocator _ids = new();
     private readonly CreatureMindStore _minds;
     private readonly AppraisalModel _appraisal;
+    private readonly SpeciesDefinition _species;
     private readonly SimulationClock _clock;
     private readonly SimulationScheduler _scheduler;
 
@@ -79,28 +54,20 @@ public sealed class B5Scenario
     public B5Scenario(ulong seed, IMetrics? metrics = null)
     {
         _random = new SeededRandom(seed);
-        _world = new EcsWorld(EntityCapacity);
-        _world.Register<StableId>();
-        _world.Register<Position>();
-        _world.Register<Velocity>();
-        _world.Register<WanderTimer>();
-        _world.Register<MindRef>();
-        _world.Register<CurrentEmote>();
-        var rules = new MemoryRules([PlaceDangerDefinition], [PlaceDangerWeights], SimulationSettings.DefaultTicksPerDay);
+        _world = CreateWorld();
+        DataRegistry data = ShippedData.Current;
+        _species = data.GetSpecies(SpeciesId);
+        var rules = new MemoryRules(data.MemoryEventTypes, data.OpinionWeights, SimulationSettings.DefaultTicksPerDay);
         _minds = new CreatureMindStore(rules, EntityCapacity);
-        _appraisal = new AppraisalModel(_minds, new OpinionModel(_minds, rules), rules, AppraisalSettings.Default);
+        var opinions = new OpinionModel(_minds, rules);
+        _appraisal = new AppraisalModel(_minds, opinions, rules, AppraisalSettings.Default);
         _grid = new SpatialGrid(new SpatialGridSettings(0, 0, RegionSize, RegionSize, SpatialGridSettings.DefaultCellSize, EntityCapacity));
 
         Events = new EventBus();
         Events.Register<NeighbourCount>(EventCapacity);
-
         _clock = new SimulationClock(SimulationSettings.Default);
         _scheduler = new SimulationScheduler(_clock, Events, metrics);
-        _scheduler.Register(new PerceptionSystem(_world, _grid, Events));
-        _scheduler.Register(new WanderSystem(_world, _random, Speed));
-        _scheduler.Register(new CrowdReactionSystem(_world, Events, _minds, _appraisal, PlaceDanger));
-        _scheduler.Register(new MovementSystem(_world, _grid, RegionSize));
-        _scheduler.Register(new ChurnSystem(this, _world));
+        RegisterSystems(data, rules, new UtilityEvaluator(_minds, _appraisal, opinions, data.Goals, SimulationSettings.DefaultTicksPerDay));
 
         for (int i = 0; i < CreatureCount; i++)
         {
@@ -119,6 +86,21 @@ public sealed class B5Scenario
 
     /// <summary>Minds currently allocated.</summary>
     public int LiveMinds => _minds.Count;
+
+    /// <summary>How many creatures currently pursue each goal id (for the gate test).</summary>
+    public IReadOnlyDictionary<ushort, int> GoalCounts
+    {
+        get
+        {
+            var counts = new Dictionary<ushort, int>();
+            foreach (CurrentGoal goal in _world.Store<CurrentGoal>().Components)
+            {
+                counts[goal.Goal] = counts.GetValueOrDefault(goal.Goal) + 1;
+            }
+
+            return counts;
+        }
+    }
 
     /// <summary>Creatures currently showing an emote.</summary>
     public int CreaturesShowingAnEmote
@@ -149,9 +131,38 @@ public sealed class B5Scenario
         hash.Add<Velocity>(_world.Store<Velocity>().Components);
         hash.Add<WanderTimer>(_world.Store<WanderTimer>().Components);
         hash.Add<CurrentEmote>(_world.Store<CurrentEmote>().Components);
+        hash.Add<CurrentGoal>(_world.Store<CurrentGoal>().Components);
         _minds.AddTo(ref hash);
         return hash.Value;
     }
+
+    private static EcsWorld CreateWorld()
+    {
+        var world = new EcsWorld(EntityCapacity);
+        world.Register<StableId>();
+        world.Register<Position>();
+        world.Register<Velocity>();
+        world.Register<WanderTimer>();
+        world.Register<MindRef>();
+        world.Register<CurrentEmote>();
+        world.Register<CurrentGoal>();
+        return world;
+    }
+
+    private void RegisterSystems(DataRegistry data, MemoryRules rules, UtilityEvaluator evaluator)
+    {
+        ushort placeDanger = rules.FindByKey("PlaceDanger") ?? throw new InvalidOperationException("Shipped data has no PlaceDanger memory event.");
+        var goalIds = new B5Goals(GoalId(data, "Flee"), GoalId(data, "Eat"), GoalId(data, "Rest"), GoalId(data, "Socialize"));
+        _scheduler.Register(new PerceptionSystem(_world, _grid, Events));
+        _scheduler.Register(new DecisionSystem(_world, evaluator, _minds, evaluator.ForSpecies(_species), _random, goalIds));
+        _scheduler.Register(new WanderSystem(_world, _random, Speed, goalIds));
+        _scheduler.Register(new CrowdReactionSystem(_world, Events, _minds, _appraisal, placeDanger));
+        _scheduler.Register(new MovementSystem(_world, _grid, RegionSize));
+        _scheduler.Register(new ChurnSystem(this, _world));
+    }
+
+    private static ushort GoalId(DataRegistry data, string key) =>
+        data.Goals.FirstOrDefault(goal => goal.Key == key)?.Id ?? throw new InvalidOperationException($"Shipped data has no goal '{key}'.");
 
     internal void Spawn()
     {
@@ -162,7 +173,14 @@ public sealed class B5Scenario
         _world.Add(creature, new Velocity(Vector3.Zero));
         _world.Add(creature, new WanderTimer(1));
         _world.Add(creature, new CurrentEmote(Emote.None));
-        _world.Add(creature, new MindRef(_minds.Allocate(Personality.Roll(Species, _random), Species.Needs)));
+        _world.Add(creature, new CurrentGoal(Decision.Idle));
+        MindHandle mind = _minds.Allocate(Personality.Roll(_species, _random), _species.Needs);
+        _world.Add(creature, new MindRef(mind));
+
+        // Creatures enter the world with varied needs, so goals differ from the start.
+        _minds.SetNeed(mind, Need.Hunger, _random.NextInt(0, ICreatureMindStore.MaxNeed + 1), _clock.Current.Index);
+        _minds.SetNeed(mind, Need.Rest, _random.NextInt(0, ICreatureMindStore.MaxNeed + 1), _clock.Current.Index);
+        _minds.SetNeed(mind, Need.Social, _random.NextInt(0, ICreatureMindStore.MaxNeed + 1), _clock.Current.Index);
         _grid.Insert(creature, position);
     }
 

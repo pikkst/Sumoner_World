@@ -17,6 +17,9 @@ public record struct WanderTimer(int TicksLeft);
 /// <summary>The emote the creature currently shows (replicated to clients later, AI Bible §6.2).</summary>
 public record struct CurrentEmote(Emote Value);
 
+/// <summary>The goal the utility AI chose (0 = idle), AI Bible §7.</summary>
+public record struct CurrentGoal(ushort Goal);
+
 /// <summary>The creature's mind in the mind store.</summary>
 public record struct MindRef(MindHandle Handle);
 

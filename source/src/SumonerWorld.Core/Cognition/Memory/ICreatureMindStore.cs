@@ -122,6 +122,9 @@ public interface ICreatureMindStore
     /// <summary>Lowers a need by <paramref name="amount"/> points at tick <paramref name="now"/> (eating, sleeping, company...).</summary>
     void SatisfyNeed(MindHandle mind, Need need, int amount, ulong now);
 
+    /// <summary>Sets a need to <paramref name="level"/> (0–100) at tick <paramref name="now"/> (spawning, loading a save).</summary>
+    void SetNeed(MindHandle mind, Need need, int level, ulong now);
+
     /// <summary>Core-slot records as stored (for saves and the AI Inspector).</summary>
     ReadOnlySpan<MemoryRecord> GetCoreRecords(MindHandle mind);
 

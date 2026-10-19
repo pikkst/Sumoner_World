@@ -291,6 +291,7 @@ public class CreatureMindStoreTests
             Temper = new TraitRange { Mean = 0, Spread = 100 },
             Needs = new NeedRates { Hunger = 1, Rest = 1, Safety = 1, Social = 1, Territory = 1 },
             PactThreshold = 1,
+            Goals = ["Eat"],
         };
 
         for (ulong seed = 0; seed < 200; seed++)

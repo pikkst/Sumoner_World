@@ -226,6 +226,22 @@ public sealed class CreatureMindStore : ICreatureMindStore
     }
 
     /// <inheritdoc />
+    public void SetNeed(MindHandle mind, Need need, int level, ulong now)
+    {
+        EnsureValid(mind);
+        ArgumentOutOfRangeException.ThrowIfNegative(level);
+        ArgumentOutOfRangeException.ThrowIfGreaterThan(level, ICreatureMindStore.MaxNeed);
+        if ((uint)need >= NeedCount)
+        {
+            throw new ArgumentOutOfRangeException(nameof(need), need, "Unknown need.");
+        }
+
+        int index = (mind.Slot * NeedCount) + (int)need;
+        _needMilli[index] = level * MilliPoints;
+        _needTicks[index] = ToRecordTick(now);
+    }
+
+    /// <inheritdoc />
     public ReadOnlySpan<MemoryRecord> GetCoreRecords(MindHandle mind)
     {
         EnsureValid(mind);
