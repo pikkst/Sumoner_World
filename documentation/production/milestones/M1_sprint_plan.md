@@ -75,5 +75,5 @@ M1-01 → (M1-02, M1-03, M1-04) → M1-05 → Phase B. M1-13 can start after M1-
 ## Status
 | Task | Status |
 |---|---|
-| M1-01 | **In progress** (2026-10-19) |
+| M1-01 | **Delivered** 2026-10-19, review pending (PR #9) |
 | M1-02 … M1-24 | Planned |
