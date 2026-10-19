@@ -36,6 +36,8 @@ public class B5GateTests
         Assert.True(scenario.CreaturesShowingAnEmote > 0, "B5 must exercise opinions, emotions and emotes (M1-07).");
         Assert.True(scenario.GoalCounts.Count(pair => pair.Key != 0) >= 3, "B5 creatures must choose between several goals (M1-08).");
         Assert.True(scenario.Interactions > 0, "B5 behaviour trees must carry out interactions (M1-09).");
+        Assert.True(scenario.TierCounts.Count >= 2, "B5 creatures must be spread over several AI tiers (M1-10).");
+        Assert.True(scenario.PlayerFocusEvents > 0, "B5 creatures must notice and focus on the players (M1-10).");
     }
 
     [Fact]

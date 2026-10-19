@@ -80,6 +80,22 @@ public sealed record NeedRates
     public required int Territory { get; init; }
 }
 
+/// <summary>A species' senses (AI Bible §2), in metres and degrees.</summary>
+public sealed record PerceptionDefinition
+{
+    /// <summary>Longest allowed sense range, in metres.</summary>
+    public const int MaxRange = 200;
+
+    /// <summary>How far the creature sees inside its view cone.</summary>
+    public required int SightRange { get; init; }
+
+    /// <summary>Half the view cone, from straight ahead to the edge, in degrees (180 = all around).</summary>
+    public required int SightHalfAngle { get; init; }
+
+    /// <summary>How far the creature hears, in any direction.</summary>
+    public required int HearingRange { get; init; }
+}
+
 /// <summary>A creature species, loaded from <c>data/ai/species/*.json</c> (AI Bible §12).</summary>
 public sealed record SpeciesDefinition
 {
@@ -115,6 +131,9 @@ public sealed record SpeciesDefinition
 
     /// <summary>Pact acceptance threshold (AI Bible §10.2), in [0, 1000].</summary>
     public required int PactThreshold { get; init; }
+
+    /// <summary>The species' senses.</summary>
+    public required PerceptionDefinition Perception { get; init; }
 
     /// <summary>Keys of the goals this species can choose (AI Bible §7.1: species enable a subset).</summary>
     public required IReadOnlyList<string> Goals { get; init; }
