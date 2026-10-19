@@ -73,9 +73,9 @@
     }
   ],
   "open_decisions": [
-    "Trademark search for 'Sumoner World'",
+    "Trademark: preliminary search done (M0-08), main similarity risk Summoners War (Com2uS); formal attorney clearance and EU/US filing before M2 (stakeholder)",
     "Multiplayer topology: provisionally player-hosted dedicated servers (DEC-002); confirm at M1 gate",
-    "Legal review of summoning/capture mechanics (avoid aim-and-throw capture)"
+    "Patent: design reviewed against Nintendo JP/US patents with guardrails in GDD (M0-08); freedom-to-operate review by a patent attorney before M2 (stakeholder)"
   ],
   "development_rules": [
     "Follow SOLID, DRY, KISS, and Clean Code principles across all systems.",

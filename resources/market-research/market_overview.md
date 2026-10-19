@@ -115,7 +115,7 @@ Indirect: Pokémon (Switch only, but it sets the expectations), Monster Hunter S
 ### Entry Barriers
 1. **Content volume and production values.** Players compare against Palworld 1.0, which has a huge creature roster, automation and raids. Impact: high.
 2. **Technical difficulty of the USP.** Persistent creature memory, AI LOD, an open-world ecosystem simulation and (per the rules) server-authoritative multiplayer is a very hard tech stack, and the engine is still TBD. Impact: high.
-3. **Legal and IP.** Nintendo / The Pokémon Company's patent suit against Pocketpair (Tokyo District Court; hearing 1 Oct 2026, decision expected November 2026) covers aim-and-throw capture mechanics. The USPTO revoked related US patents in April 2026, but the Japanese case is still live. Impact: medium. Avoid "throw a sphere to capture" mechanics and Pokémon-like creature designs.
+3. **Legal and IP.** Nintendo / The Pokémon Company's patent suit against Pocketpair (Tokyo District Court; hearing 1 Oct 2026, decision expected November 2026) covers aim-and-throw capture mechanics. In the US, the related "summon and battle" patent (US 12,403,397) received a **non-final** rejection of all claims in reexamination (March 2026); it is not revoked yet. The Japanese case is still live (see M0-08 report). Impact: medium. Avoid "throw a sphere to capture" mechanics and Pokémon-like creature designs.
 4. **Discoverability.** Over 500 competing releases per year. A store page, demo and wishlist strategy are needed 6–12 months before launch. Impact: high.
 
 ## Monetization Analysis

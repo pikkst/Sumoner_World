@@ -70,9 +70,10 @@ Acceptance criteria:
 Evidence: `qa/test-plans/M1_benchmark_and_playtest.md`
 
 TASK: M0-08 Legal & naming check
-Agent: producer_agent (stakeholder action) · Est: 1d
+Agent: producer_agent (stakeholder action) · Est: 1d · **Status: Preliminary done 2026-10-19; formal clearance is a stakeholder action (before M2)**
 Rules: R56
 Acceptance criteria: ~~decision on title spelling~~ (done 2026-10-19: "Sumoner World"); trademark search done; capture-mechanic design reviewed against the Nintendo patent claims
+Evidence: `documentation/production/reports/M0-08_legal_naming_check.md`. No exact-name conflict found; Summoners War (Com2uS) flagged as the main similarity risk. Design reviewed against JP7545191, JP7493117, JP7528390/US 12,409,387 and US 12,403,397; five guardrails added to the GDD. Open (stakeholder): attorney clearance search + filing, patent freedom-to-operate review, both before M2. Not an M0 exit blocker (exit gate lists M0-01…M0-07).
 
 TASK: M0-09 Art style guide v0.1 (unblocked: style decided in DEC-002)
 Agent: sr_game_artist + technical_artist · Est: 3d
