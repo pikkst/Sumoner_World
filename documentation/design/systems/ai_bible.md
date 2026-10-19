@@ -95,8 +95,9 @@ Values are **integers** so that decay, saves and replays are bit-exact (R11). Fl
 | 13 | `FoughtBeside` | player/creature | +25 | 250 | 7 days | no |
 | 14 | `BondedDied` | creature | −70 | 900 | never | **yes** |
 | 15 | `OwnerDied` | player | −40 | 500 | 3 days | no |
-| 16 | `PlaceDanger` / `PlaceSafe` | place | ±40 | 300 | 14 days | no |
+| 16 | `PlaceDanger` | place | −40 | 300 | 14 days | no |
 | 17 | `Mistreated` (hit, starved, ignored needs) | player | −50 | 450 | 14 days | no |
+| 18 | `PlaceSafe` | place | +40 | 300 | 14 days | no |
 
 "2 days" means in-game days; 1 in-game day = 48 real minutes = 86,400 ticks (TDD §2.1). New event types are added in data, with a new id. Ids are never reused (save compatibility, R26).
 
@@ -311,6 +312,8 @@ Bond level can **go down**. It is recalculated once per in-game day and immediat
 | `data/ai/bond_levels.json` | §10.3 table |
 
 Every file has a `schemaVersion` and is validated at load (unknown ids, ranges, cycles in trees). A validation failure stops the server with a clear error; it never runs with half-loaded AI data.
+
+**Implemented in M1-04** (`DataRegistryLoader`, `IDataRegistry`): files live in the Godot project under `res://data/ai/` (`source/project-sumoner-worl/data/ai/`). Each file is an envelope `{ "schemaVersion": 1, "kind": "memoryEventTypes" | "species", "entries": [...] }`, camelCase fields, enums as camelCase strings, `//` comments allowed. Unknown fields, missing fields, unknown enum values, out-of-range numbers and duplicate ids are errors, and all errors in all files are reported together. The host reads the files and passes their text to Core (Core does no file I/O). A CI test loads the shipped files, so invalid data cannot be merged. Species `mossback`, `bogfox` and `hollow_owl` are **placeholder names** for the M1 Memory Grove playtest (M0-07). The other files in this table arrive with the systems that use them (M1-07 to M1-11).
 
 ---
 

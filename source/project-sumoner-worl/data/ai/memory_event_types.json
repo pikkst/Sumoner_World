@@ -1,0 +1,208 @@
+{
+  "schemaVersion": 1,
+  "kind": "memoryEventTypes",
+  "entries": [
+    {
+      "id": 1,
+      "key": "FedBy",
+      "subjects": [
+        "player"
+      ],
+      "valence": 20,
+      "baseSalience": 150,
+      "halfLifeDays": 2,
+      "isCore": false
+    },
+    {
+      "id": 2,
+      "key": "HealedBy",
+      "subjects": [
+        "player"
+      ],
+      "valence": 40,
+      "baseSalience": 300,
+      "halfLifeDays": 7,
+      "isCore": false
+    },
+    {
+      "id": 3,
+      "key": "SavedLifeOf",
+      "subjects": [
+        "player",
+        "creature"
+      ],
+      "valence": 90,
+      "baseSalience": 900,
+      "halfLifeDays": null,
+      "isCore": true
+    },
+    {
+      "id": 4,
+      "key": "ProtectedYoung",
+      "subjects": [
+        "player"
+      ],
+      "valence": 70,
+      "baseSalience": 700,
+      "halfLifeDays": 30,
+      "isCore": true
+    },
+    {
+      "id": 5,
+      "key": "AttackedBy",
+      "subjects": [
+        "player",
+        "creature"
+      ],
+      "valence": -40,
+      "baseSalience": 400,
+      "halfLifeDays": 3,
+      "isCore": false
+    },
+    {
+      "id": 6,
+      "key": "DefeatedButSpared",
+      "subjects": [
+        "player"
+      ],
+      "valence": 30,
+      "baseSalience": 500,
+      "halfLifeDays": 14,
+      "isCore": false
+    },
+    {
+      "id": 7,
+      "key": "KilledKin",
+      "subjects": [
+        "player",
+        "creature"
+      ],
+      "valence": -90,
+      "baseSalience": 900,
+      "halfLifeDays": 60,
+      "isCore": true
+    },
+    {
+      "id": 8,
+      "key": "HuntedMyKind",
+      "subjects": [
+        "player"
+      ],
+      "valence": -50,
+      "baseSalience": 400,
+      "halfLifeDays": 10,
+      "isCore": false
+    },
+    {
+      "id": 9,
+      "key": "PactOffered",
+      "subjects": [
+        "player"
+      ],
+      "valence": 5,
+      "baseSalience": 100,
+      "halfLifeDays": 2,
+      "isCore": false
+    },
+    {
+      "id": 10,
+      "key": "PactTermKept",
+      "subjects": [
+        "player"
+      ],
+      "valence": 15,
+      "baseSalience": 150,
+      "halfLifeDays": 7,
+      "isCore": false
+    },
+    {
+      "id": 11,
+      "key": "PactBroken",
+      "subjects": [
+        "player"
+      ],
+      "valence": -80,
+      "baseSalience": 800,
+      "halfLifeDays": 90,
+      "isCore": true
+    },
+    {
+      "id": 12,
+      "key": "CommandedIntoDanger",
+      "subjects": [
+        "player"
+      ],
+      "valence": -30,
+      "baseSalience": 350,
+      "halfLifeDays": 5,
+      "isCore": false
+    },
+    {
+      "id": 13,
+      "key": "FoughtBeside",
+      "subjects": [
+        "player",
+        "creature"
+      ],
+      "valence": 25,
+      "baseSalience": 250,
+      "halfLifeDays": 7,
+      "isCore": false
+    },
+    {
+      "id": 14,
+      "key": "BondedDied",
+      "subjects": [
+        "creature"
+      ],
+      "valence": -70,
+      "baseSalience": 900,
+      "halfLifeDays": null,
+      "isCore": true
+    },
+    {
+      "id": 15,
+      "key": "OwnerDied",
+      "subjects": [
+        "player"
+      ],
+      "valence": -40,
+      "baseSalience": 500,
+      "halfLifeDays": 3,
+      "isCore": false
+    },
+    {
+      "id": 16,
+      "key": "PlaceDanger",
+      "subjects": [
+        "place"
+      ],
+      "valence": -40,
+      "baseSalience": 300,
+      "halfLifeDays": 14,
+      "isCore": false
+    },
+    {
+      "id": 17,
+      "key": "Mistreated",
+      "subjects": [
+        "player"
+      ],
+      "valence": -50,
+      "baseSalience": 450,
+      "halfLifeDays": 14,
+      "isCore": false
+    },
+    {
+      "id": 18,
+      "key": "PlaceSafe",
+      "subjects": [
+        "place"
+      ],
+      "valence": 40,
+      "baseSalience": 300,
+      "halfLifeDays": 14,
+      "isCore": false
+    }
+  ]
+}

@@ -1,0 +1,37 @@
+{
+  "schemaVersion": 1,
+  "kind": "species",
+  "entries": [
+    {
+      "id": "bogfox",
+      "nameKey": "species.bogfox.name",
+      "role": "predator",
+      "bodyType": "quadruped",
+      "group": "pack",
+      "boldness": {
+        "mean": 30,
+        "spread": 30
+      },
+      "loyalty": {
+        "mean": 10,
+        "spread": 35
+      },
+      "curiosity": {
+        "mean": 60,
+        "spread": 25
+      },
+      "temper": {
+        "mean": 20,
+        "spread": 30
+      },
+      "needs": {
+        "hunger": 80,
+        "rest": 50,
+        "safety": 30,
+        "social": 40,
+        "territory": 50
+      },
+      "pactThreshold": 550
+    }
+  ]
+}
