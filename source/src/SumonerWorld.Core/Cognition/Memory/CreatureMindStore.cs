@@ -1,3 +1,4 @@
+using SumonerWorld.Core.Cognition.Opinions;
 using SumonerWorld.Core.Data.Definitions;
 using SumonerWorld.Core.Diagnostics;
 
@@ -13,6 +14,10 @@ public sealed class CreatureMindStore : ICreatureMindStore
     private const int SlotsPerMind = ICreatureMindStore.CoreCapacity + ICreatureMindStore.EpisodicCapacity;
     private const int ReinforceNumerator = 6;
     private const int ReinforceDenominator = 10;
+    private const int NeedCount = 5;
+    private const int MilliPoints = 1000;
+    private const int BaselineTenthsPerPoint = 10;
+    private const int MaxBaselineTenths = ICreatureMindStore.MaxBaseline * BaselineTenthsPerPoint;
 
     private readonly MemoryRules _rules;
     private readonly MemoryRecord[] _records;
@@ -23,6 +28,12 @@ public sealed class CreatureMindStore : ICreatureMindStore
     private readonly int[] _generations;
     private readonly bool[] _alive;
     private readonly int[] _freeSlots;
+    private readonly MemorySubject[] _opinionSubjects;
+    private readonly Opinion[] _opinionBaselineTenths;
+    private readonly int[] _opinionCounts;
+    private readonly int[] _needMilli;
+    private readonly uint[] _needTicks;
+    private readonly int[] _needRates;
     private int _freeCount;
     private int _nextUnusedSlot;
 
@@ -42,6 +53,12 @@ public sealed class CreatureMindStore : ICreatureMindStore
         _generations = new int[capacity];
         _alive = new bool[capacity];
         _freeSlots = new int[capacity];
+        _opinionSubjects = new MemorySubject[capacity * ICreatureMindStore.OpinionCapacity];
+        _opinionBaselineTenths = new Opinion[capacity * ICreatureMindStore.OpinionCapacity];
+        _opinionCounts = new int[capacity];
+        _needMilli = new int[capacity * NeedCount];
+        _needTicks = new uint[capacity * NeedCount];
+        _needRates = new int[capacity * NeedCount];
     }
 
     /// <inheritdoc />
@@ -51,8 +68,10 @@ public sealed class CreatureMindStore : ICreatureMindStore
     public int Count { get; private set; }
 
     /// <inheritdoc />
-    public MindHandle Allocate(Personality birth)
+    public MindHandle Allocate(Personality birth, NeedRates needRates)
     {
+        ArgumentNullException.ThrowIfNull(needRates);
+
         int slot;
         if (_freeCount > 0)
         {
@@ -72,6 +91,15 @@ public sealed class CreatureMindStore : ICreatureMindStore
         _current[slot] = birth;
         _coreCounts[slot] = 0;
         _episodicCounts[slot] = 0;
+        _opinionCounts[slot] = 0;
+        int needStart = slot * NeedCount;
+        Array.Clear(_needMilli, needStart, NeedCount);
+        Array.Clear(_needTicks, needStart, NeedCount);
+        _needRates[needStart + (int)Need.Hunger] = needRates.Hunger;
+        _needRates[needStart + (int)Need.Rest] = needRates.Rest;
+        _needRates[needStart + (int)Need.Safety] = needRates.Safety;
+        _needRates[needStart + (int)Need.Social] = needRates.Social;
+        _needRates[needStart + (int)Need.Territory] = needRates.Territory;
         Count++;
         return new MindHandle(slot, _generations[slot]);
     }
@@ -81,6 +109,7 @@ public sealed class CreatureMindStore : ICreatureMindStore
     {
         EnsureValid(mind);
         Array.Clear(_records, mind.Slot * SlotsPerMind, SlotsPerMind);
+        Array.Clear(_opinionBaselineTenths, mind.Slot * ICreatureMindStore.OpinionCapacity, ICreatureMindStore.OpinionCapacity);
         _alive[mind.Slot] = false;
         _generations[mind.Slot]++;
         _freeSlots[_freeCount++] = mind.Slot;
@@ -116,6 +145,7 @@ public sealed class CreatureMindStore : ICreatureMindStore
         }
 
         uint tick = ToRecordTick(now);
+        AdjustBaseline(mind, subject, _rules.OpinionWeights(eventType), definition.BaseSalience);
         int coreStart = mind.Slot * SlotsPerMind;
         int episodicStart = coreStart + ICreatureMindStore.CoreCapacity;
 
@@ -158,6 +188,42 @@ public sealed class CreatureMindStore : ICreatureMindStore
     /// <inheritdoc />
     public int RecallAbout(MindHandle mind, MemorySubject subject, ulong now, Span<RecalledMemory> results) =>
         Collect(mind, now, subject, results);
+
+    /// <inheritdoc />
+    public Opinion GetOpinionBaseline(MindHandle mind, MemorySubject subject)
+    {
+        EnsureValid(mind);
+        int index = FindOpinion(mind, subject);
+        if (index < 0)
+        {
+            return Opinion.Neutral;
+        }
+
+        Opinion tenths = _opinionBaselineTenths[index];
+        return new Opinion(
+            tenths.Trust / BaselineTenthsPerPoint,
+            tenths.Fear / BaselineTenthsPerPoint,
+            tenths.Affection / BaselineTenthsPerPoint,
+            tenths.Respect / BaselineTenthsPerPoint);
+    }
+
+    /// <inheritdoc />
+    public int GetNeed(MindHandle mind, Need need, ulong now)
+    {
+        EnsureValid(mind);
+        return NeedMilli(mind, need, ToRecordTick(now)) / MilliPoints;
+    }
+
+    /// <inheritdoc />
+    public void SatisfyNeed(MindHandle mind, Need need, int amount, ulong now)
+    {
+        EnsureValid(mind);
+        ArgumentOutOfRangeException.ThrowIfNegative(amount);
+        uint tick = ToRecordTick(now);
+        int index = (mind.Slot * NeedCount) + (int)need;
+        _needMilli[index] = Math.Max(0, NeedMilli(mind, need, tick) - (amount * MilliPoints));
+        _needTicks[index] = tick;
+    }
 
     /// <inheritdoc />
     public ReadOnlySpan<MemoryRecord> GetCoreRecords(MindHandle mind)
@@ -203,10 +269,33 @@ public sealed class CreatureMindStore : ICreatureMindStore
 
             hash.Add((ulong)slot);
             hash.Add<Personality>(new ReadOnlySpan<Personality>(in _current[slot]));
+            hash.Add<Opinion>(new ReadOnlySpan<Opinion>(_opinionBaselineTenths, slot * ICreatureMindStore.OpinionCapacity, _opinionCounts[slot]));
+            for (int i = slot * ICreatureMindStore.OpinionCapacity; i < (slot * ICreatureMindStore.OpinionCapacity) + _opinionCounts[slot]; i++)
+            {
+                // Field by field: MemorySubject has padding bytes whose content is undefined.
+                hash.Add((ulong)_opinionSubjects[i].Kind);
+                hash.Add(_opinionSubjects[i].Id);
+            }
+
+            hash.Add<int>(new ReadOnlySpan<int>(_needMilli, slot * NeedCount, NeedCount));
+            hash.Add<uint>(new ReadOnlySpan<uint>(_needTicks, slot * NeedCount, NeedCount));
             hash.Add((ulong)_coreCounts[slot]);
-            hash.Add<MemoryRecord>(new ReadOnlySpan<MemoryRecord>(_records, slot * SlotsPerMind, _coreCounts[slot]));
+            AddRecords(ref hash, slot * SlotsPerMind, _coreCounts[slot]);
             hash.Add((ulong)_episodicCounts[slot]);
-            hash.Add<MemoryRecord>(new ReadOnlySpan<MemoryRecord>(_records, (slot * SlotsPerMind) + ICreatureMindStore.CoreCapacity, _episodicCounts[slot]));
+            AddRecords(ref hash, (slot * SlotsPerMind) + ICreatureMindStore.CoreCapacity, _episodicCounts[slot]);
+        }
+    }
+
+    // Field by field: MemoryRecord has 7 padding bytes whose content is undefined, so its raw bytes must not be hashed.
+    private void AddRecords(ref StateHash hash, int start, int count)
+    {
+        for (int i = start; i < start + count; i++)
+        {
+            MemoryRecord record = _records[i];
+            hash.Add(record.SubjectId);
+            hash.Add(((ulong)record.CreatedTick << 32) | record.LastReinforcedTick);
+            hash.Add(((ulong)record.EventType << 48) | ((ulong)record.Salience << 32) | ((ulong)record.Count << 16) | (ulong)record.SubjectKind);
+            hash.Add(((ulong)(byte)record.Valence << 8) | (ulong)record.Tags);
         }
     }
 
@@ -214,6 +303,91 @@ public sealed class CreatureMindStore : ICreatureMindStore
         now <= uint.MaxValue
             ? (uint)now
             : throw new ArgumentOutOfRangeException(nameof(now), now, "World tick exceeds the memory record range (about 4.5 years at 30 Hz).");
+
+    private int NeedMilli(MindHandle mind, Need need, uint tick)
+    {
+        if ((uint)need >= NeedCount)
+        {
+            throw new ArgumentOutOfRangeException(nameof(need), need, "Unknown need.");
+        }
+
+        int index = (mind.Slot * NeedCount) + (int)need;
+        if (tick < _needTicks[index])
+        {
+            throw new ArgumentOutOfRangeException(nameof(tick), tick, $"Time went backwards: need last set at tick {_needTicks[index]}.");
+        }
+
+        long risen = (long)_needRates[index] * MilliPoints * (tick - _needTicks[index]) / _rules.TicksPerDay;
+        return (int)Math.Min(ICreatureMindStore.MaxNeed * MilliPoints, _needMilli[index] + risen);
+    }
+
+    // The long-term baseline moves by 10% of the episode's contribution: contribution points == baseline tenths (AI Bible §5).
+    private void AdjustBaseline(MindHandle mind, MemorySubject subject, Opinion weights, int baseSalience)
+    {
+        if (weights == Opinion.Neutral)
+        {
+            return;
+        }
+
+        var delta = new Opinion(
+            weights.Trust * baseSalience / ICreatureMindStore.MaxSalience,
+            weights.Fear * baseSalience / ICreatureMindStore.MaxSalience,
+            weights.Affection * baseSalience / ICreatureMindStore.MaxSalience,
+            weights.Respect * baseSalience / ICreatureMindStore.MaxSalience);
+
+        int index = FindOpinion(mind, subject);
+        if (index < 0)
+        {
+            index = AddOpinionSlot(mind, subject);
+        }
+
+        Opinion current = _opinionBaselineTenths[index];
+        _opinionBaselineTenths[index] = new Opinion(
+            Math.Clamp(current.Trust + delta.Trust, -MaxBaselineTenths, MaxBaselineTenths),
+            Math.Clamp(current.Fear + delta.Fear, -MaxBaselineTenths, MaxBaselineTenths),
+            Math.Clamp(current.Affection + delta.Affection, -MaxBaselineTenths, MaxBaselineTenths),
+            Math.Clamp(current.Respect + delta.Respect, -MaxBaselineTenths, MaxBaselineTenths));
+    }
+
+    private int FindOpinion(MindHandle mind, MemorySubject subject)
+    {
+        int start = mind.Slot * ICreatureMindStore.OpinionCapacity;
+        for (int i = start; i < start + _opinionCounts[mind.Slot]; i++)
+        {
+            if (_opinionSubjects[i] == subject)
+            {
+                return i;
+            }
+        }
+
+        return -1;
+    }
+
+    // Full: replace the subject the creature feels least strongly about (lowest slot on ties). Owner protection: M1-11.
+    private int AddOpinionSlot(MindHandle mind, MemorySubject subject)
+    {
+        int start = mind.Slot * ICreatureMindStore.OpinionCapacity;
+        int index;
+        if (_opinionCounts[mind.Slot] < ICreatureMindStore.OpinionCapacity)
+        {
+            index = start + _opinionCounts[mind.Slot]++;
+        }
+        else
+        {
+            index = start;
+            for (int i = start + 1; i < start + ICreatureMindStore.OpinionCapacity; i++)
+            {
+                if (_opinionBaselineTenths[i].Intensity < _opinionBaselineTenths[index].Intensity)
+                {
+                    index = i;
+                }
+            }
+        }
+
+        _opinionSubjects[index] = subject;
+        _opinionBaselineTenths[index] = Opinion.Neutral;
+        return index;
+    }
 
     private int FindIndex(int start, int count, ushort eventType, MemorySubject subject)
     {

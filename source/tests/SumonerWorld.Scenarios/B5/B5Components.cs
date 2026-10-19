@@ -1,4 +1,5 @@
 using System.Numerics;
+using SumonerWorld.Core.Cognition.Appraisal;
 using SumonerWorld.Core.Cognition.Memory;
 using SumonerWorld.Core.Ecs;
 
@@ -12,6 +13,9 @@ public record struct Velocity(Vector3 Value);
 
 /// <summary>Ticks until the creature picks a new heading.</summary>
 public record struct WanderTimer(int TicksLeft);
+
+/// <summary>The emote the creature currently shows (replicated to clients later, AI Bible §6.2).</summary>
+public record struct CurrentEmote(Emote Value);
 
 /// <summary>The creature's mind in the mind store.</summary>
 public record struct MindRef(MindHandle Handle);

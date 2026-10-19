@@ -25,7 +25,7 @@ Every task assignment cites the rule IDs it touches. Any deliverable that violat
 | R08, R48 | Data-driven, no magic numbers | Gameplay values come from versioned data files (`data/*.json` or `.tres`). Review plus a test that loads every data file against its schema. | C, E |
 | R09 | Extensible/testable | Each system ships with tests (R42). Public seams are interfaces. | C, E |
 | R10 | Event-driven decoupling | `IEventBus` in Core. No direct cross-system references (architecture test on namespaces). | D |
-| R11, R25 | Determinism, reproducible seeds | Architecture test bans non-seeded RNG and wall-clock in Core. Same-seed replay test (two runs → identical state hash): `B5GateTests` compares 9,900 per-tick hashes in CI. | C, D |
+| R11, R25 | Determinism, reproducible seeds | Architecture test bans non-seeded RNG and wall-clock in Core. Same-seed replay test (two runs → identical state hash): `B5GateTests` compares 9,900 per-tick hashes in CI; `StateHashPaddingTests` keeps padded structs out of raw-byte hashing. | C, D |
 | R12, R38 | Separation of sim/AI/render/net/persistence; UI separate from state | Layered projects. Core cannot reference Godot (architecture test). | D |
 | R13–R15 | Modular AI, memory/learning, rule-respecting decisions | AI Bible contract. Unit tests per utility consideration and BT node. Memory persists through save round-trip tests. | C, E |
 | R16 | No unrestricted generative AI in hot loops | Banned in Core/Net. Any GenAI dependency needs an ADR plus Steam disclosure review. | E |

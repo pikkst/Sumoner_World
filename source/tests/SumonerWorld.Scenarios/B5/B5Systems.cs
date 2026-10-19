@@ -1,4 +1,5 @@
 using System.Numerics;
+using SumonerWorld.Core.Cognition.Appraisal;
 using SumonerWorld.Core.Cognition.Memory;
 using SumonerWorld.Core.Data.Definitions;
 using SumonerWorld.Core.Ecs;
@@ -70,9 +71,9 @@ internal sealed class WanderSystem(IEcsWorld world, IRandom random, float speed)
 
 /// <summary>
 /// Crowded creatures (more than 6 neighbours) remember the spot as dangerous (memory event <c>PlaceDanger</c>, subject = the
-/// 16 m grid cell) and pick a new heading on the next tick.
+/// 16 m grid cell), appraise it (opinion → emotions → emote, M1-07) and pick a new heading on the next tick.
 /// </summary>
-internal sealed class CrowdReactionSystem(IEcsWorld world, IEventBus events, ICreatureMindStore minds, ushort placeDanger) : ISimulationSystem
+internal sealed class CrowdReactionSystem(IEcsWorld world, IEventBus events, ICreatureMindStore minds, IAppraisal appraisal, ushort placeDanger) : ISimulationSystem
 {
     private const int CrowdedNeighbours = 6;
     private const float CellSize = SpatialGridSettings.DefaultCellSize;
@@ -81,6 +82,7 @@ internal sealed class CrowdReactionSystem(IEcsWorld world, IEventBus events, ICr
     private readonly ComponentStore<WanderTimer> _timers = world.Store<WanderTimer>();
     private readonly ComponentStore<Position> _positions = world.Store<Position>();
     private readonly ComponentStore<MindRef> _minds = world.Store<MindRef>();
+    private readonly ComponentStore<CurrentEmote> _emotes = world.Store<CurrentEmote>();
 
     public SimulationStage Stage => SimulationStage.Behaviour;
 
@@ -92,7 +94,10 @@ internal sealed class CrowdReactionSystem(IEcsWorld world, IEventBus events, ICr
             {
                 Vector3 position = _positions.Get(sensed.Creature).Value;
                 ulong cell = ((ulong)(position.Z / CellSize) * CellsPerRow) + (ulong)(position.X / CellSize);
-                minds.Remember(_minds.Get(sensed.Creature).Handle, placeDanger, new MemorySubject(SubjectKind.Place, cell), tick.Index);
+                MindHandle mind = _minds.Get(sensed.Creature).Handle;
+                var place = new MemorySubject(SubjectKind.Place, cell);
+                minds.Remember(mind, placeDanger, place, tick.Index);
+                _emotes.Get(sensed.Creature) = new CurrentEmote(appraisal.Appraise(mind, place, tick.Index));
                 _timers.Get(sensed.Creature) = new WanderTimer(1);
             }
         }

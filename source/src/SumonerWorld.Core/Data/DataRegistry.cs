@@ -8,10 +8,14 @@ public sealed class DataRegistry : IDataRegistry
     private readonly Dictionary<ushort, MemoryEventTypeDefinition> _memoryEventTypesById;
     private readonly Dictionary<string, SpeciesDefinition> _speciesById;
 
-    internal DataRegistry(IReadOnlyList<MemoryEventTypeDefinition> memoryEventTypes, IReadOnlyList<SpeciesDefinition> species)
+    internal DataRegistry(
+        IReadOnlyList<MemoryEventTypeDefinition> memoryEventTypes,
+        IReadOnlyList<SpeciesDefinition> species,
+        IReadOnlyList<OpinionWeightsDefinition> opinionWeights)
     {
         MemoryEventTypes = memoryEventTypes;
         Species = species;
+        OpinionWeights = opinionWeights;
         _memoryEventTypesById = memoryEventTypes.ToDictionary(definition => definition.Id);
         _speciesById = species.ToDictionary(definition => definition.Id, StringComparer.Ordinal);
     }
@@ -21,6 +25,9 @@ public sealed class DataRegistry : IDataRegistry
 
     /// <inheritdoc />
     public IReadOnlyList<SpeciesDefinition> Species { get; }
+
+    /// <inheritdoc />
+    public IReadOnlyList<OpinionWeightsDefinition> OpinionWeights { get; }
 
     /// <inheritdoc />
     public MemoryEventTypeDefinition GetMemoryEventType(ushort id) =>

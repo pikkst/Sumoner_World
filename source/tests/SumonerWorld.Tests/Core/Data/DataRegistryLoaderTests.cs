@@ -14,6 +14,12 @@ public class DataRegistryLoaderTests
         ] }
         """;
 
+    private const string ValidOpinionWeights = """
+        { "schemaVersion": 1, "kind": "opinionWeights", "entries": [
+          { "eventType": 1, "trust": 40, "fear": -10, "affection": 30, "respect": 0 }
+        ] }
+        """;
+
     [Fact]
     public void The_shipped_game_data_is_valid()
     {
@@ -84,6 +90,7 @@ public class DataRegistryLoaderTests
         var error = Assert.Throws<DataValidationException>(() => DataRegistryLoader.Load(
         [
             new DataFile("events.json", ValidEventTypes),
+            new DataFile("weights.json", ValidOpinionWeights),
             new DataFile("a.json", badSpecies),
             new DataFile("b.json", duplicate),
             new DataFile("c.json", badTrait),
@@ -93,6 +100,20 @@ public class DataRegistryLoaderTests
         Assert.Contains(error.Errors, message => message.StartsWith("a.json", StringComparison.Ordinal) && message.Contains("pactThreshold", StringComparison.Ordinal));
         Assert.Contains(error.Errors, message => message.StartsWith("b.json", StringComparison.Ordinal) && message.Contains("duplicate species id", StringComparison.Ordinal));
         Assert.Contains(error.Errors, message => message.StartsWith("c.json", StringComparison.Ordinal) && message.Contains("boldness.mean", StringComparison.Ordinal));
+    }
+
+    [Theory]
+    [InlineData("\"eventType\": 1", "\"eventType\": 99", "eventType 99 is not a known memory event type")]
+    [InlineData("\"trust\": 40", "\"trust\": 140", "trust = 140")]
+    [InlineData("] }", ", { \"eventType\": 1, \"trust\": 1, \"fear\": 1, \"affection\": 1, \"respect\": 1 } ] }", "more than one row")]
+    public void Invalid_opinion_weights_are_rejected(string find, string replace, string expectedFragment)
+    {
+        string broken = ValidOpinionWeights.Replace(find, replace, StringComparison.Ordinal);
+
+        var error = Assert.Throws<DataValidationException>(() => DataRegistryLoader.Load(
+            [new DataFile("events.json", ValidEventTypes), new DataFile("weights.json", broken)]));
+
+        Assert.Contains(error.Errors, message => message.Contains(expectedFragment, StringComparison.Ordinal));
     }
 
     [Fact]
@@ -109,7 +130,7 @@ public class DataRegistryLoaderTests
         string noNeeds = SpeciesJson("mossback").Replace("\"needs\": { \"hunger\": 60, \"rest\": 40, \"safety\": 50, \"social\": 70, \"territory\": 10 },", "\"needs\": null,", StringComparison.Ordinal);
 
         var error = Assert.Throws<DataValidationException>(() => DataRegistryLoader.Load(
-            [new DataFile("events.json", ValidEventTypes), new DataFile("s.json", noNeeds)]));
+            [new DataFile("events.json", ValidEventTypes), new DataFile("weights.json", ValidOpinionWeights), new DataFile("s.json", noNeeds)]));
 
         Assert.Contains(error.Errors, message => message.Contains("needs is required", StringComparison.Ordinal));
     }

@@ -59,9 +59,9 @@ Rules: R02, R07, R12, R47, R49 · Related: ADR-001 (layers), TDD v0.1, AI Bible 
 | System | Namespace | Interface | Responsibility | Spec | Status |
 |---|---|---|---|---|---|
 | Perception | `Core.Cognition.Perception` | `IPerception` | Sight, hearing, scent via `ISpatialIndex` | AI Bible §2 | Planned (M1) |
-| Creature minds | `Core.Cognition.Memory` | `ICreatureMindStore` | Personalities and memories (bounded, pooled): `CreatureMindStore`, `MemoryDecay`, `MemoryRules`, `Personality` | AI Bible §3–4 | **Implemented** (M1-06); opinions follow in M1-07 |
-| Opinions | `Core.Cognition.Opinions` | `IOpinionModel` | Trust / Fear / Affection / Respect from memories | AI Bible §5 | Planned (M1) |
-| Appraisal | `Core.Cognition.Appraisal` | `IAppraisal` | Short-term emotions, needs, emote selection | AI Bible §6 | Planned (M1) |
+| Creature minds | `Core.Cognition.Memory` | `ICreatureMindStore` | Saved mind state (bounded, pooled): personalities, memories, opinion baselines, needs: `CreatureMindStore`, `MemoryDecay`, `MemoryRules`, `Personality` | AI Bible §3–6 | **Implemented** (M1-06, M1-07) |
+| Opinions | `Core.Cognition.Opinions` | `IOpinionModel` | Trust / Fear / Affection / Respect from memories + baseline (`OpinionModel`) | AI Bible §5 | **Implemented** (M1-07) |
+| Appraisal | `Core.Cognition.Appraisal` | `IAppraisal` | Short-term emotions and emote selection (`AppraisalModel`); needs live in the mind store | AI Bible §6 | **Implemented** (M1-07) |
 | Goal selection | `Core.Cognition.Decision` | `IUtilityEvaluator` | Utility scoring of goals | AI Bible §7.1–7.2 | Planned (M1) |
 | Behaviour trees | `Core.Cognition.Behaviour` | `IBehaviourTreeRunner` | Data-defined trees that emit intents | AI Bible §7.3 | Planned (M1) |
 | Learning | `Core.Cognition.Learning` | `ILearningModel` | Tactic, habit and combo tables | AI Bible §8 | Planned (M2) |

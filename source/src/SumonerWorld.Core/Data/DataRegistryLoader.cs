@@ -17,6 +17,9 @@ public static class DataRegistryLoader
     /// <summary>File kind for <see cref="SpeciesDefinition"/> (one or more files).</summary>
     public const string SpeciesKind = "species";
 
+    /// <summary>File kind for <see cref="OpinionWeightsDefinition"/> (exactly one file).</summary>
+    public const string OpinionWeightsKind = "opinionWeights";
+
     /// <summary>Schema version this build reads, for every kind.</summary>
     public const int CurrentSchemaVersion = 1;
 
@@ -42,7 +45,9 @@ public static class DataRegistryLoader
         var errors = new List<string>();
         var memoryEventTypes = new List<MemoryEventTypeDefinition>();
         var species = new List<SpeciesDefinition>();
+        var opinionWeights = new List<(OpinionWeightsDefinition Entry, string Where)>();
         var memoryEventFiles = new List<string>();
+        var opinionWeightFiles = new List<string>();
         var speciesSources = new Dictionary<string, string>(StringComparer.Ordinal);
 
         foreach (DataFile file in files)
@@ -75,8 +80,18 @@ public static class DataRegistryLoader
                     }
 
                     break;
+                case OpinionWeightsKind:
+                    opinionWeightFiles.Add(file.Path);
+                    foreach ((OpinionWeightsDefinition entry, int index) in ReadEntries<OpinionWeightsDefinition>(file, errors))
+                    {
+                        string where = $"{file.Path}: entries[{index}]";
+                        ValidateOpinionWeights(entry, where, errors);
+                        opinionWeights.Add((entry, where));
+                    }
+
+                    break;
                 default:
-                    errors.Add($"{file.Path}: unknown kind '{kind}'. Known kinds: {MemoryEventTypesKind}, {SpeciesKind}.");
+                    errors.Add($"{file.Path}: unknown kind '{kind}'. Known kinds: {MemoryEventTypesKind}, {SpeciesKind}, {OpinionWeightsKind}.");
                     break;
             }
         }
@@ -86,7 +101,13 @@ public static class DataRegistryLoader
             errors.Add($"Expected exactly one '{MemoryEventTypesKind}' file, found {memoryEventFiles.Count} ({string.Join(", ", memoryEventFiles)}).");
         }
 
+        if (opinionWeightFiles.Count != 1)
+        {
+            errors.Add($"Expected exactly one '{OpinionWeightsKind}' file, found {opinionWeightFiles.Count} ({string.Join(", ", opinionWeightFiles)}).");
+        }
+
         ValidateUniqueMemoryEventTypes(memoryEventTypes, errors);
+        ValidateOpinionWeightReferences(opinionWeights, memoryEventTypes, errors);
 
         if (errors.Count > 0)
         {
@@ -95,7 +116,8 @@ public static class DataRegistryLoader
 
         return new DataRegistry(
             [.. memoryEventTypes.OrderBy(definition => definition.Id)],
-            [.. species.OrderBy(definition => definition.Id, StringComparer.Ordinal)]);
+            [.. species.OrderBy(definition => definition.Id, StringComparer.Ordinal)],
+            [.. opinionWeights.Select(item => item.Entry).OrderBy(definition => definition.EventType)]);
     }
 
     private static string? ReadKind(DataFile file, List<string> errors)
@@ -217,6 +239,33 @@ public static class DataRegistryLoader
                      .Where(group => group.Count() > 1))
         {
             errors.Add($"Memory event type key '{duplicate.Key}' is defined {duplicate.Count()} times.");
+        }
+    }
+
+    private static void ValidateOpinionWeights(OpinionWeightsDefinition entry, string where, List<string> errors)
+    {
+        CheckRange(entry.Trust, OpinionWeightsDefinition.MinWeight, OpinionWeightsDefinition.MaxWeight, "trust", where, errors);
+        CheckRange(entry.Fear, OpinionWeightsDefinition.MinWeight, OpinionWeightsDefinition.MaxWeight, "fear", where, errors);
+        CheckRange(entry.Affection, OpinionWeightsDefinition.MinWeight, OpinionWeightsDefinition.MaxWeight, "affection", where, errors);
+        CheckRange(entry.Respect, OpinionWeightsDefinition.MinWeight, OpinionWeightsDefinition.MaxWeight, "respect", where, errors);
+    }
+
+    private static void ValidateOpinionWeightReferences(
+        List<(OpinionWeightsDefinition Entry, string Where)> weights, List<MemoryEventTypeDefinition> eventTypes, List<string> errors)
+    {
+        var knownIds = eventTypes.Select(definition => definition.Id).ToHashSet();
+        var seen = new HashSet<ushort>();
+        foreach ((OpinionWeightsDefinition entry, string where) in weights)
+        {
+            if (!knownIds.Contains(entry.EventType))
+            {
+                errors.Add($"{where}: eventType {entry.EventType} is not a known memory event type.");
+            }
+
+            if (!seen.Add(entry.EventType))
+            {
+                errors.Add($"{where}: eventType {entry.EventType} has more than one row of opinion weights.");
+            }
         }
     }
 

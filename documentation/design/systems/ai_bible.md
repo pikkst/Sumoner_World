@@ -149,6 +149,31 @@ For each remembered subject the creature holds four attitudes, each in [-100, +1
 
 - Opinions are **recomputed from memories** when the creature reads them (sum of effective salience × valence weights per event type), plus a slow `Baseline` that keeps long-term history after individual memories fade. The weights per event type are data.
 - **Bond level** with the owner (§10.3) is derived from `Trust` and `Affection`.
+- **Implementation (M1-07, `OpinionModel`):**
+  - `attitude = Σ (effective salience × weight) / 1000 + baseline`, clamped to [−100, 100]. A full-strength memory with weight 100 contributes 100 points.
+  - **Baseline:** every remembered episode moves the subject's baseline by **10% of its contribution** (at base salience), capped at **±50** per attitude, kept for the 24 subjects the creature feels most strongly about. After all individual memories are forgotten, the baseline remains.
+  - **Weights** (`data/ai/opinion_weights.json`, starting values):
+
+| Event | Trust | Fear | Affection | Respect |
+|---|---|---|---|---|
+| FedBy | +40 | −10 | +30 | 0 |
+| HealedBy | +60 | −10 | +40 | 0 |
+| SavedLifeOf | +100 | 0 | +80 | +30 |
+| ProtectedYoung | +90 | 0 | +60 | +20 |
+| AttackedBy | −50 | **+100** | −30 | 0 |
+| DefeatedButSpared | +10 | +30 | 0 | +80 |
+| KilledKin | −100 | +60 | −80 | 0 |
+| HuntedMyKind | −60 | +50 | 0 | 0 |
+| PactOffered | +10 | 0 | 0 | +10 |
+| PactTermKept | +70 | 0 | +20 | 0 |
+| PactBroken | −100 | 0 | −40 | −40 |
+| CommandedIntoDanger | −60 | +20 | 0 | −10 |
+| FoughtBeside | +30 | 0 | +30 | +50 |
+| PlaceDanger | 0 | +60 | 0 | 0 |
+| Mistreated | −70 | +40 | −60 | 0 |
+| PlaceSafe | 0 | −40 | +20 | 0 |
+
+  BondedDied and OwnerDied have no weights (they drive Grief, not an opinion of the dead). AttackedBy fear is 100 so a single attack shows the Fear emote (M0-07 USP moment "a hit creature keeps its distance").
 
 ---
 
@@ -170,8 +195,15 @@ The dominant emotion and the opinion of the nearest notable subject map to **one
 
 The emote id is replicated to clients; the client chooses the animation. Animation authors must make each emote readable at 30 m.
 
+**Implementation (M1-07, `AppraisalModel`):**
+- **Emotion baselines** from personality: Fear = timidity/4, Anger = temper/4, Curiosity = curiosity/4 (positive sides only), Joy and Stress 0. Emotions decay back to the baseline with a **10 s half-life** (lazy, integer, like memories).
+- **Appraising a subject** raises emotions to at least: Fear = the opinion's Fear (timid creatures also turn hostility, i.e. negative Trust, into Fear); Anger = hostility for bold creatures; Joy = Affection; Curiosity = (curiosity + 100) / 2 if the subject is unknown; Stress = (Fear − positive Trust) / 2.
+- **Emote priority:** Grief (death memory younger than 1 in-game day) → negative core memory about the subject: **Grudge if bold, Fear if timid** → Fear (dominant and ≥ 40) → Affection (> 60) → Trust (> 50) → Curiosity (unknown subject, dominant, ≥ 40) → none.
+- Thresholds live in `AppraisalSettings` (starting values, tuned in the M1 playtest).
+
 ### 6.3 Needs (saved)
 `Hunger`, `Rest`, `Safety`, `Social`, `Territory`, each 0–100, rising over time at species rates. Needs feed utility considerations and Pact Terms (§10.2).
+Implemented in M1-07 in `CreatureMindStore`: each need stores its level and the tick it was last set, and rises lazily at `rate × elapsed / ticks per day` (no per-tick work, no rounding drift); `SatisfyNeed` lowers it.
 
 ---
 

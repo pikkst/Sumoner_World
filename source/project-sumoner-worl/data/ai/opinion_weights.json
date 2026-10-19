@@ -1,0 +1,118 @@
+{
+  "schemaVersion": 1,
+  "kind": "opinionWeights",
+  "entries": [
+    {
+      "eventType": 1,
+      "trust": 40,
+      "fear": -10,
+      "affection": 30,
+      "respect": 0
+    },
+    {
+      "eventType": 2,
+      "trust": 60,
+      "fear": -10,
+      "affection": 40,
+      "respect": 0
+    },
+    {
+      "eventType": 3,
+      "trust": 100,
+      "fear": 0,
+      "affection": 80,
+      "respect": 30
+    },
+    {
+      "eventType": 4,
+      "trust": 90,
+      "fear": 0,
+      "affection": 60,
+      "respect": 20
+    },
+    {
+      "eventType": 5,
+      "trust": -50,
+      "fear": 100,
+      "affection": -30,
+      "respect": 0
+    },
+    {
+      "eventType": 6,
+      "trust": 10,
+      "fear": 30,
+      "affection": 0,
+      "respect": 80
+    },
+    {
+      "eventType": 7,
+      "trust": -100,
+      "fear": 60,
+      "affection": -80,
+      "respect": 0
+    },
+    {
+      "eventType": 8,
+      "trust": -60,
+      "fear": 50,
+      "affection": 0,
+      "respect": 0
+    },
+    {
+      "eventType": 9,
+      "trust": 10,
+      "fear": 0,
+      "affection": 0,
+      "respect": 10
+    },
+    {
+      "eventType": 10,
+      "trust": 70,
+      "fear": 0,
+      "affection": 20,
+      "respect": 0
+    },
+    {
+      "eventType": 11,
+      "trust": -100,
+      "fear": 0,
+      "affection": -40,
+      "respect": -40
+    },
+    {
+      "eventType": 12,
+      "trust": -60,
+      "fear": 20,
+      "affection": 0,
+      "respect": -10
+    },
+    {
+      "eventType": 13,
+      "trust": 30,
+      "fear": 0,
+      "affection": 30,
+      "respect": 50
+    },
+    {
+      "eventType": 16,
+      "trust": 0,
+      "fear": 60,
+      "affection": 0,
+      "respect": 0
+    },
+    {
+      "eventType": 17,
+      "trust": -70,
+      "fear": 40,
+      "affection": -60,
+      "respect": 0
+    },
+    {
+      "eventType": 18,
+      "trust": 0,
+      "fear": -40,
+      "affection": 20,
+      "respect": 0
+    }
+  ]
+}

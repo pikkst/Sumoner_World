@@ -18,6 +18,7 @@ public class CreatureMindStoreTests
     private static readonly MemorySubject Alice = new(SubjectKind.Player, 1001);
     private static readonly MemorySubject Bob = new(SubjectKind.Player, 1002);
     private static readonly Personality Birth = new(Boldness: -30, Loyalty: 40, Curiosity: 10, Temper: -40);
+    private static readonly NeedRates Needs = new() { Hunger = 60, Rest = 40, Safety = 50, Social = 70, Territory = 10 };
 
     [Fact]
     public void A_memory_record_is_32_bytes()
@@ -111,7 +112,7 @@ public class CreatureMindStoreTests
     {
         var rules = new MemoryRules([Definition(50, "Rescued", isCore: true, halfLifeDays: 1, salience: 800)], TicksPerDay);
         var store = new CreatureMindStore(rules, capacity: 1);
-        MindHandle mind = store.Allocate(Birth);
+        MindHandle mind = store.Allocate(Birth, Needs);
         store.Remember(mind, 50, Alice, now: 0);
 
         Assert.Equal(ICreatureMindStore.PinnedFloor, RecallAll(store, mind, 100UL * TicksPerDay)[0].EffectiveSalience);
@@ -133,7 +134,7 @@ public class CreatureMindStoreTests
 
         var rules = new MemoryRules([Definition(60, "Small", isCore: true, halfLifeDays: null, salience: 400, creatures: true), Definition(61, "Big", isCore: true, halfLifeDays: null, salience: 950, creatures: true)], TicksPerDay);
         var store2 = new CreatureMindStore(rules, capacity: 1);
-        MindHandle mind2 = store2.Allocate(Birth);
+        MindHandle mind2 = store2.Allocate(Birth, Needs);
         for (int i = 0; i < ICreatureMindStore.CoreCapacity; i++)
         {
             store2.Remember(mind2, 60, Creature(i), now: 0);
@@ -156,7 +157,7 @@ public class CreatureMindStoreTests
             [Definition(70, "Shaped", isCore: true, halfLifeDays: null, salience: 900, drift: new TraitDrift { Trait = PersonalityTrait.Temper, Amount = 5 })],
             TicksPerDay);
         var store = new CreatureMindStore(rules, capacity: 1);
-        MindHandle mind = store.Allocate(Birth);
+        MindHandle mind = store.Allocate(Birth, Needs);
 
         for (int i = 0; i < ICreatureMindStore.CoreCapacity; i++)
         {
@@ -201,7 +202,7 @@ public class CreatureMindStoreTests
         store.Release(mind);
         Assert.Throws<InvalidOperationException>(() => store.Remember(mind, FedBy, Alice, now: 200));
         Assert.False(store.IsValid(mind));
-        Assert.Empty(store.GetCoreRecords(store.Allocate(Birth)).ToArray());
+        Assert.Empty(store.GetCoreRecords(store.Allocate(Birth, Needs)).ToArray());
     }
 
     [Fact]
@@ -211,7 +212,7 @@ public class CreatureMindStoreTests
         ushort[] events = [FedBy, 2, SavedLifeOf, 4, AttackedBy, 6, 7, 8, 9, 10, 11, 12, 13, BondedDied, 15, 17];
         var random = new SeededRandom(0xBEEF);
         var store = new CreatureMindStore(ShippedRules(), capacity: 4);
-        MindHandle[] minds = [.. Enumerable.Range(0, 4).Select(_ => store.Allocate(Birth))];
+        MindHandle[] minds = [.. Enumerable.Range(0, 4).Select(_ => store.Allocate(Birth, Needs))];
         ulong now = 0;
 
         for (int step = 0; step < 20_000; step++)
@@ -247,7 +248,7 @@ public class CreatureMindStoreTests
     public void Steady_state_remembering_and_recalling_allocate_nothing()
     {
         var store = new CreatureMindStore(ShippedRules(), capacity: 200);
-        MindHandle[] minds = [.. Enumerable.Range(0, 200).Select(_ => store.Allocate(Birth))];
+        MindHandle[] minds = [.. Enumerable.Range(0, 200).Select(_ => store.Allocate(Birth, Needs))];
         var results = new RecalledMemory[16];
         for (int i = 0; i < 200; i++)
         {
@@ -305,7 +306,7 @@ public class CreatureMindStoreTests
     private static (CreatureMindStore Store, MindHandle Mind) CreateStoreWithMind()
     {
         var store = new CreatureMindStore(ShippedRules(), capacity: 4);
-        return (store, store.Allocate(Birth));
+        return (store, store.Allocate(Birth, Needs));
     }
 
     private static MemoryRules ShippedRules() =>
