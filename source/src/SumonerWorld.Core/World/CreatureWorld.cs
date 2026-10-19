@@ -100,6 +100,7 @@ public sealed class CreatureWorld : IDisposable
 
     private readonly CreatureWorldSettings _settings;
     private readonly StableIdAllocator _ids = new();
+    private readonly Dictionary<StableId, Entity> _creaturesById;
     private readonly int _regionsPerRow;
 
     /// <summary>Builds an empty world from the game data.</summary>
@@ -109,6 +110,7 @@ public sealed class CreatureWorld : IDisposable
         ArgumentNullException.ThrowIfNull(settings);
 
         _settings = settings;
+        _creaturesById = new Dictionary<StableId, Entity>(settings.EntityCapacity);
         Data = data;
         Random = new SeededRandom(seed);
         World = CreateEcsWorld(settings.EntityCapacity);
@@ -217,7 +219,9 @@ public sealed class CreatureWorld : IDisposable
     public Entity SpawnCreature(ushort species, Vector3 position, Personality personality, int group)
     {
         Entity creature = World.Create();
-        World.Add(creature, _ids.Allocate());
+        StableId id = _ids.Allocate();
+        World.Add(creature, id);
+        _creaturesById.Add(id, creature);
         AddBody(creature, position);
         World.Add(creature, new CurrentEmote(Emote.None));
         World.Add(creature, new CurrentGoal(Decision.Idle));
@@ -235,9 +239,13 @@ public sealed class CreatureWorld : IDisposable
     public void DespawnCreature(Entity creature)
     {
         Grid.Remove(creature);
+        _creaturesById.Remove(World.GetComponent<StableId>(creature));
         Minds.Release(World.GetComponent<MindRef>(creature).Handle);
         World.Destroy(creature);
     }
+
+    /// <summary>The live creature with a stable id (what clients name creatures by), if any.</summary>
+    public bool TryFindCreature(StableId id, out Entity creature) => _creaturesById.TryGetValue(id, out creature);
 
     /// <summary>Adds a player's avatar (what creatures perceive and remember the player by).</summary>
     public Entity SpawnPlayerAvatar(ulong accountId, Vector3 position)

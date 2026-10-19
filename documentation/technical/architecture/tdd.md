@@ -158,6 +158,8 @@ intent {IntentId, type, args} ─► authorize (owner, range, cooldown, cost)
 - **Items** have a server-generated `StableId`. An invariant check (debug builds every tick, release builds on save) asserts that every item id exists exactly once.
 - **Trades:** two-phase on the server: both offers are locked, both players confirm, then a single atomic commit swaps them. A disconnect before commit unlocks everything. Pacts, re-pacts, crafting and ownership changes use the same transaction path (AI Bible §10.1).
 
+- **Implemented in M1-15b (Core):** `IntentId`, `IntentDeduplicator` (ring of the last 1,024 ids per session; because sequences only increase, an id not in the ring and not above the highest seen is *stale* and never applied), `TransactionProcessor` (dedupe → `ITransaction.Validate` → `Commit` → record; validation is a transaction's first phase, not a separate service) and the first transaction, `OfferPactTransaction` (avatar exists, terms in catalogue, creature exists and is wild, ≤ 10 m, 1 s cooldown; a refusal is applied because the creature remembers being asked). Network messages for intents arrive with M1-15c.
+
 ### 3.5 Latency, disconnect and reconnect
 - Supported play up to **150 ms RTT**, 2% packet loss; degraded but playable to 250 ms.
 - On disconnect the character **stays in the world for 30 s** (no combat logging in Hardcore), then logs out safely. Summoned creatures return to the Sanctum.
