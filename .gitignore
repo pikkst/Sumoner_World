@@ -1,0 +1,31 @@
+# Builds
+builds/
+*.exe
+*.app
+*.apk
+
+# Temp files
+*.tmp
+*.temp
+.cache/
+
+# IDE
+.vscode/
+.idea/
+*.suo
+*.user
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Engine specific
+.godot/
+.import/
+Library/
+Temp/
+Build/
+
+# Logs
+*.log
+logs/

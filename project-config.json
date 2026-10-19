@@ -1,0 +1,358 @@
+{
+  "project": {
+    "name": "Sumoner World",
+    "concept": "Sumoner World is an immerive open-world fantasy RPG where players explore a living,evolving world,summon and bond with intelligent creatures,master magic,build their characters,and shape their own destiny through combat,exploration,crafting,and dynamic interaction whith AI-driven ecosystems.",
+    "genre": "RPG",
+    "platform": "PC",
+    "audience": "Core",
+    "timeline": "Medium",
+    "engine": "Godot",
+    "engine_version": "4.7.2-stable (.NET)",
+    "mode": "development",
+    "competitors": "Palworld,ARK:Survival Asecended and Black Desert Online",
+    "unique_selling_point": "Sumoner World combines an immersive open-world fantasy RPG with a living, AI-driven ecosystem where intelligent creatures learn, evolve, remember player interactions, and make autonomous decisions, creating a unique, unpredictable adventure shaped by every player's choices",
+    "version": "0.0.1",
+    "created": "2026-10-19T20:09:05.150778",
+    "phase": "Pre-Production",
+    "status": "active",
+    "scope": "Large",
+    "language": "C# (.NET 8 target)",
+    "visual_style": "TBD",
+    "monetization": "TBD - pending stakeholder decision (market recommendation: premium early access)",
+    "team_size": "Solo",
+    "repository": "https://github.com/pikkst/Sumoner_World"
+  },
+  "stakeholder_decisions": [
+    {
+      "date": "2026-10-19",
+      "decision": "Keep original scope (full multiplayer, server-authoritative economy and trading)",
+      "market_recommendation": "Single-player + 1-4 co-op",
+      "risk_accepted": true
+    },
+    {
+      "date": "2026-10-19",
+      "decision": "Target audience: Core / hardcore",
+      "market_recommendation": "Accessible mid-core",
+      "risk_accepted": true
+    },
+    {
+      "date": "2026-10-19",
+      "decision": "Engine: Godot 4",
+      "market_recommendation": "Unreal Engine 5",
+      "risk_accepted": true
+    },
+    {
+      "date": "2026-10-19",
+      "decision": "Team: Solo + agents",
+      "market_recommendation": "~8-12 person team assumed in projections",
+      "risk_accepted": true
+    },
+    {
+      "date": "2026-10-19",
+      "decision": "Title: 'Sumoner World'",
+      "market_recommendation": "Lock title + trademark search",
+      "risk_accepted": false
+    },
+    {
+      "date": "2026-10-19",
+      "decision": "Version control: GitHub repo https://github.com/pikkst/Sumoner_World (public); repository root = projects/sumoner-worl",
+      "market_recommendation": "n/a",
+      "risk_accepted": false
+    }
+  ],
+  "open_decisions": [
+    "Monetization model (stakeholder input required)",
+    "Visual style / art direction",
+    "Trademark search for 'Sumoner World'",
+    "Multiplayer topology: player-hosted dedicated server vs official servers (decide at M1 gate)",
+    "Legal review of summoning/capture mechanics (avoid aim-and-throw capture)"
+  ],
+  "development_rules": [
+    "Follow SOLID, DRY, KISS, and Clean Code principles across all systems.",
+    "Use modular, component-based architecture with clear separation of concerns.",
+    "Use Entity Component System (ECS) architecture for performance-critical gameplay systems where appropriate.",
+    "Follow the project's established game engine, programming language, naming conventions, and directory structure.",
+    "Use strongly typed code and avoid unnecessary dynamic typing.",
+    "Keep classes focused, functions small, and responsibilities clearly defined.",
+    "Use dependency injection and interfaces to minimize coupling between systems.",
+    "All gameplay systems must be data-driven and configurable without modifying core logic.",
+    "Design all systems for extensibility, maintainability, scalability, and testability.",
+    "Use event-driven communication between loosely coupled gameplay systems.",
+    "Maintain deterministic simulation logic wherever reproducibility is required.",
+    "Separate game simulation, AI decision-making, rendering, networking, and persistence.",
+    "Implement AI creatures using modular behavior trees, utility AI, or state machines as appropriate.",
+    "Creature AI must support memory, learning, adaptation, autonomous decisions, and persistent behavioral states.",
+    "AI decisions must respect world rules, creature attributes, environmental conditions, and available knowledge.",
+    "Never use unrestricted generative AI directly inside performance-critical gameplay loops.",
+    "Use asynchronous processing and configurable update frequencies for computationally expensive AI operations.",
+    "Implement AI Level of Detail (AI LOD) to reduce simulation costs for distant or inactive entities.",
+    "Use spatial partitioning for creature perception, proximity queries, combat targeting, and world interactions.",
+    "Use object pooling for frequently spawned entities, projectiles, particles, and temporary effects.",
+    "Avoid unnecessary allocations, expensive searches, and blocking operations inside gameplay update loops.",
+    "Target stable 60 FPS on defined target hardware, with measurable CPU and GPU performance budgets.",
+    "Profile CPU, GPU, memory, and AI performance before introducing optimizations.",
+    "Use streaming, chunking, and level-of-detail systems for large open-world environments.",
+    "Ensure world generation and procedural systems support reproducible seeds.",
+    "Implement persistent world states with explicit versioning and backward-compatible save migrations.",
+    "All player progression, inventory, equipment, summoning, crafting, and economy operations must preserve data integrity.",
+    "Design combat, magic, progression, and creature systems around shared, versioned gameplay contracts.",
+    "All summoned creatures must follow consistent ownership, bonding, progression, and command rules.",
+    "Use server-authoritative validation for multiplayer gameplay, combat, inventory, trading, and progression.",
+    "Never trust client-provided data for authoritative gameplay or economy operations.",
+    "Implement secure authentication, authorization, input validation, and abuse prevention where applicable.",
+    "Design multiplayer systems to handle latency, reconnection, synchronization, and duplicate requests safely.",
+    "Use idempotent operations for transactions, rewards, inventory changes, and persistent multiplayer actions.",
+    "Use explicit error handling, structured logging, and actionable diagnostic messages.",
+    "Never silently swallow exceptions or hide failed operations.",
+    "All UI must be data-driven, responsive, accessible, and consistent with the game's design system.",
+    "Separate UI presentation from gameplay state and business logic.",
+    "Support localization through externalized text resources rather than hardcoded strings.",
+    "Use version control with small, focused commits and descriptive English commit messages.",
+    "Require code reviews for changes to gameplay, AI, networking, persistence, and security systems.",
+    "Write unit tests for gameplay rules, AI decisions, progression calculations, and data transformations.",
+    "Write integration tests for interactions between gameplay, AI, persistence, and networking systems.",
+    "Add regression tests for every confirmed bug fix.",
+    "Use automated formatting, linting, static analysis, and test execution in CI.",
+    "Never modify tests merely to conceal incorrect runtime behavior.",
+    "Do not introduce duplicate managers, services, utilities, or systems when existing implementations can be extended.",
+    "Avoid hardcoded gameplay values, magic numbers, unnecessary global state, and temporary workarounds.",
+    "Document all public APIs, gameplay contracts, architectural decisions, and important system dependencies.",
+    "Keep the Game Design Document, Technical Design Document, AI Bible, and implementation synchronized.",
+    "Check existing project documentation and dependencies before implementing new features.",
+    "Preserve backward compatibility unless a breaking change is explicitly approved and documented.",
+    "Implement features incrementally with clear acceptance criteria and measurable completion conditions.",
+    "Every completed feature must include implementation, appropriate tests, documentation updates, and validation evidence.",
+    "Do not mark development tasks complete until their acceptance criteria and required quality gates pass.",
+    "Never merge, deploy, delete production data, or perform irreversible operations without explicit approval.",
+    "Prioritize stable core gameplay, maintainable architecture, and consistent world simulation over unnecessary feature complexity."
+  ],
+  "market_intelligence": {
+    "verdict": "PIVOT recommended; stakeholder proceeded with original scope (risk accepted 2026-10-19)",
+    "market_size": "PC TAM $45.9B (2026); SAM ~$1.5-2.5B/yr (est.)",
+    "growth_rate": "PC ~3-5%/yr; creature-collector releases +34% YoY",
+    "competition_level": "High",
+    "market_gaps": [
+      "Creatures with memory, personality and real bonding",
+      "Story-driven creature RPG on PC",
+      "Well-optimised survival-creature game (ARK performance gap)"
+    ],
+    "revenue_projection": {
+      "conservative": "$0.8M",
+      "realistic": "$2.0M",
+      "optimistic": "$8.0M",
+      "note": "First-year gross, assumes premium EA at $24.99"
+    },
+    "launch_window": "Early access Aug-Sep 2028 (re-evaluate at M1 gate)",
+    "key_success_factors": [
+      "Creature memory/bonding visible within first 10 minutes",
+      "Disciplined scope per milestone",
+      "100K+ wishlists before EA"
+    ],
+    "main_risks": [
+      "Scope vs. solo team",
+      "Palworld comparison",
+      "Godot open-world + large-scale AI performance",
+      "AI-marketing backlash",
+      "Patent exposure on capture mechanics"
+    ]
+  },
+  "competitive_positioning": {
+    "direct_competitors": [
+      "Palworld",
+      "ARK: Survival Ascended",
+      "Black Desert Online (reference only)"
+    ],
+    "our_advantages": [
+      "Persistent creature memory and autonomous behaviour",
+      "Fantasy summoning instead of guns/spheres",
+      "Performance target 60 FPS on mid-range PC"
+    ],
+    "differentiation": "Sumoner World combines an immersive open-world fantasy RPG with a living, AI-driven ecosystem where intelligent creatures learn, evolve, remember player interactions, and make autonomous decisions, creating a unique, unpredictable adventure shaped by every player's choices",
+    "target_quality_bar": "Core-gameplay depth comparable to ARK; creature behaviour clearly beyond Palworld"
+  },
+  "team": {
+    "active_agents": [
+      "master_orchestrator",
+      "producer_agent",
+      "market_analyst",
+      "data_scientist",
+      "sr_game_designer",
+      "mid_game_designer",
+      "mechanics_developer",
+      "game_feel_developer",
+      "qa_agent",
+      "sr_game_artist",
+      "technical_artist",
+      "ui_ux_agent"
+    ],
+    "lead_agent": "producer_agent",
+    "orchestrator": "master_orchestrator",
+    "team_size": "Solo"
+  },
+  "features": {
+    "core": [
+      "Creature summoning, bonding, memory and autonomous AI",
+      "Open-world exploration with streaming",
+      "Real-time combat",
+      "Magic system",
+      "Server-authoritative multiplayer"
+    ],
+    "secondary": [
+      "Crafting",
+      "Creature progression/evolution",
+      "Persistent evolving ecosystem",
+      "Trading and player economy"
+    ],
+    "nice_to_have": [
+      "Mod support",
+      "Housing/base building",
+      "Cross-platform"
+    ]
+  },
+  "milestones": [
+    {
+      "id": "M0",
+      "name": "Pre-Production & Quality Gates",
+      "start": "2026-10-20",
+      "target_date": "2026-11-30",
+      "deliverables": [
+        "ADR-001 engine/language",
+        "CI with format/lint/analyzers/tests",
+        "Design pillars + GDD v0.1",
+        "TDD v0.1",
+        "AI Bible v0.1",
+        "Legal check on capture mechanics"
+      ],
+      "success_criteria": [
+        "CI green on empty solution",
+        "All docs reviewed by Producer",
+        "Rules compliance matrix approved"
+      ]
+    },
+    {
+      "id": "M1",
+      "name": "Core Tech Prototype (risk burn-down)",
+      "start": "2026-12-01",
+      "target_date": "2027-03-31",
+      "deliverables": [
+        "Creature AI with memory (utility AI + BT), persistent state",
+        "AI LOD + spatial partitioning",
+        "Chunked world streaming test region",
+        "Deterministic seeded sim",
+        "Headless server + 2-client authoritative movement/commands"
+      ],
+      "success_criteria": [
+        "60 FPS with 200 active creatures on target hardware",
+        "Playtesters notice creature memory within 10 min",
+        "Server-authoritative loop with reconnect works",
+        "GO / RE-SCOPE gate decision by stakeholder"
+      ]
+    },
+    {
+      "id": "M2",
+      "name": "Networked Vertical Slice",
+      "start": "2027-04-01",
+      "target_date": "2027-08-31",
+      "deliverables": [
+        "Summoning/bonding loop",
+        "Combat + magic v1",
+        "Crafting v1",
+        "Versioned saves with migration",
+        "Steam page live"
+      ],
+      "success_criteria": [
+        "30-minute playable slice in multiplayer",
+        "Zero critical bugs",
+        "Save migration tests pass"
+      ]
+    },
+    {
+      "id": "M3",
+      "name": "Alpha / Early Access Content",
+      "start": "2027-09-01",
+      "target_date": "2028-03-31",
+      "deliverables": [
+        "20-40 hrs content",
+        "Trading/economy (idempotent, server-validated)",
+        "Localisation pipeline",
+        "Steam Next Fest demo"
+      ],
+      "success_criteria": [
+        "Bug threshold met",
+        "Wishlists >= 50K",
+        "Performance budget met"
+      ]
+    },
+    {
+      "id": "M4",
+      "name": "Early Access Launch",
+      "start": "2028-04-01",
+      "target_date": "2028-09-15",
+      "deliverables": [
+        "EA build",
+        "Dedicated server release",
+        "Roadmap"
+      ],
+      "success_criteria": [
+        "Wishlists >= 100K",
+        "Steam rating >= 80% positive"
+      ]
+    }
+  ],
+  "risks": [
+    {
+      "risk": "Original multiplayer scope with a solo team",
+      "probability": "High",
+      "impact": "High",
+      "level": "Critical",
+      "mitigation": "Stakeholder accepted risk. Sequence risk burn-down first (M1) with a formal GO/RE-SCOPE gate; architecture is server-authoritative from day one so nothing is rebuilt later."
+    },
+    {
+      "risk": "Scope creep",
+      "probability": "High",
+      "impact": "High",
+      "level": "Critical",
+      "mitigation": "Feature freeze per milestone; every new feature goes through Producer feature-request evaluation."
+    },
+    {
+      "risk": "Godot performance for large open world + hundreds of AI creatures",
+      "probability": "Medium",
+      "impact": "High",
+      "level": "High",
+      "mitigation": "M1 benchmark; data-oriented C# simulation core outside the scene tree; GDExtension fallback for hot paths."
+    },
+    {
+      "risk": "Hardcore positioning puts us head-to-head with ARK/Palworld",
+      "probability": "High",
+      "impact": "Medium",
+      "level": "High",
+      "mitigation": "Lead marketing with creature memory/bonding, not feature count."
+    },
+    {
+      "risk": "Patent exposure on capture mechanics",
+      "probability": "Low",
+      "impact": "Medium",
+      "level": "Medium",
+      "mitigation": "Summoning contracts/rituals; legal check in M0."
+    },
+    {
+      "risk": "AI-marketing backlash",
+      "probability": "Medium",
+      "impact": "Medium",
+      "level": "Medium",
+      "mitigation": "Message as 'living ecosystem'; no generative AI in shipped content."
+    }
+  ],
+  "metrics": {
+    "velocity_target": "10 tasks/week",
+    "bug_threshold": "5 critical, 20 minor",
+    "performance_target": "60 FPS, < 3s load",
+    "market_kpis": {
+      "target_wishlists_pre_ea": "100K",
+      "target_units_year1": "100K (P50)",
+      "target_revenue_monthly": "~$165K avg year 1 (P50)",
+      "target_rating": ">= 80% positive on Steam",
+      "target_update_reengagement": "Track per major patch (premium game; D1/D7 not primary)"
+    }
+  }
+}
