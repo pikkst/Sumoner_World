@@ -71,8 +71,8 @@ Godot 4.7 Forward+ renderer (Vulkan on Windows/Linux, D3D12 allowed). Targets ar
 - Memory records use a `uint` tick relative to the world epoch (enough for 4.5 years of server uptime); the world tick is a `ulong`.
 
 ### 2.2 ECS layout (R03)
-- **[M1 spike done, see ADR-002 (proposed): in-house sparse set recommended]** Originally: Arch (Apache-2.0, C# archetype ECS) wrapped behind a thin `SumonerWorld.Core.Ecs` facade so the rest of Core never imports the library directly. **Fallback:** an in-house sparse-set ECS behind the same facade.
-  - If adopted, Arch is added to the architecture test allowlist through a reviewed change (the test stays: Core may reference only System assemblies + the allowlist).
+- **In-house sparse-set ECS** in `SumonerWorld.Core.Ecs` behind `IEcsWorld` (**ADR-002, accepted 2026-10-19**). The M1 spike measured Arch against it: both are far inside the budget, and the sparse set is 25–30× faster at structural changes and needs no dependencies. Scope limits are in ADR-002.
+  - Core keeps referencing only the BCL (architecture test unchanged).
 - **Entity:** 32-bit index + 32-bit generation. Persistent things also get a **64-bit `StableId`** (server-generated, saved, used in memories, network and saves). ECS entity ids are never saved or sent.
 - **Components** (plain structs, no references to Godot):
   `Transform`, `Velocity`, `Collider`, `Health`, `Stamina`, `Mana`, `Faction`, `NetworkId`, `StableId`, `AiLodTier`, `PerceptionState`, `CreatureMindHandle`, `BondState`, `InventoryHandle`, `StatusEffects`, `Dirty` (persistence), `Relevance` (networking).
@@ -221,7 +221,7 @@ Every dependency must be: permissive licence (MIT/BSD/Apache-2.0/zlib), actively
 | Dependency | Use | Status |
 |---|---|---|
 | Godot 4.7.2 .NET (MIT) | engine, physics (Jolt), navigation, ENet | adopted (ADR-001) |
-| Arch (Apache-2.0) | ECS | Spike done (M1-02); ADR-002 proposes **not** adopting it. Referenced only by the benchmark project |
+| Arch (Apache-2.0) | ECS spike comparison | **Not adopted** (ADR-002). Referenced only by the benchmark project |
 | BenchmarkDotNet (MIT) | benchmarks (`tests/SumonerWorld.Benchmarks`) | adopted for tooling only |
 | Microsoft.Data.Sqlite (MIT) | save database | M1 spike |
 | MessagePack-CSharp (MIT) | record payloads | M1 spike |

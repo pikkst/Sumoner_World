@@ -1,5 +1,5 @@
 # ADR-002: ECS Implementation (Arch vs. in-house sparse set)
-Status: **Proposed** (M1-02, 2026-10-19). Needs stakeholder approval because it reverses the TDD's preferred option.
+Status: **Accepted** (stakeholder, 2026-10-19: "build the small in-house version instead of using Arch"). Supersedes the TDD's first choice.
 Rules: R03, R11, R21, R23, R47, R48 · Related: TDD v0.1 §2.2 and §7, ADR-001, system registry (`IEcsWorld`, `IStableIdAllocator`)
 
 ## Context
@@ -41,7 +41,7 @@ Raw table: `qa/performance-logs/2026-10-19_M1-02_ecs_spike_dev-pc.md`.
 | Saves and `StableId` (TDD §2.2) | needs a mapping layer either way | same mapping layer, designed together |
 | Features we would not use | multithreaded queries, source generators, events, relationships | n/a |
 
-## Decision (proposed)
+## Decision
 **Use an in-house sparse-set ECS in `SumonerWorld.Core.Ecs`**, behind `IEcsWorld`, and drop Arch.
 - Performance is not a differentiator at our scale, and the in-house set is better at the structural changes our AI LOD causes most often.
 - It keeps Core free of third-party dependencies (including a preview package), avoids static global state, and gives us full control over iteration order for determinism and replays.
@@ -61,7 +61,7 @@ Anything beyond this list needs a new ADR.
 - (+) Faster structural changes; deterministic order we control.
 - (−) We own and test the ECS code (~300 lines plus tests). Mitigation: the scope limits above, and property tests in M1-02b.
 - (−) Iteration is ~1.6× slower than Arch. If the M1 benchmark (B1/B5) ever shows the ECS above 0.5 ms/tick, revisit with a profile (R23), not by default.
-- The TDD (§2.2, §7) is updated to match this ADR when it is approved.
+- The TDD (§2.2, §7) is updated to match this ADR.
 
 ## Next step (M1-02b, after approval)
 Implement `IEcsWorld`, `IStableIdAllocator` and the views in `SumonerWorld.Core.Ecs` with unit and property tests (no allocations per tick, generation checks, swap-remove correctness, deterministic slot reuse). The spike code stays in the benchmark project for re-measurement; Arch is referenced only there.
