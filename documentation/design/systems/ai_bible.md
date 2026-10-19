@@ -33,6 +33,7 @@ One cognition cycle per creature, run at the rate of its AI LOD tier (§9):
 | Module (Core namespace) | Responsibility | Writes |
 |---|---|---|
 | `Cognition.Perception` | Sight, hearing, scent queries against the spatial grid | Percepts (per-tick buffer) |
+| | *M1-10:* sight = species view cone (`sightRange`, `sightHalfAngle`), hearing = radius in any direction (`hearingRange`), from each species' `perception` data; nearest first, sight wins over hearing; a full buffer keeps the nearest. **Focus** (the "notable subject" for emotes, decisions and trees): players always first, then the subject the creature feels most strongly about (opinion intensity), then the nearest. Occlusion (line of sight) and scent come with the physics adapter (M1-20). | |
 | `Cognition.Memory` | Episodic memories, decay, consolidation, eviction | Memory store |
 | `Cognition.Opinions` | Per-subject attitudes derived from memory | Opinion table |
 | `Cognition.Appraisal` | Short-term emotions and needs | Emotion + needs state |
@@ -283,8 +284,10 @@ Tier is chosen by distance to the nearest player, combat state and whether the c
 
 **Total AI budget: ≤ 4 ms per server tick for 200 creatures in T0–T2 on the recommended spec** (M1 gate, benchmark in M0-07). Typical M1 mix: 30 T0 + 70 T1 + 100 T2 ≈ 0.6 + 0.56 + 0.2 = 1.4 ms, which leaves headroom for spikes.
 
+**Implementation (M1-10, `AiLodPolicy`):** tiers from the distance to the nearest player (40 m / 120 m) with **10 m hysteresis** so a creature on a boundary does not flicker; combat or summoning forces T0, unloaded chunks are T3. Update intervals at 30 Hz: T0 perception every 3 ticks, decision every 6, tree every tick; T1 8 / 15 / 3; T2 30 / 60 / 15 (settings, tuned with the M1 benchmark). T2's "reduced goal set / simplified trees" is not used yet: lower rates alone keep the budget (B5 tick p99 0.33 ms for 200 creatures); revisit only if the M1 benchmark needs it (R23).
+
 ### 9.2 Time slicing
-Creatures in a tier are split into buckets by `creatureId mod N`, and one bucket is updated per tick, so the load is spread evenly and the order is deterministic.
+Creatures in a tier are split into buckets by `creatureId mod N`, and one bucket is updated per tick, so the load is spread evenly and the order is deterministic. Implemented in M1-10 as `IsDue(tier, activity, entityIndex, tick)`: `tick mod interval == index mod interval` (test: 300 creatures spread exactly evenly).
 
 ### 9.3 Spatial partitioning and async jobs
 - **Spatial grid** (16 m cells) for perception, proximity, targeting and rumour sharing (R19). Implemented in M1-03 as a uniform grid over the bounded world (`SpatialGrid`): O(1) moves, radius and cone queries on the ground plane, written into caller buffers with no allocation. A full 200-creature perception pass costs 0.11 ms on the dev PC (`qa/performance-logs/2026-10-19_M1-03_spatial_grid_dev-pc.md`).

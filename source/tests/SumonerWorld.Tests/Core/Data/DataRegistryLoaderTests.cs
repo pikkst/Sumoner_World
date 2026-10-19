@@ -234,7 +234,7 @@ public class DataRegistryLoaderTests
           "boldness": { "mean": -30, "spread": 25 }, "loyalty": { "mean": 40, "spread": 30 },
           "curiosity": { "mean": 10, "spread": 30 }, "temper": { "mean": -40, "spread": 20 },
           "needs": { "hunger": 60, "rest": 40, "safety": 50, "social": 70, "territory": 10 },
-          "pactThreshold": 450, "goals": ["Eat"] } ] }
+          "pactThreshold": 450, "perception": { "sightRange": 50, "sightHalfAngle": 120, "hearingRange": 30 }, "goals": ["Eat"] } ] }
         """;
 
     private static List<DataFile> ReadShippedData()

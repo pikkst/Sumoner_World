@@ -16,7 +16,8 @@ public class StateHashPaddingTests
 {
     public static TheoryData<Type> RawHashedTypes => new()
     {
-        typeof(Entity), typeof(StableId), typeof(Position), typeof(MoveTarget), typeof(CurrentEmote), typeof(CurrentGoal),
+        typeof(Entity), typeof(StableId), typeof(Position), typeof(Facing), typeof(MoveTarget), typeof(AiTier), typeof(FocusRef),
+        typeof(CurrentEmote), typeof(CurrentGoal),
         typeof(Opinion), typeof(Personality),
     };
 

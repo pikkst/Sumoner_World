@@ -84,5 +84,6 @@ M1-01 → (M1-02, M1-03, M1-04) → M1-05 → Phase B. M1-13 can start after M1-
 | M1-06 | **Done** 2026-10-20 (stakeholder approved, PR #16): memory store, decay, core memories, personality drift; in B5 gates |
 | M1-07 | **Done** 2026-10-20 (stakeholder approved, PR #17): opinions, emotions, emotes, needs; in B5 gates |
 | M1-08 | **Done** 2026-10-20 (stakeholder approved, PR #18): utility AI, goals data, interrupts; in B5 gates |
-| M1-09 | **Delivered** 2026-10-20, review pending: behaviour trees, 10 trees in data, intents; in B5 gates |
-| M1-10 … M1-24 | Planned |
+| M1-09 | **Done** 2026-10-20 (stakeholder approved, PR #19): behaviour trees, 10 trees in data, intents; in B5 gates |
+| M1-10 | **Done** 2026-10-20 (merged under standing approval, PR #20): perception, focus, AI LOD; B5 has 2 stand-in players |
+| M1-11 … M1-24 | Planned |

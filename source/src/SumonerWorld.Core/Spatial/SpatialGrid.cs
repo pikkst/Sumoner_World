@@ -97,6 +97,14 @@ public sealed class SpatialGrid : ISpatialIndex
         && _entities[entity.Index] == entity;
 
     /// <inheritdoc />
+    public bool TryGetPosition(Entity entity, out Vector3 position)
+    {
+        bool found = Contains(entity);
+        position = found ? _positions[entity.Index] : default;
+        return found;
+    }
+
+    /// <inheritdoc />
     public SpatialQueryResult QueryRadius(Vector3 center, float radius, Span<Entity> results) =>
         Query(center, radius, Vector2.Zero, cosHalfAngle: -1f, results);
 

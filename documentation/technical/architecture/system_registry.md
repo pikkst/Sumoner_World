@@ -58,7 +58,8 @@ Rules: R02, R07, R12, R47, R49 · Related: ADR-001 (layers), TDD v0.1, AI Bible 
 ## 4. Core: creatures and world (AI Bible)
 | System | Namespace | Interface | Responsibility | Spec | Status |
 |---|---|---|---|---|---|
-| Perception | `Core.Cognition.Perception` | `IPerception` | Sight, hearing, scent via `ISpatialIndex` | AI Bible §2 | Planned (M1) |
+| Perception | `Core.Cognition.Perception` | `IPerception` | Sight (view cone) and hearing via `ISpatialIndex`, nearest-first percepts, focus selection (`Perceiver`); scent and occlusion with M1-20 | AI Bible §2 | **Implemented** (M1-10) |
+| Subject resolution | `Core.Cognition.Perception` | `ISubjectResolver` | Maps a perceived entity to the memory subject (player account / creature stable id); implemented by the host | AI Bible §4.1 | **Implemented** (M1-10, host side) |
 | Creature minds | `Core.Cognition.Memory` | `ICreatureMindStore` | Saved mind state (bounded, pooled): personalities, memories, opinion baselines, needs: `CreatureMindStore`, `MemoryDecay`, `MemoryRules`, `Personality` | AI Bible §3–6 | **Implemented** (M1-06, M1-07) |
 | Opinions | `Core.Cognition.Opinions` | `IOpinionModel` | Trust / Fear / Affection / Respect from memories + baseline (`OpinionModel`) | AI Bible §5 | **Implemented** (M1-07) |
 | Appraisal | `Core.Cognition.Appraisal` | `IAppraisal` | Short-term emotions and emote selection (`AppraisalModel`); needs live in the mind store | AI Bible §6 | **Implemented** (M1-07) |
@@ -66,7 +67,7 @@ Rules: R02, R07, R12, R47, R49 · Related: ADR-001 (layers), TDD v0.1, AI Bible 
 | Behaviour trees | `Core.Cognition.Behaviour` | `IBehaviourTreeRunner` | Data-defined trees that emit intents (`BehaviourTreeRunner`, `CreatureIntent`) | AI Bible §7.3 | **Implemented** (M1-09) |
 | Cognition inputs | `Core.Cognition.Decision` | `InputSampler` (class) | The one place that reads needs, emotions, opinion, distance, health, time as 0–1000 inputs; shared by utility AI and tree conditions | AI Bible §7.2 | **Implemented** (M1-09) |
 | Learning | `Core.Cognition.Learning` | `ILearningModel` | Tactic, habit and combo tables | AI Bible §8 | Planned (M2) |
-| AI LOD | `Core.Cognition` | `IAiLodPolicy` | Tier assignment and time slicing | AI Bible §9 | Planned (M1) |
+| AI LOD | `Core.Cognition.Lod` | `IAiLodPolicy` | Tier assignment with hysteresis and per-tier time slicing (`AiLodPolicy`, `AiLodSettings`) | AI Bible §9 | **Implemented** (M1-10) |
 | Bonding rules | `Core.Bonding` | `IBondingRules` | Ownership states and transitions (Bonding Contract v1.0.0) | AI Bible §10.1 | Planned (M1) |
 | Pact acceptance | `Core.Bonding` | `IPactEvaluator` | Pact Terms and acceptance utility | AI Bible §10.2 | Planned (M1) |
 | Obedience | `Core.Bonding` | `IObedienceModel` | Obey / Improvise / Hesitate / Refuse | AI Bible §7.4 | Planned (M1) |

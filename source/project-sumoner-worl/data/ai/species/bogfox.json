@@ -32,6 +32,11 @@
         "territory": 50
       },
       "pactThreshold": 550,
+      "perception": {
+        "sightRange": 60,
+        "sightHalfAngle": 70,
+        "hearingRange": 40
+      },
       "goals": [
         "Flee",
         "Fight",

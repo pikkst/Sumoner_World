@@ -571,6 +571,17 @@ public static class DataRegistryLoader
 
         CheckRange(entry.PactThreshold, 0, MaxPactThreshold, "pactThreshold", where, errors);
 
+        if (entry.Perception is null)
+        {
+            errors.Add($"{where}: perception is required.");
+        }
+        else
+        {
+            CheckRange(entry.Perception.SightRange, 1, PerceptionDefinition.MaxRange, "perception.sightRange", where, errors);
+            CheckRange(entry.Perception.SightHalfAngle, 1, 180, "perception.sightHalfAngle", where, errors);
+            CheckRange(entry.Perception.HearingRange, 1, PerceptionDefinition.MaxRange, "perception.hearingRange", where, errors);
+        }
+
         if (entry.Goals is null || entry.Goals.Count == 0 || entry.Goals.Distinct(StringComparer.Ordinal).Count() != entry.Goals.Count)
         {
             errors.Add($"{where}: goals must be a non-empty list of goal keys without duplicates.");

@@ -26,6 +26,9 @@ public interface ISpatialIndex
     /// <summary>True if this exact entity (same generation) is in the index.</summary>
     bool Contains(Entity entity);
 
+    /// <summary>The entity's last stored position; false if it is not in the index.</summary>
+    bool TryGetPosition(Entity entity, out Vector3 position);
+
     /// <summary>Entities whose ground-plane distance to <paramref name="center"/> is at most <paramref name="radius"/>.</summary>
     SpatialQueryResult QueryRadius(Vector3 center, float radius, Span<Entity> results);
 
