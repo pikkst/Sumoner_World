@@ -4,6 +4,7 @@ using SumonerWorld.Core.Simulation;
 
 namespace SumonerWorld.Tests.Core.Simulation;
 
+[Collection(AllocationMeasurements.Name)]
 public class SimulationSchedulerTests
 {
     private const int EventCapacity = 8;

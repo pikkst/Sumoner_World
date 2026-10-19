@@ -161,8 +161,8 @@ public sealed class LoopbackTransport : ITransport
         }
 
         Link link = _links[connection.Value];
+        // Graceful close: the other side keeps receiving what was sent before and closes when the disconnect arrives.
         _links[connection.Value] = link with { Open = false };
-        link.Remote._links[link.RemoteId.Value] = link.Remote._links[link.RemoteId.Value] with { Open = false };
         link.Remote.Enqueue(new Packet(link.RemoteId, Channel.ReliableOrdered, PacketKind.Disconnect, NoBuffer, 0, _network.DeliveryStep));
     }
 
@@ -181,10 +181,16 @@ public sealed class LoopbackTransport : ITransport
                     handler.OnConnected(packet.Connection);
                     break;
                 case PacketKind.Disconnect:
+                    _links[packet.Connection.Value] = _links[packet.Connection.Value] with { Open = false };
                     handler.OnDisconnected(packet.Connection, DisconnectReason.Remote);
                     break;
                 default:
-                    handler.OnData(packet.Connection, packet.Channel, _network.Payload(packet.Buffer, packet.Length));
+                    // Data still in flight when a connection closes is lost, as on a real network.
+                    if (IsOpen(packet.Connection))
+                    {
+                        handler.OnData(packet.Connection, packet.Channel, _network.Payload(packet.Buffer, packet.Length));
+                    }
+
                     _network.ReturnBuffer(packet.Buffer);
                     break;
             }

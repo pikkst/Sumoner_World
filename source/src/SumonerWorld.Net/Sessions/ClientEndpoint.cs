@@ -24,12 +24,13 @@ public enum ClientSessionState
 }
 
 /// <summary>
-/// The client side of the session handshake: sends <see cref="Hello"/> on connect and records the server's answer. Messages in the
-/// session go to <see cref="Messages"/>.
+/// The client side of the session handshake: sends <see cref="Hello"/> on connect and records the server's answer. After a lost
+/// connection, <see cref="Rebind"/> and connect again: the Hello then carries the session token, so the server can resume the session
+/// within its reconnect window (TDD §3.5). Messages in the session go to <see cref="Messages"/>.
 /// </summary>
 public sealed class ClientEndpoint : ITransportHandler
 {
-    private readonly ITransport _transport;
+    private ITransport _transport;
     private readonly ILog _log;
     private readonly Hello _hello;
     private readonly byte[] _buffer = new byte[Protocol.MaxMessageSize];
@@ -45,8 +46,8 @@ public sealed class ClientEndpoint : ITransportHandler
         _hello = hello;
     }
 
-    /// <summary>Receives messages after the handshake (snapshots, intent acks).</summary>
-    public ISessionMessageHandler? Messages { get; set; }
+    /// <summary>Receives welcomes and the messages after the handshake (snapshots, intent acks).</summary>
+    public IClientSessionHandler? Messages { get; set; }
 
     /// <summary>The connection to the server, once connected.</summary>
     public ConnectionId Connection { get; private set; }
@@ -60,12 +61,20 @@ public sealed class ClientEndpoint : ITransportHandler
     /// <summary>Why the server refused, if it did.</summary>
     public RejectReason? RejectReason { get; private set; }
 
+    /// <summary>Uses <paramref name="transport"/> for the next connection (the old one is gone); the session token is kept.</summary>
+    public void Rebind(ITransport transport)
+    {
+        ArgumentNullException.ThrowIfNull(transport);
+        _transport = transport;
+        State = ClientSessionState.Connecting;
+    }
+
     /// <inheritdoc />
     public void OnConnected(ConnectionId connection)
     {
         Connection = connection;
         var writer = new MessageWriter(_buffer);
-        new HelloCodec().Write(ref writer, _hello);
+        new HelloCodec().Write(ref writer, _hello with { ResumeToken = Session?.SessionToken ?? 0 });
         _transport.Send(connection, Channel.ReliableOrdered, writer.WrittenSpan);
         State = ClientSessionState.Authenticating;
     }
@@ -91,9 +100,11 @@ public sealed class ClientEndpoint : ITransportHandler
             switch (type)
             {
                 case MessageType.Welcome:
-                    Session = new WelcomeCodec().Read(ref reader);
+                    Welcome welcome = new WelcomeCodec().Read(ref reader);
+                    Session = welcome;
                     State = ClientSessionState.InSession;
-                    _log.Write(LogLevel.Info, "client.welcome", $"in session as account {Session.Value.AccountId}");
+                    _log.Write(LogLevel.Info, "client.welcome", $"{(welcome.Resumed ? "resumed session" : "in session")} as account {welcome.AccountId}");
+                    Messages?.OnWelcome(welcome);
                     break;
                 case MessageType.Rejected:
                     Rejected rejected = new RejectedCodec().Read(ref reader);

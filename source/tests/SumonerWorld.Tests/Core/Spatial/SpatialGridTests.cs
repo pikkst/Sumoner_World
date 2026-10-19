@@ -5,6 +5,7 @@ using SumonerWorld.Core.Spatial;
 
 namespace SumonerWorld.Tests.Core.Spatial;
 
+[Collection(AllocationMeasurements.Name)]
 public class SpatialGridTests
 {
     private const int Capacity = 1_024;

@@ -2,6 +2,7 @@ using SumonerWorld.Core.Jobs;
 
 namespace SumonerWorld.Tests.Core.Jobs;
 
+[Collection(AllocationMeasurements.Name)]
 public class JobSchedulerTests
 {
     [Theory]

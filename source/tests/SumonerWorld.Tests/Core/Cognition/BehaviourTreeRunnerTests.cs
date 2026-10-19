@@ -11,6 +11,7 @@ using static SumonerWorld.Tests.Core.Cognition.CognitionTestData;
 
 namespace SumonerWorld.Tests.Core.Cognition;
 
+[Collection(AllocationMeasurements.Name)]
 public class BehaviourTreeRunnerTests
 {
     private const ushort GoalA = 1;

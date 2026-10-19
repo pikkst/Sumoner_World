@@ -116,6 +116,16 @@ public sealed class ClientPrediction : IClientPrediction
         return recorded;
     }
 
+    /// <summary>Forgets the prediction (the connection changed); the next snapshot starts it again.</summary>
+    public void Reset()
+    {
+        IsInitialized = false;
+        PendingCount = 0;
+        _start = 0;
+        _offset = Vector3.Zero;
+        _smoothLeft = 0;
+    }
+
     /// <summary>Copies the newest unacknowledged inputs (at most <paramref name="destination"/>.Length), oldest first.</summary>
     public int CopyNewest(Span<PlayerInput> destination)
     {
@@ -133,10 +143,11 @@ public sealed class ClientPrediction : IClientPrediction
     {
         if (!IsInitialized)
         {
+            // Continue right after the server's last applied input: everything later was never applied.
             IsInitialized = true;
             Position = serverPosition;
             AckedSequence = ackedInput;
-            LastSequence = Math.Max(LastSequence, ackedInput);
+            LastSequence = ackedInput;
             return Correction.None;
         }
 

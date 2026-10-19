@@ -10,6 +10,7 @@ using static SumonerWorld.Tests.Core.Cognition.CognitionTestData;
 
 namespace SumonerWorld.Tests.Core.Cognition;
 
+[Collection(AllocationMeasurements.Name)]
 public class PerceiverTests
 {
     private static readonly PerceptionDefinition Senses = new() { SightRange = 50, SightHalfAngle = 60, HearingRange = 10 };

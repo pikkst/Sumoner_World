@@ -9,12 +9,15 @@ namespace SumonerWorld.Net.Client;
 
 /// <summary>
 /// The client side of the authoritative loop (TDD §3.2): opens the session, predicts the own character, sends the newest inputs
-/// every tick (unreliable, redundant) and intents (reliable), and keeps the latest snapshot's entities. Remote entities are shown as
-/// last received; the 100 ms interpolation buffer belongs to creature presentation (M1-21).
+/// every tick (unreliable, redundant) and intents (reliable), and keeps the latest snapshot's entities. After a lost connection,
+/// <see cref="Reconnect"/> resumes the session (TDD §3.5): prediction restarts from the next snapshot and unanswered intents are sent
+/// again with their sequences (the server's dedupe window answers repeats with the first result). Remote entities are shown as last
+/// received; the 100 ms interpolation buffer belongs to creature presentation (M1-21).
 /// </summary>
-public sealed class GameClient : ISessionMessageHandler
+public sealed class GameClient : IClientSessionHandler
 {
-    private readonly ITransport _transport;
+    private readonly SortedDictionary<uint, IntentRequest> _unanswered = [];
+    private ITransport _transport;
     private readonly ILog _log;
     private readonly PlayerInput[] _batch = new PlayerInput[InputBatch.MaxInputs];
     private readonly byte[] _buffer = new byte[Protocol.MaxMessageSize];
@@ -51,6 +54,39 @@ public sealed class GameClient : ISessionMessageHandler
     /// <summary>Results of sent intents, by sequence (absent while waiting).</summary>
     public IReadOnlyDictionary<uint, IntentResult> IntentResults => _results;
 
+    /// <summary>Intents sent but not answered yet.</summary>
+    public int UnansweredIntents => _unanswered.Count;
+
+    /// <summary>Intents dropped because the server started a new session instead of resuming (their outcome is unknown).</summary>
+    public int LostIntents { get; private set; }
+
+    /// <summary>Uses <paramref name="transport"/> for the next connection; connect it to the server afterwards.</summary>
+    public void Reconnect(ITransport transport)
+    {
+        ArgumentNullException.ThrowIfNull(transport);
+        _transport = transport;
+        Session.Rebind(transport);
+    }
+
+    /// <inheritdoc />
+    public void OnWelcome(in Welcome welcome)
+    {
+        Prediction.Reset();
+        _entities.Clear();
+        LastSnapshotTick = 0;
+        if (!welcome.Resumed)
+        {
+            LostIntents += _unanswered.Count;
+            _unanswered.Clear();
+            return;
+        }
+
+        foreach (IntentRequest request in _unanswered.Values)
+        {
+            Resend(request);
+        }
+    }
+
     /// <summary>
     /// One client tick: receive, then (once the first snapshot arrived) predict <paramref name="input"/> and send the newest inputs.
     /// The host flushes the transport afterwards.
@@ -79,6 +115,7 @@ public sealed class GameClient : ISessionMessageHandler
         }
 
         var request = new IntentRequest(++_lastIntent, kind, target, argument);
+        _unanswered.Add(request.Sequence, request);
         Resend(request);
         return request.Sequence;
     }
@@ -102,6 +139,7 @@ public sealed class GameClient : ISessionMessageHandler
             case MessageType.IntentAck:
                 IntentAck ack = _ackCodec.Read(ref reader);
                 _results[ack.Sequence] = ack.Result;
+                _unanswered.Remove(ack.Sequence);
                 break;
             default:
                 _log.Write(LogLevel.Warning, "client.unexpected", $"{type} is not a server message");

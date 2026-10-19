@@ -10,12 +10,28 @@ public interface ISessionMessageHandler
     void OnMessage(ConnectionId connection, MessageType type, ref MessageReader reader);
 }
 
-/// <summary>The game side of the server's sessions: told when sessions open and close, and given their messages.</summary>
+/// <summary>The game side of the client's session: told about every <see cref="Welcome"/> (first join and each reconnect).</summary>
+public interface IClientSessionHandler : ISessionMessageHandler
+{
+    /// <summary>The server opened or resumed the session (see <see cref="Welcome.Resumed"/>).</summary>
+    void OnWelcome(in Welcome welcome);
+}
+
+/// <summary>
+/// The game side of the server's sessions (TDD §3.5): opened → (suspended → resumed)* → closed. A suspended session's player is
+/// disconnected but may come back within the reconnect window; closed is final.
+/// </summary>
 public interface IServerSessionHandler : ISessionMessageHandler
 {
-    /// <summary>A session opened. <paramref name="sessionId"/> is server-assigned, unique for the server's life and not secret.</summary>
+    /// <summary>A new session opened. <paramref name="sessionId"/> is server-assigned, unique for the server's life and not secret.</summary>
     void OnSessionOpened(ConnectionId connection, ulong accountId, ulong sessionId);
 
-    /// <summary>A session closed (disconnect or drop).</summary>
-    void OnSessionClosed(ConnectionId connection, ulong accountId);
+    /// <summary>The session's connection was lost; it can still be resumed.</summary>
+    void OnSessionSuspended(ulong sessionId);
+
+    /// <summary>A suspended (or silently replaced) session continues on a new connection.</summary>
+    void OnSessionResumed(ConnectionId connection, ulong sessionId);
+
+    /// <summary>The session ended for good (expired, replaced by a new login or dropped for a violation).</summary>
+    void OnSessionClosed(ulong sessionId);
 }

@@ -7,6 +7,7 @@ using static SumonerWorld.Tests.Core.Cognition.CognitionTestData;
 
 namespace SumonerWorld.Tests.Core.Cognition;
 
+[Collection(AllocationMeasurements.Name)]
 public class AppraisalModelTests
 {
     private static readonly Personality Bold = new(Boldness: 60, Loyalty: 0, Curiosity: 0, Temper: 20);

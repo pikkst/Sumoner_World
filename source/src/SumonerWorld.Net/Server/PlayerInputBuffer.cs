@@ -4,8 +4,9 @@ namespace SumonerWorld.Net.Server;
 
 /// <summary>
 /// One player's received inputs, by sequence (TDD §3.2). The server applies each input at most once, in sequence order, one per tick
-/// (two while catching up). Copies of applied inputs are ignored; inputs too far ahead are dropped (a client cannot queue movement).
-/// When an input never arrives (every redundant copy lost), the next one is applied and the client's reconciliation corrects it.
+/// (two while catching up). Copies of applied inputs are ignored. When an input never arrives (every redundant copy lost), the next
+/// one is applied; an input more than <see cref="Capacity"/> ahead (after a long outage) skips everything before it. Either way the
+/// client's reconciliation corrects the difference, and skipping only ever costs the client movement.
 /// </summary>
 internal sealed class PlayerInputBuffer
 {
@@ -27,9 +28,15 @@ internal sealed class PlayerInputBuffer
     /// <summary>Stores an input unless it was applied already or is too far ahead.</summary>
     public void Offer(in PlayerInput input)
     {
-        if (input.Sequence <= LastApplied || input.Sequence - LastApplied > Capacity)
+        if (input.Sequence <= LastApplied)
         {
             return;
+        }
+
+        if (input.Sequence - LastApplied > Capacity)
+        {
+            Reset();
+            LastApplied = input.Sequence - 1;
         }
 
         int slot = (int)(input.Sequence % Capacity);
@@ -39,6 +46,13 @@ internal sealed class PlayerInputBuffer
             _inputs[slot] = input;
             Buffered++;
         }
+    }
+
+    /// <summary>Forgets waiting inputs (the connection changed); <see cref="LastApplied"/> stays.</summary>
+    public void Reset()
+    {
+        Array.Clear(_filled);
+        Buffered = 0;
     }
 
     /// <summary>Takes the lowest waiting input.</summary>

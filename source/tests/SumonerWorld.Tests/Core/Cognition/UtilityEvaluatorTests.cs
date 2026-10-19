@@ -9,6 +9,7 @@ using static SumonerWorld.Tests.Core.Cognition.CognitionTestData;
 
 namespace SumonerWorld.Tests.Core.Cognition;
 
+[Collection(AllocationMeasurements.Name)]
 public class UtilityEvaluatorTests
 {
     private const int FullHealth = 1000;

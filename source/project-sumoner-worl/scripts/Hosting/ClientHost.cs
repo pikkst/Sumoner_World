@@ -14,13 +14,21 @@ namespace SumonerWorld.Game.Hosting;
 
 /// <summary>
 /// Connects to a server with a dev ticket and runs the <see cref="GameClient"/> at 30 Hz: WASD moves the own character with
-/// prediction (presentation arrives with M1-21; for now the position is logged). With <see cref="HostOptions.ExitOnWelcome"/> it is
-/// a smoke test: exit code 0 once welcomed and the first snapshot arrived, 2 when rejected, 1 after <see cref="TimeoutSeconds"/>.
+/// prediction (presentation arrives with M1-21; for now the position is logged). A lost connection is retried every
+/// <see cref="ReconnectEverySeconds"/> for <see cref="ReconnectForSeconds"/> with the session token, so the session resumes (TDD §3.5).
+/// With <see cref="HostOptions.ExitOnWelcome"/> it is a smoke test: exit code 0 once welcomed and the first snapshot arrived, 2 when
+/// rejected, 1 after <see cref="TimeoutSeconds"/>.
 /// </summary>
 public sealed partial class ClientHost : Node
 {
     /// <summary>Seconds to wait for the server before giving up (smoke tests).</summary>
     public const double TimeoutSeconds = 20;
+
+    /// <summary>Seconds between reconnect attempts.</summary>
+    public const double ReconnectEverySeconds = 2;
+
+    /// <summary>How long to keep trying (the server's reconnect window).</summary>
+    public const double ReconnectForSeconds = 120;
 
     private const long NanosecondsPerSecond = 1_000_000_000L;
     private const int ExitWelcomed = 0;
@@ -34,6 +42,8 @@ public sealed partial class ClientHost : Node
     private GameClient? _client;
     private FixedStepAccumulator? _accumulator;
     private double _elapsed;
+    private double _disconnectedFor;
+    private double _nextAttempt;
     private long _ticks;
 
     /// <summary>Creates the host.</summary>
@@ -72,6 +82,10 @@ public sealed partial class ClientHost : Node
         {
             CheckSmokeTest();
         }
+        else
+        {
+            KeepConnected(delta);
+        }
     }
 
     /// <inheritdoc />
@@ -82,6 +96,28 @@ public sealed partial class ClientHost : Node
         int x = (Input.IsKeyPressed(Key.D) ? MoveInput.MaxAxis : 0) - (Input.IsKeyPressed(Key.A) ? MoveInput.MaxAxis : 0);
         int z = (Input.IsKeyPressed(Key.S) ? MoveInput.MaxAxis : 0) - (Input.IsKeyPressed(Key.W) ? MoveInput.MaxAxis : 0);
         return new MoveInput((short)x, (short)z);
+    }
+
+    private void KeepConnected(double delta)
+    {
+        if (_client!.Session.State != ClientSessionState.Disconnected || _client.Session.Session is null)
+        {
+            _disconnectedFor = 0;
+            _nextAttempt = 0;
+            return;
+        }
+
+        _disconnectedFor += delta;
+        if (_disconnectedFor > ReconnectForSeconds || _disconnectedFor < _nextAttempt)
+        {
+            return;
+        }
+
+        _nextAttempt = _disconnectedFor + ReconnectEverySeconds;
+        _transport!.Dispose();
+        _transport = GodotENetTransport.Connect(_options.Address, _options.Port, out ConnectionId _);
+        _client.Reconnect(_transport);
+        _log.Write(LogLevel.Info, "client.reconnecting", $"{_options.Address}:{_options.Port} after {_disconnectedFor:F0} s");
     }
 
     private void CheckSmokeTest()
