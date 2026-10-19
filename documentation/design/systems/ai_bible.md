@@ -1,6 +1,6 @@
 # Sumoner World - AI Bible (Creature Cognition Contract)
 Version: **0.1** (M0-04) · Date: 2026-10-19 · Owners: Sr Game Designer (behaviour) + Mechanics Developer (implementation) · Status: **Approved by stakeholder 2026-10-19** (trait drift cap ±25, deterministic Pact acceptance, leave rule confirmed)
-Rules: R08, R11, R13–R19, R21, R28, R29, R30, R50 · Related: GDD v0.1 (Pillar 1, Systems §1–2, §7–9), ADR-001, TDD (M0-05, pending)
+Rules: R08, R11, R13–R19, R21, R28, R29, R30, R50 · Related: GDD v0.1 (Pillar 1, Systems §1–2, §7–9), ADR-001, TDD v0.1 (`../technical/architecture/tdd.md`)
 
 > This document is the single source of truth for how creatures perceive, remember, feel, decide and bond. Code in `SumonerWorld.Core` implements it; the GDD describes the player-facing intent. If the three disagree, this document wins for creature behaviour and must be updated in the same PR as the code (R50).
 > All numbers are **starting values**. Live values come from versioned data files (R08), not from code or from this document.
@@ -98,7 +98,7 @@ Values are **integers** so that decay, saves and replays are bit-exact (R11). Fl
 | 16 | `PlaceDanger` / `PlaceSafe` | place | ±40 | 300 | 14 days | no |
 | 17 | `Mistreated` (hit, starved, ignored needs) | player | −50 | 450 | 14 days | no |
 
-"2 days" means in-game days; the tick conversion lives in the TDD (M0-05). New event types are added in data, with a new id. Ids are never reused (save compatibility, R26).
+"2 days" means in-game days; 1 in-game day = 48 real minutes = 86,400 ticks (TDD §2.1). New event types are added in data, with a new id. Ids are never reused (save compatibility, R26).
 
 ### 4.3 Decay, reinforcement and consolidation
 - **Lazy decay:** salience is stored at `LastReinforcedTick` and evaluated on read:
@@ -123,7 +123,7 @@ When a core memory forms, the trait drift in §3 is applied once and the creatur
 
 ### 4.6 Persistence format (R14, R26)
 - Saved per creature: traits (birth + drift), memory store, opinions, bond state, learning tables, needs. Short-term emotions are **not** saved (they rebuild in seconds).
-- Logical schema `CreatureMind v1`, with a `SchemaVersion` field per creature record. The byte encoding (binary for release, JSON for debug dumps) is chosen in the TDD (M0-05); this document fixes the **logical fields and their ranges**.
+- Logical schema `CreatureMind v1`, with a `SchemaVersion` field per creature record. The byte encoding (binary for release, JSON for debug dumps) is MessagePack in a SQLite record (TDD §4.1); this document fixes the **logical fields and their ranges**.
 - Every schema change bumps the version and ships a migration `vN → vN+1` with a test that loads a saved fixture from the old version (R26).
 - Memories reference players by **account id**, never by display name, so renames do not erase history.
 
@@ -216,7 +216,7 @@ All learning tables are bounded, integer and saved.
 ## 9. Performance: AI LOD, spatial queries, async work (R17–R19, R21, R22)
 
 ### 9.1 AI LOD tiers
-Tier is chosen by distance to the nearest player, combat state and whether the creature is bonded to an online player. Server sim tick rate is set in the TDD (working value **30 Hz**).
+Tier is chosen by distance to the nearest player, combat state and whether the creature is bonded to an online player. Server sim tick rate is **30 Hz** (TDD §2.1).
 
 | Tier | Who | Perception | Decision (utility) | Behaviour tree | Budget per creature |
 |---|---|---|---|---|---|
@@ -325,7 +325,7 @@ Every file has a `schemaVersion` and is validated at load (unknown ids, ranges, 
 ---
 
 ## 14. Open questions (resolve by the M1 gate)
-1. Server tick rate (30 Hz working value) and in-game day length → TDD M0-05.
+1. ~~Server tick rate and in-game day length~~ Resolved in TDD v0.1 §2.1: 30 Hz, in-game day = 48 real minutes.
 2. Should memories of *other players* be visible in the owner's Bond Lens (privacy/griefing)?
 3. Rumour sharing between groups of different species (predator learns from prey's fear)? Proposal: no in EA.
 4. Can a creature that left (Pacted → Left) be re-pacted by the same player? Proposal: yes, but only after a `SavedLifeOf` or `ProtectedYoung` memory.

@@ -1,6 +1,6 @@
 # Sumoner World - Game Design Document
 Version: **0.1** (M0-03) · Date: 2026-10-19 · Owner: Sr Game Designer · Status: **Approved by stakeholder 2026-10-19** (PvE default, permanent creature death on Hardcore, 16-player target confirmed)
-Rules: R28, R29, R50, R53, R57 · Related: `DEC-002` (monetization/art), `ADR-001` (tech), AI Bible v0.1 (`systems/ai_bible.md`), TDD (M0-05, pending)
+Rules: R28, R29, R50, R53, R57 · Related: `DEC-002` (monetization/art), `ADR-001` (tech), AI Bible v0.1 (`systems/ai_bible.md`), TDD v0.1 (`../technical/architecture/tdd.md`)
 
 > All numbers in this document are **design targets or starting values**. Real tuning values live in versioned data files (R08, R48), not in code or here.
 
@@ -128,8 +128,8 @@ Detailed content lists: Mid Game Designer, in `documentation/design/content/` (l
 
 ## Technical Requirements
 **Engine**: Godot 4.7.2-stable .NET (C#) · **Architecture**: ADR-001
-**Performance targets**: 60 FPS on recommended spec, < 3 s load (target hardware defined in TDD, M0-05)
-**Simulation**: deterministic fixed tick, server-authoritative, AI LOD
+**Performance targets**: 60 FPS on minimum (Low + FSR) and recommended (High) spec; initial join ≤ 20 s, respawn and in-world transitions ≤ 3 s (TDD §1)
+**Simulation**: deterministic 30 Hz fixed tick, server-authoritative, AI LOD; in-game day = 48 real minutes (TDD §2)
 
 ## Art Direction
 "Mythic Low-Poly": atmospheric low-poly dark fantasy, where lighting carries the beauty and creature emotion is shown through animation. Full rules in DEC-002; style guide in M0-09.

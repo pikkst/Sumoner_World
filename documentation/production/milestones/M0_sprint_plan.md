@@ -46,7 +46,7 @@ Acceptance criteria:
 Evidence: `documentation/design/systems/ai_bible.md` v0.1. Criteria 1–4 covered (§4 memory model and persistence; §7 + §9 utility/BT and per-tier tick budgets; §10 Bonding Contract v1.0.0; §11 generative-AI policy).
 
 TASK: M0-05 TDD v0.1 (Technical Design Document)
-Agent: mechanics_developer · Est: 4d
+Agent: mechanics_developer · Est: 4d · **Status: Done (stakeholder approved 2026-10-19, PR #3)**
 Rules: R03, R11, R12, R22, R24, R26, R30–R34
 Acceptance criteria:
   1. Target hardware defined (min/rec spec) with CPU/GPU/memory budgets per frame (R22)
@@ -54,7 +54,7 @@ Acceptance criteria:
   3. Network model: intent → server validate → replicate, reconnect, idempotency keys
   4. Save versioning + migration strategy
   5. World chunk size and streaming radius
-Evidence: `documentation/technical/architecture/tdd.md`
+Evidence: `documentation/technical/architecture/tdd.md` v0.1. Criteria 1–5 covered (§1 hardware + frame/memory budgets; §2 30 Hz tick, ECS layout, determinism; §3 network model, reconnect, idempotency; §4 SQLite saves + migrations; §5 64 m chunks + streaming radii).
 
 TASK: M0-06 System registry (anti-duplication)
 Agent: mechanics_developer · Est: 0.5d
