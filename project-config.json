@@ -17,8 +17,8 @@
     "status": "active",
     "scope": "Large",
     "language": "C# (.NET 8 target)",
-    "visual_style": "TBD",
-    "monetization": "TBD - pending stakeholder decision (market recommendation: premium early access)",
+    "visual_style": "Mythic Low-Poly: atmospheric low-poly dark fantasy, lighting-driven, expressive creature animation (DEC-002)",
+    "monetization": "Premium EA $24.99 -> 1.0 $29.99 + paid region expansions + account-bound cosmetic supporter packs; no pay-to-win/loot boxes/paid creatures (DEC-002)",
     "team_size": "Solo",
     "repository": "https://github.com/pikkst/Sumoner_World"
   },
@@ -58,13 +58,23 @@
       "decision": "Version control: GitHub repo https://github.com/pikkst/Sumoner_World (public); repository root = projects/sumoner-worl",
       "market_recommendation": "n/a",
       "risk_accepted": false
+    },
+    {
+      "date": "2026-10-19",
+      "decision": "Monetization: premium EA + expansions + cosmetic packs (delegated to Producer, DEC-002)",
+      "market_recommendation": "Premium EA",
+      "risk_accepted": false
+    },
+    {
+      "date": "2026-10-19",
+      "decision": "Art direction: Mythic Low-Poly (delegated to Producer, DEC-002)",
+      "market_recommendation": "Distinct from Palworld; feasible solo",
+      "risk_accepted": false
     }
   ],
   "open_decisions": [
-    "Monetization model (stakeholder input required)",
-    "Visual style / art direction",
     "Trademark search for 'Sumoner World'",
-    "Multiplayer topology: player-hosted dedicated server vs official servers (decide at M1 gate)",
+    "Multiplayer topology: provisionally player-hosted dedicated servers (DEC-002); confirm at M1 gate",
     "Legal review of summoning/capture mechanics (avoid aim-and-throw capture)"
   ],
   "development_rules": [
