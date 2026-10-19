@@ -60,6 +60,7 @@ Creatures are **never captured**. The player proposes a **Pact**, a magical cont
 - **Breaking terms** damages trust. Repeated breaking can make a bonded creature leave, or turn against the player.
 - **Summoning:** bonded creatures live in the world or at the Sanctum. The player **calls** them through a sigil (it costs mana; there is a limit on active summons = **Bond Capacity**, which grows with mastery).
 - Ownership, bonding, progression and command rules are a single **versioned contract** shared by every creature (R29). It is defined in the AI Bible.
+- **IP guardrails (M0-08, binding):** no thrown or launched object to acquire or summon a creature; no acceptance or capture probability shown while targeting; **one continuous combat mode** (no separate battle state started by a summon); mounts need a patent review before they are designed. See `documentation/production/reports/M0-08_legal_naming_check.md`.
 
 ### 2. Creature Mind (USP core; full spec in `systems/ai_bible.md`)
 - **Personality:** a few trait axes (e.g. bold↔timid, loyal↔independent, curious↔wary, aggressive↔gentle). These are inheritable and slowly shaped by experience.
