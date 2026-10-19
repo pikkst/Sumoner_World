@@ -1,0 +1,133 @@
+# Sumoner World - System Registry
+Version: **0.1** (M0-06) · Date: 2026-10-19 · Owner: Mechanics Developer · Status: **Delivered, review pending (stakeholder)**
+Rules: R02, R07, R12, R47, R49 · Related: ADR-001 (layers), TDD v0.1, AI Bible v0.1
+
+> **One responsibility, one system, one interface.** Before you add a manager, service, utility or system, find it here (R47). If it exists, extend it. If it does not, add a row in the same PR as the code.
+> **Enforced:** `ArchitectureRegistryTests` fails the build if a public interface in `SumonerWorld.Core` is not listed in this file.
+
+## How to read this file
+- **Layer:** `Core` (pure C#, no Godot), `Net`, `Persistence`, `Game` (Godot). Dependencies point down only (ADR-001).
+- **Interface:** the single public contract for the system. Implementations may change; the interface name is reserved.
+- **Status:** `Implemented`, `Planned (Mx)` = milestone it is first needed in.
+- **Spec:** where the behaviour is defined. Code must match the spec (R50).
+
+---
+
+## 1. Core: foundation
+| System | Namespace | Interface | Responsibility | Spec | Status |
+|---|---|---|---|---|---|
+| Random numbers | `Core.Randomness` | `IRandom` | Seeded, forkable deterministic RNG streams | ADR-001, TDD §2.3 | **Implemented** |
+| Simulation clock | `Core.Simulation` | `ISimulationClock` | World tick, in-game time of day and day count | TDD §2.1 | Planned (M1) |
+| Tick schedule | `Core.Simulation` | `ISimulationSystem` | One stage of the fixed 13-step tick order | TDD §2.2 | Planned (M1) |
+| ECS facade | `Core.Ecs` | `IEcsWorld` | Entities, components, queries; hides the ECS library | TDD §2.2 | Planned (M1) |
+| Stable ids | `Core.Ecs` | `IStableIdAllocator` | Server-generated 64-bit ids for persistent things | TDD §2.2 | Planned (M1) |
+| Event buffers | `Core.Events` | `IEventBus` | Per-tick typed event buffers between systems (R10) | TDD §2.2 | Planned (M1) |
+| Async jobs | `Core.Jobs` | `IJobScheduler` | Off-tick jobs, results applied at step 2 in job-id order | TDD §2.5 | Planned (M1) |
+| Spatial index | `Core.Spatial` | `ISpatialIndex` | Hash grid for perception, proximity, targeting, interest | TDD §3.2, AI Bible §9.3 | Planned (M1) |
+| Physics port | `Core.Physics` | `IPhysicsQueries` | Ray cast, sweep, overlap (implemented by Godot adapter) | TDD §2.4 | Planned (M1) |
+| Navigation port | `Core.Navigation` | `INavigation` | Async path requests (implemented by Godot adapter) | TDD §2.4 | Planned (M1) |
+| Game data | `Core.Data` | `IDataRegistry` | Loads and validates versioned data files; read-only lookups | TDD §7, AI Bible §12 | Planned (M1) |
+| Logging | `Core.Diagnostics` | `ILog` | Structured log sink (implemented in Game) | TDD §6 | Planned (M1) |
+| Metrics | `Core.Diagnostics` | `IMetrics` | Per-tick stage timings and counters | TDD §6 | Planned (M1) |
+| Server rules | `Core.Rules` | `IServerRules` | Server preset values (Normal / Hardcore / Custom) | GDD §9 | Planned (M1) |
+
+## 2. Core: player actions and authority
+| System | Namespace | Interface | Responsibility | Spec | Status |
+|---|---|---|---|---|---|
+| Intent validation | `Core.Intents` | `IIntentValidator` | Authorize intents: owner, range, cooldown, cost | TDD §3.2–3.3 | Planned (M1) |
+| Intent dedupe | `Core.Intents` | `IIntentDeduplicator` | `IntentId` window; repeated ids return the first result | TDD §3.4 | Planned (M1) |
+| Transactions | `Core.Transactions` | `ITransactionProcessor` | **The only path** for atomic multi-entity changes: trades, crafting, pacts, ownership, rewards | TDD §3.4 | Planned (M1) |
+| Movement | `Core.Movement` | `IMovementModel` | Character/creature movement shared by server and client prediction | TDD §3.2 | Planned (M1) |
+
+## 3. Core: gameplay
+| System | Namespace | Interface | Responsibility | Spec | Status |
+|---|---|---|---|---|---|
+| Stats | `Core.Stats` | `IStatModel` | Attributes (Vitality, Stamina, Focus, Will) and derived stats | GDD §5 | Planned (M1) |
+| Combat | `Core.Combat` | `ICombatResolver` | Hits, damage, block/parry, stamina cost (shared contract, R28) | GDD §3 | Planned (M1) |
+| Status effects | `Core.Combat` | `IStatusEffectSystem` | Timed effects (burn, freeze, stun) | GDD §3–4 | Planned (M2) |
+| Magic | `Core.Magic` | `ISpellCatalog` | Rune-built spells, schools, Resonance | GDD §4 | Planned (M2) |
+| Progression | `Core.Progression` | `IProgressionRules` | Talents, character advancement | GDD §5 | Planned (M2) |
+| Items | `Core.Items` | `IItemCatalog` | Item definitions (data) | GDD §6 | Planned (M1) |
+| Inventory | `Core.Items` | `IInventoryService` | Inventories and equipment; changes go through `ITransactionProcessor` | GDD §6, TDD §3.4 | Planned (M1) |
+| Crafting | `Core.Crafting` | `ICraftingRules` | Recipes and crafting validation | GDD §6 | Planned (M2) |
+| Trading | `Core.Economy` | `ITradeService` | Two-phase player trades and market stalls (uses `ITransactionProcessor`) | GDD §8, TDD §3.4 | Planned (M2) |
+| Structures | `Core.Building` | `IStructureRules` | Sanctum building, placement, ownership | GDD §6 | Planned (M2) |
+| Death | `Core.Rules` | `IDeathRules` | Player death, graves, creature death per preset | GDD §9 | Planned (M2) |
+
+## 4. Core: creatures and world (AI Bible)
+| System | Namespace | Interface | Responsibility | Spec | Status |
+|---|---|---|---|---|---|
+| Perception | `Core.Cognition.Perception` | `IPerception` | Sight, hearing, scent via `ISpatialIndex` | AI Bible §2 | Planned (M1) |
+| Creature minds | `Core.Cognition.Memory` | `ICreatureMindStore` | Memories, traits, opinions storage (bounded, pooled) | AI Bible §3–5 | Planned (M1) |
+| Opinions | `Core.Cognition.Opinions` | `IOpinionModel` | Trust / Fear / Affection / Respect from memories | AI Bible §5 | Planned (M1) |
+| Appraisal | `Core.Cognition.Appraisal` | `IAppraisal` | Short-term emotions, needs, emote selection | AI Bible §6 | Planned (M1) |
+| Goal selection | `Core.Cognition.Decision` | `IUtilityEvaluator` | Utility scoring of goals | AI Bible §7.1–7.2 | Planned (M1) |
+| Behaviour trees | `Core.Cognition.Behaviour` | `IBehaviourTreeRunner` | Data-defined trees that emit intents | AI Bible §7.3 | Planned (M1) |
+| Learning | `Core.Cognition.Learning` | `ILearningModel` | Tactic, habit and combo tables | AI Bible §8 | Planned (M2) |
+| AI LOD | `Core.Cognition` | `IAiLodPolicy` | Tier assignment and time slicing | AI Bible §9 | Planned (M1) |
+| Bonding rules | `Core.Bonding` | `IBondingRules` | Ownership states and transitions (Bonding Contract v1.0.0) | AI Bible §10.1 | Planned (M1) |
+| Pact acceptance | `Core.Bonding` | `IPactEvaluator` | Pact Terms and acceptance utility | AI Bible §10.2 | Planned (M1) |
+| Obedience | `Core.Bonding` | `IObedienceModel` | Obey / Improvise / Hesitate / Refuse | AI Bible §7.4 | Planned (M1) |
+| Population | `Core.Ecosystem` | `IPopulationModel` | T3 abstract populations, territory, migration | AI Bible §9.4 | Planned (M2) |
+| Reputation | `Core.Ecosystem` | `IReputationService` | Server-wide (species, region, player) reputation | AI Bible §4.5 | Planned (M1) |
+| Chunk map | `Core.World` | `IChunkMap` | 64 m chunk states: loaded / abstract | TDD §5 | Planned (M1) |
+| World generation | `Core.World` | `IWorldGenerator` | Seeded scatter of resources and props | TDD §5.1 | Planned (M2) |
+| Weather | `Core.World` | `IWeatherModel` | Deterministic weather and world events | GDD §7 | Planned (M2) |
+
+## 5. Net (`SumonerWorld.Net`, project created in M1)
+| System | Interface | Responsibility | Spec | Status |
+|---|---|---|---|---|
+| Transport | `ITransport` | ENet channels; Steam sockets later | TDD §3.1 | Planned (M1) |
+| Message codec | `IMessageCodec` | Versioned, size-limited message encoding | TDD §3.3 | Planned (M1) |
+| Sessions | `ISessionManager` | Join, session token, 30 s linger, 2 min reconnect | TDD §3.5 | Planned (M1) |
+| Authentication | `IAuthenticator` | Steam tickets; dev token in Docker dev server | TDD §3.1a, §3.3 | Planned (M1) |
+| Rate limiting | `IRateLimiter` | Token buckets per message type | TDD §3.3 | Planned (M1) |
+| Interest | `IInterestManager` | Relevance radius and priority per client | TDD §3.2 | Planned (M1) |
+| Replication | `ISnapshotBuilder` | 20 Hz delta snapshots | TDD §3.2 | Planned (M1) |
+| Prediction | `IClientPrediction` | Own-character prediction and reconciliation | TDD §3.2 | Planned (M1) |
+| Lag compensation | `ILagCompensation` | Hitbox rewind up to 200 ms | TDD §3.2 | Planned (M2) |
+
+## 6. Persistence (`SumonerWorld.Persistence`, project created in M1)
+| System | Interface | Responsibility | Spec | Status |
+|---|---|---|---|---|
+| World store | `IWorldStore` | SQLite world database, atomic commits | TDD §4.1–4.2 | Planned (M1) |
+| Record codec | `IRecordCodec` | MessagePack payloads with integer keys | TDD §4.1 | Planned (M1) |
+| Migrations | `IMigration` | One schema step `From → To` (run by the store at start-up) | TDD §4.3 | Planned (M1) |
+| Backups | `IBackupService` | Timed and pre-migration backups | TDD §4.2 | Planned (M1) |
+
+## 7. Game (Godot project: presentation and adapters)
+| System | Type / interface | Responsibility | Spec | Status |
+|---|---|---|---|---|
+| Hosts | `ServerHost`, `ClientHost` | Start headless server / client, run the 30 Hz Core tick | TDD §2.5 | Planned (M1) |
+| Physics adapter | `GodotPhysicsQueries : IPhysicsQueries` | Jolt queries for Core | TDD §2.4 | Planned (M1) |
+| Navigation adapter | `GodotNavigation : INavigation` | `NavigationServer3D` paths | TDD §2.4 | Planned (M1) |
+| Logging adapter | `GodotLog : ILog` | JSON lines (server), Godot output (client) | TDD §6 | Planned (M1) |
+| Entity views | `EntityViewSync` | Spawns/pools Godot nodes from snapshots; views never own state | ADR-001, R38 | Planned (M1) |
+| Input | `IInputSource` | Maps devices to inputs and intents | TDD §3.2 | Planned (M1) |
+| Chunk streaming | `ChunkStreamer` | Client rings: full / medium / far | TDD §5.2 | Planned (M1) |
+| Emotes | `IEmotePresenter` | Emote id → animation per body type | AI Bible §6.2 | Planned (M1) |
+| UI | `IUiScreen` | Data-driven screens, Bond Lens | GDD UI, R37 | Planned (M2) |
+| Localization | `ILocalizer` | Externalized strings (R39) | GDD UI | Planned (M2) |
+| Audio | `IAudioCues` | Creature mood vocals, SFX events | GDD Audio | Planned (M2) |
+| Dev tools | `DevOverlay`, `AiInspector` | Metrics overlay, creature mind inspector (dev builds only) | TDD §6, AI Bible §13 | Planned (M1) |
+
+## 8. Tools and test harness
+| Tool | Location | Responsibility | Spec | Status |
+|---|---|---|---|---|
+| Quality gates | `source/scripts/verify.sh`, CI | Format, analyzers, build, tests | Enforcement doc | **Implemented** |
+| Architecture tests | `tests/.../Architecture` | Layering, namespaces, this registry | ADR-001 | **Implemented** |
+| Benchmark harness | `tests/SumonerWorld.Benchmarks` | 200-creature perf scenario, CSV metrics | M0-07 | Planned (M1) |
+| Bot clients | `tools/BotClient` | 16 simulated clients for net spike | TDD §8 | Planned (M1) |
+| Save dump | `tools/SaveDump` | Record → JSON for bug reports and fixtures | TDD §4.1 | Planned (M1) |
+| Dev server image | `docker-compose.dev.yml` | Local Docker headless server | TDD §3.1a | Planned (M1) |
+
+---
+
+## Rules for changing this file
+1. New system → new row in the same PR, with layer, interface, spec link and status.
+2. Status moves to **Implemented** in the PR that adds the interface and its tests.
+3. Renaming or removing an interface needs a reason in the PR and an update to every spec that names it.
+4. Two rows must never share a responsibility. If a review finds overlap, merge them before writing code.
+
+## Changelog
+- **0.1 (2026-10-19):** First version. 76 systems across Core, Net, Persistence, Game and tools.

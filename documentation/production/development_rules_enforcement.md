@@ -45,7 +45,7 @@ Every task assignment cites the rule IDs it touches. Any deliverable that violat
 | R42–R44 | Unit, integration and regression tests | CI test stage. Every bug fix PR links a failing-then-passing regression test. | C, E |
 | R45 | CI with format, lint, analysis, tests | `.github/workflows/ci.yml` | A–D |
 | R46 | Don't edit tests to hide bugs | Review: any test-assertion change must explain why the *spec* changed. QA sign-off required. | E |
-| R47 | No duplicate systems | Before a new manager/service, check `documentation/technical/architecture/system_registry.md` | E |
+| R47 | No duplicate systems | Before a new manager/service, check `documentation/technical/architecture/system_registry.md`. `ArchitectureRegistryTests` fails if a public Core interface is not registered. | D, E |
 | R49, R50 | Document APIs, keep GDD/TDD/AI Bible in sync | XML doc comments required on public APIs (CS1591 as error in Core/Net). PR checklist: "docs updated". | A, E |
 | R51 | Check docs before implementing | Task template requires a "docs/dependencies reviewed" line | E |
 | R53–R55 | Incremental work, acceptance criteria, Definition of Done | Every task has acceptance criteria. A task is not "Done" until the DoD below passes. | F, E |
