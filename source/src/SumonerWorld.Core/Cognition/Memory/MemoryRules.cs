@@ -92,6 +92,9 @@ public sealed class MemoryRules
         return null;
     }
 
+    /// <summary>Reputation change caused by this event type (AI Bible §4.5); 0 = none.</summary>
+    public int ReputationDelta(ushort eventType) => Get(eventType).ReputationDelta;
+
     /// <summary>Half-life of an event type in ticks; 0 means it never decays.</summary>
     public uint HalfLifeTicks(ushort eventType)
     {

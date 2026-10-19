@@ -38,7 +38,8 @@
       "traitDrift": {
         "trait": "loyalty",
         "amount": 3
-      }
+      },
+      "reputationDelta": 200
     },
     {
       "id": 4,
@@ -53,7 +54,8 @@
       "traitDrift": {
         "trait": "loyalty",
         "amount": 2
-      }
+      },
+      "reputationDelta": 150
     },
     {
       "id": 5,
@@ -92,7 +94,8 @@
       "traitDrift": {
         "trait": "temper",
         "amount": 3
-      }
+      },
+      "reputationDelta": -200
     },
     {
       "id": 8,
@@ -103,7 +106,8 @@
       "valence": -50,
       "baseSalience": 400,
       "halfLifeDays": 10,
-      "isCore": false
+      "isCore": false,
+      "reputationDelta": -100
     },
     {
       "id": 9,
@@ -140,7 +144,8 @@
       "traitDrift": {
         "trait": "loyalty",
         "amount": -3
-      }
+      },
+      "reputationDelta": -100
     },
     {
       "id": 12,

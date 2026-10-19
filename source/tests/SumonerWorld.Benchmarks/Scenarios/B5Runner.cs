@@ -17,7 +17,7 @@ internal static class B5Runner
     public static int Run(string outputPath)
     {
         var metrics = new StopwatchMetrics();
-        var scenario = new B5Scenario(Seed, metrics);
+        using var scenario = new B5Scenario(Seed, metrics);
         for (int i = 0; i < B5Scenario.WarmUpTicks; i++)
         {
             scenario.RunTick();

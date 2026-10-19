@@ -132,6 +132,10 @@ When a core memory forms, the trait drift in §3 is applied once and the creatur
 - Creatures of a social species belong to a **group** (pack, herd, flock). When group members are near each other, they share their **top 3 memories about players**, copied with the `Rumour` flag at **50%** salience. A rumour is never passed on again (no infinite chains).
 - **Server reputation:** per `(species, region, player)` the server keeps an aggregate score in [-1000, +1000], updated from `KilledKin`, `HuntedMyKind`, `ProtectedYoung`, `SavedLifeOf` and `PactBroken` events. Newly spawned wild creatures start with an opinion of each known player seeded from this score. This is how herds "remember" an over-hunter.
 - Reputation aggregation runs asynchronously at low frequency (R17, §9.3).
+- **Implementation (M1-12):**
+  - **Rumours** (`ICreatureMindStore.ShareRumours`): when a creature perceives a herd-mate, it passes on its **3 strongest first-hand memories about players** at **half strength**, tagged `Rumour`. Rumours are never passed on again, never pinned, carry no core tag (so they shape opinions but create **no grudge** and do not move baselines) and never override first-hand memories. First-hand experience of the same event **replaces** a rumour (and can then be shared).
+  - **Reputation** (`ReputationService`): each memory event type may have a `reputationDelta` in data: SavedLifeOf +200, ProtectedYoung +150, KilledKin −200, HuntedMyKind −100, PactBroken −100. Events are queued and summed by a background job every 10 s (`IJobScheduler`); scores are clamped to ±1000 per (species, region, player). Nothing is ever dropped: a full queue is summed on the spot.
+  - **Seeding:** a newly spawned wild creature gets a baseline opinion of every known player in its region: Trust = score/20, Fear = −score/20 (bad scores only), Affection = score/40.
 
 ### 4.6 Persistence format (R14, R26)
 - Saved per creature: traits (birth + drift), memory store, opinions, bond state, learning tables, needs. Short-term emotions are **not** saved (they rebuild in seconds).

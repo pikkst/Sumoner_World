@@ -107,6 +107,8 @@ Two levels, chosen so a solo team can keep them:
 
 Results from other threads are applied only at tick step 2, in job-id order.
 
+**Implemented in M1-12** (`JobScheduler`, `JobApplySystem`): fixed worker threads (0 = inline), a fixed-capacity job queue (full = error, not a drop), reusable `IJob` objects (`Execute` off-thread on job-owned data, `Apply` on the sim thread). Every job submitted in a tick is applied at step 2 of the next tick, waiting if needed, so results never depend on thread timing. The CI gate `Background_job_threads_do_not_change_the_result` runs B5 with 0 and 2 workers and compares all 9,900 tick hashes.
+
 ---
 
 ## 3. Network model (R30–R34)
