@@ -23,7 +23,7 @@ Rules: R02, R07, R12, R47, R49 · Related: ADR-001 (layers), TDD v0.1, AI Bible 
 | Stable ids | `Core.Ecs` | `IStableIdAllocator` | Server-generated 64-bit ids for persistent things (`StableIdAllocator`) | TDD §2.2 | **Implemented** (M1-02b) |
 | Event buffers | `Core.Events` | `IEventBus` | Per-tick typed event buffers between systems (R10) (`EventBus`) | TDD §2.2 | **Implemented** (M1-01) |
 | Async jobs | `Core.Jobs` | `IJobScheduler` | Off-tick jobs, results applied at step 2 in job-id order | TDD §2.5 | Planned (M1) |
-| Spatial index | `Core.Spatial` | `ISpatialIndex` | Hash grid for perception, proximity, targeting, interest | TDD §3.2, AI Bible §9.3 | Planned (M1) |
+| Spatial index | `Core.Spatial` | `ISpatialIndex` | Uniform grid over the world bounds for perception, proximity, targeting, interest (`SpatialGrid`) | TDD §3.2, AI Bible §9.3 | **Implemented** (M1-03) |
 | Physics port | `Core.Physics` | `IPhysicsQueries` | Ray cast, sweep, overlap (implemented by Godot adapter) | TDD §2.4 | Planned (M1) |
 | Navigation port | `Core.Navigation` | `INavigation` | Async path requests (implemented by Godot adapter) | TDD §2.4 | Planned (M1) |
 | Game data | `Core.Data` | `IDataRegistry` | Loads and validates versioned data files; read-only lookups | TDD §7, AI Bible §12 | Planned (M1) |

@@ -231,7 +231,7 @@ Tier is chosen by distance to the nearest player, combat state and whether the c
 Creatures in a tier are split into buckets by `creatureId mod N`, and one bucket is updated per tick, so the load is spread evenly and the order is deterministic.
 
 ### 9.3 Spatial partitioning and async jobs
-- **Spatial hash grid** (working cell size 16 m) for perception, proximity, targeting and rumour sharing (R19). Queries write into preallocated buffers.
+- **Spatial grid** (16 m cells) for perception, proximity, targeting and rumour sharing (R19). Implemented in M1-03 as a uniform grid over the bounded world (`SpatialGrid`): O(1) moves, radius and cone queries on the ground plane, written into caller buffers with no allocation. A full 200-creature perception pass costs 0.11 ms on the dev PC (`qa/performance-logs/2026-10-19_M1-03_spatial_grid_dev-pc.md`).
 - **Async (R17):** pathfinding, reputation aggregation and T3 population steps run as jobs. Results are applied at the start of a later tick in a fixed order (by job id), so the outcome does not depend on thread timing (R11).
 
 ### 9.4 Abstract simulation (T3, Pillar 2)
