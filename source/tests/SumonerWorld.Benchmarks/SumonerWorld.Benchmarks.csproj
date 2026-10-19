@@ -15,6 +15,7 @@
 
   <ItemGroup>
     <ProjectReference Include="..\..\src\SumonerWorld.Core\SumonerWorld.Core.csproj" />
+    <ProjectReference Include="..\SumonerWorld.Scenarios\SumonerWorld.Scenarios.csproj" />
   </ItemGroup>
 
 </Project>

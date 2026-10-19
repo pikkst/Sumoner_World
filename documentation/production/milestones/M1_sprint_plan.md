@@ -22,7 +22,7 @@ The gate on 2027-03-31 is **GO / RE-SCOPE**, using the evidence in M0-07 Part C.
 | **M1-02** ECS spike → ADR-002 | Arch vs. in-house sparse set behind `IEcsWorld`; 200-creature iteration benchmark; decision ADR | `IEcsWorld`, `IStableIdAllocator` | R03, R23, R47 | 3d |
 | **M1-03** Spatial index | Hash grid (16 m cells), radius/cone queries into caller buffers, 0 allocations | `ISpatialIndex` | R19, R21 | 2d |
 | **M1-04** Game data registry | Versioned JSON data loading + validation (species, memory event types, goals) | `IDataRegistry` | R08, R48 | 3d |
-| **M1-05** Sim-only benchmark B5 in CI | Allocation gate (0 B/tick), determinism hash test, stage timers | `IMetrics`, `ILog` | R11, R22, R23 | 2d |
+| **M1-05** Sim-only benchmark B5 in CI | Allocation gate (0 B/tick), determinism hash test, stage timers | `IMetrics` (`ILog` moved to M1-14) | R11, R22, R23 | 2d |
 
 ## Phase B: Creature mind (weeks 3–9) - AI Bible v0.1
 | Task | Delivers | Registry interfaces | Est |
@@ -79,5 +79,6 @@ M1-01 → (M1-02, M1-03, M1-04) → M1-05 → Phase B. M1-13 can start after M1-
 | M1-02 | **Done** 2026-10-19: ADR-002 accepted (in-house sparse-set ECS), PR #11 |
 | M1-02b | **Done** 2026-10-19 (stakeholder approved, PR #12): `EcsWorld`, `StableIdAllocator`, 18 tests, benchmarks |
 | M1-03 | **Done** 2026-10-19 (stakeholder approved, PR #13): `SpatialGrid`, 10 tests, perception benchmark |
-| M1-04 | **Delivered** 2026-10-19, review pending: data registry, 18 memory event types, 3 placeholder species, 15 tests |
-| M1-05 … M1-24 | Planned |
+| M1-04 | **Done** 2026-10-19 (stakeholder approved, PR #14): data registry, 18 memory event types, 3 placeholder species, 15 tests |
+| M1-05 | **Delivered** 2026-10-19, review pending: B5 scenario, CI gates (0 B/tick, identical runs), `b5` CSV tool |
+| M1-06 … M1-24 | Planned |

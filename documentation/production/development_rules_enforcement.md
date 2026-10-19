@@ -25,13 +25,13 @@ Every task assignment cites the rule IDs it touches. Any deliverable that violat
 | R08, R48 | Data-driven, no magic numbers | Gameplay values come from versioned data files (`data/*.json` or `.tres`). Review plus a test that loads every data file against its schema. | C, E |
 | R09 | Extensible/testable | Each system ships with tests (R42). Public seams are interfaces. | C, E |
 | R10 | Event-driven decoupling | `IEventBus` in Core. No direct cross-system references (architecture test on namespaces). | D |
-| R11, R25 | Determinism, reproducible seeds | Architecture test bans non-seeded RNG and wall-clock in Core. Same-seed replay test (two runs → identical state hash). | C, D |
+| R11, R25 | Determinism, reproducible seeds | Architecture test bans non-seeded RNG and wall-clock in Core. Same-seed replay test (two runs → identical state hash): `B5GateTests` compares 9,900 per-tick hashes in CI. | C, D |
 | R12, R38 | Separation of sim/AI/render/net/persistence; UI separate from state | Layered projects. Core cannot reference Godot (architecture test). | D |
 | R13–R15 | Modular AI, memory/learning, rule-respecting decisions | AI Bible contract. Unit tests per utility consideration and BT node. Memory persists through save round-trip tests. | C, E |
 | R16 | No unrestricted generative AI in hot loops | Banned in Core/Net. Any GenAI dependency needs an ADR plus Steam disclosure review. | E |
 | R17, R18 | Async/configurable AI frequency, AI LOD | AI tick rates are set in data. LOD tiers are tested (far entities tick at a reduced rate). | C |
 | R19 | Spatial partitioning | Perception and targeting go through `ISpatialIndex`. Review rejects O(n²) scans. | E |
-| R20, R21 | Pooling, no allocations in hot loops | Benchmark tests (allocations per tick = 0 for the sim loop) and profiler captures | C, F |
+| R20, R21 | Pooling, no allocations in hot loops | `B5GateTests`: 0 bytes allocated over 9,000 ticks of scenario B5 (CI), plus per-system allocation tests; profiler captures | C, F |
 | R22, R23 | 60 FPS on defined hardware, profile first | Target hardware defined in TDD. Perf captures are attached to milestone gates. Optimization PRs need a before/after capture. | F, E |
 | R24 | Streaming/chunking/LOD | World chunk system spec in TDD. Validated in the M1 streaming test. | F |
 | R26, R52 | Versioned saves, backward compatibility | Every save format has a version. A migration test loads fixtures of every previous version. Breaking changes need an ADR. | C |
