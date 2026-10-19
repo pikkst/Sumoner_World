@@ -4,7 +4,7 @@ using System.Runtime.CompilerServices;
 using SumonerWorld.Core.Cognition;
 using SumonerWorld.Core.Cognition.Opinions;
 using SumonerWorld.Core.Ecs;
-using SumonerWorld.Scenarios.B5;
+using SumonerWorld.Core.World;
 
 namespace SumonerWorld.Tests.Core.Diagnostics;
 

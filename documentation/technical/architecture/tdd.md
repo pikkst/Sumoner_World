@@ -80,6 +80,7 @@ Godot 4.7 Forward+ renderer (Vulkan on Windows/Linux, D3D12 allowed). Targets ar
 - **System schedule (fixed order every tick):**
   1. Apply inputs & intents → 2. Apply finished async jobs (by job id) → 3. Perception → 4. AI decision → 5. Behaviour trees → AI intents → 6. Movement → 7. Combat & magic → 8. Status effects & death → 9. Bonding / economy / crafting transactions → 10. Ecosystem → 11. Event dispatch → 12. Replication snapshot → 13. Persistence dirty-copy.
 - Systems communicate through **events** in per-tick buffers (R10), not by calling each other.
+- **Creature world (M1-15a):** `Core.World.CreatureWorld` owns the ECS world, mind store, AI services, spatial grid, job scheduler and reputation for one region, plus the production creature systems (`CreatureSystems`: job apply, LOD, perception, decision, behaviour, intents, movement, reputation flush). Spawning and despawning creatures and player avatars, and the state hash, go through it. The server host and the B5 scenario both build on it; B5 only adds stand-ins (patrol route, crowding stress, Pact offers, churn). The B5 state hash was unchanged by the move.
 
 ### 2.3 Determinism strategy (R11, R25)
 Two levels, chosen so a solo team can keep them:

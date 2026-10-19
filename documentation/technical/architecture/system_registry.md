@@ -75,6 +75,7 @@ Rules: R02, R07, R12, R47, R49 · Related: ADR-001 (layers), TDD v0.1, AI Bible 
 | Population | `Core.Ecosystem` | `IPopulationModel` | T3 abstract populations, territory, migration | AI Bible §9.4 | Planned (M2) |
 | Reputation | `Core.Ecosystem` | `IReputationService` | Server-wide (species, region, player) reputation from data `reputationDelta`, summed by a background job; seeds new creatures' opinions (`ReputationService`) | AI Bible §4.5 | **Implemented** (M1-12) |
 | Rumours | `Core.Cognition.Memory` | `ICreatureMindStore.ShareRumours` (method) | Groupmates pass on their 3 strongest first-hand memories about players at half strength; never passed on again | AI Bible §4.5 | **Implemented** (M1-12) |
+| Creature world | `Core.World` | `CreatureWorld` (class) | Composition root for one region's creature simulation: ECS components, spawn/despawn of creatures and player avatars, production creature systems in tick order, state hash | TDD §2.2 | **Implemented** (M1-15a) |
 | Chunk map | `Core.World` | `IChunkMap` | 64 m chunk states: loaded / abstract | TDD §5 | Planned (M1) |
 | World generation | `Core.World` | `IWorldGenerator` | Seeded scatter of resources and props | TDD §5.1 | Planned (M2) |
 | Weather | `Core.World` | `IWeatherModel` | Deterministic weather and world events | GDD §7 | Planned (M2) |
@@ -125,7 +126,7 @@ Rules: R02, R07, R12, R47, R49 · Related: ADR-001 (layers), TDD v0.1, AI Bible 
 | Quality gates | `source/scripts/verify.sh`, CI | Format, analyzers, build, tests | Enforcement doc | **Implemented** |
 | Architecture tests | `tests/.../Architecture` | Layering, namespaces, this registry | ADR-001 | **Implemented** |
 | Benchmark harness | `tests/SumonerWorld.Benchmarks` | BenchmarkDotNet micro-benchmarks; `b5` mode writes per-tick/per-stage CSV | M0-07, ADR-002 | **Implemented** (M1-02, M1-05) |
-| Scenarios | `tests/SumonerWorld.Scenarios` | Repeatable simulation scenarios shared by CI gates and benchmarks (B5 now) | M0-07 | **Implemented** (M1-05) |
+| Scenarios | `tests/SumonerWorld.Scenarios` | Repeatable simulation scenarios shared by CI gates and benchmarks (B5 now; a thin layer on `CreatureWorld` since M1-15a) | M0-07 | **Implemented** (M1-05) |
 | Bot clients | `tools/BotClient` | 16 simulated clients for net spike | TDD §8 | Planned (M1) |
 | Save dump | `tools/SaveDump` | Record → JSON for bug reports and fixtures | TDD §4.1 | Planned (M1) |
 | Dev server image | `source/server/Dockerfile`, `source/docker-compose.dev.yml`, CI `server-image.yml` | Local Docker headless server + smoke client | TDD §3.1a | **Implemented** (M1-14) |
