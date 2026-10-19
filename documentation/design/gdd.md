@@ -153,7 +153,7 @@ Premium early access at **$24.99** → 1.0 at **$29.99** → paid region expansi
 
 ## Open Design Questions (to be resolved by M1)
 1. Server size: 16 players. Validate against the network/sim budget in M1.
-2. How much can a creature's personality change: slow drift or milestone-based? *AI Bible v0.1 proposes slow drift from core memories, capped at ±25 (§3).*
+2. How much can a creature's personality change: slow drift or milestone-based? *Resolved (AI Bible v0.1 §3, approved): slow drift from core memories, capped at ±25.*
 3. Can creatures breed? The proposal is yes, with inherited traits (not memories). This needs the Bonding contract first.
 4. Expansion story arcs (post-1.0).
 

@@ -36,7 +36,7 @@ Acceptance criteria:
 Evidence: `documentation/design/gdd.md` v0.1. Criteria 1–4 covered (Pillars; Core Gameplay Loop; Systems §1 Pacts; Systems §8–9 PvP/Death/Difficulty).
 
 TASK: M0-04 AI Bible v0.1 (creature cognition contract)
-Agent: sr_game_designer + mechanics_developer · Est: 4d · **Status: Delivered 2026-10-19, review pending (stakeholder)**
+Agent: sr_game_designer + mechanics_developer · Est: 4d · **Status: Done (stakeholder approved 2026-10-19, PR #2)**
 Rules: R13, R14, R15, R16, R17, R18, R19, R28, R29, R50
 Acceptance criteria:
   1. Memory model defined: event types, decay, capacity, persistence format

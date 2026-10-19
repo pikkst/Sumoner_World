@@ -1,5 +1,5 @@
 # Sumoner World - AI Bible (Creature Cognition Contract)
-Version: **0.1** (M0-04) · Date: 2026-10-19 · Owners: Sr Game Designer (behaviour) + Mechanics Developer (implementation) · Status: **Delivered, review pending (stakeholder)**
+Version: **0.1** (M0-04) · Date: 2026-10-19 · Owners: Sr Game Designer (behaviour) + Mechanics Developer (implementation) · Status: **Approved by stakeholder 2026-10-19** (trait drift cap ±25, deterministic Pact acceptance, leave rule confirmed)
 Rules: R08, R11, R13–R19, R21, R28, R29, R30, R50 · Related: GDD v0.1 (Pillar 1, Systems §1–2, §7–9), ADR-001, TDD (M0-05, pending)
 
 > This document is the single source of truth for how creatures perceive, remember, feel, decide and bond. Code in `SumonerWorld.Core` implements it; the GDD describes the player-facing intent. If the three disagree, this document wins for creature behaviour and must be updated in the same PR as the code (R50).
@@ -333,3 +333,4 @@ Every file has a `schemaVersion` and is validated at load (unknown ids, ranges, 
 
 ## Changelog
 - **0.1 (2026-10-19):** First version. Memory model, opinions, emotions/emotes, utility + BT decision architecture, AI LOD budgets, Bonding Contract v1.0.0, generative-AI policy.
+- **0.1 approved (2026-10-19):** Stakeholder approved via PR #2 merge, including the ±25 trait drift cap, deterministic Pact acceptance and the leave rule (3 broken terms or long-term negative trust).
