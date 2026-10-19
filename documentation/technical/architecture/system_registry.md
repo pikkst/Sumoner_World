@@ -82,8 +82,9 @@ Rules: R02, R07, R12, R47, R49 · Related: ADR-001 (layers), TDD v0.1, AI Bible 
 ## 5. Net (`SumonerWorld.Net`, project created in M1)
 | System | Interface | Responsibility | Spec | Status |
 |---|---|---|---|---|
-| Transport | `ITransport` | ENet channels; Steam sockets later | TDD §3.1 | Planned (M1) |
-| Message codec | `IMessageCodec` | Versioned, size-limited message encoding | TDD §3.3 | Planned (M1) |
+| Transport | `ITransport` | Channels (unreliable / reliable ordered), connect, poll, disconnect; `LoopbackTransport` in-process (tests, bots, listen server); Godot ENet adapter in the Game project (M1-14); Steam sockets later | TDD §3.1 | **Implemented** (M1-13): interface + loopback |
+| Transport events | `ITransportHandler` | Receives connected / disconnected / data from `ITransport.Poll` on the sim thread | TDD §3.1 | **Implemented** (M1-13) |
+| Message codec | `IMessageCodec` | Versioned (header: protocol version + type), size-limited (1,200 B) encoding with `MessageWriter`/`MessageReader`; every read error is a `MalformedMessageException`; Hello/Welcome/Rejected/PlayerInput | TDD §3.3 | **Implemented** (M1-13) |
 | Sessions | `ISessionManager` | Join, session token, 30 s linger, 2 min reconnect | TDD §3.5 | Planned (M1) |
 | Authentication | `IAuthenticator` | Steam tickets; dev token in Docker dev server | TDD §3.1a, §3.3 | Planned (M1) |
 | Rate limiting | `IRateLimiter` | Token buckets per message type | TDD §3.3 | Planned (M1) |

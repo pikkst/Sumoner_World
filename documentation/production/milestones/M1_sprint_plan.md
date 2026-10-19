@@ -38,7 +38,7 @@ The gate on 2027-03-31 is **GO / RE-SCOPE**, using the evidence in M0-07 Part C.
 ## Phase C: Server, network, persistence (weeks 7–14) - TDD §3–4, spikes 2, 3, 6
 | Task | Delivers | Est |
 |---|---|---|
-| **M1-13** Net + Persistence projects | `SumonerWorld.Net`, `SumonerWorld.Persistence` with layering tests; `ITransport` (ENet), `IMessageCodec` | 3d |
+| **M1-13** Net project | `SumonerWorld.Net` with layering tests; `ITransport` + loopback network, `IMessageCodec` (the Godot ENet adapter moves to M1-14, the Persistence project to M1-17 where it gets real content) | 3d |
 | **M1-14** Headless server + Docker dev server | `ServerHost`/`ClientHost`, Dockerfile + `docker-compose.dev.yml` (spike 6) | 3d |
 | **M1-15** Authoritative loop | Intent validation, `IntentId` dedupe, transaction processor, movement prediction/reconciliation, 2 clients | 5d |
 | **M1-16** Sessions | Join, 30 s linger, 2 min reconnect, dev-token auth | 3d |
@@ -88,4 +88,5 @@ M1-01 → (M1-02, M1-03, M1-04) → M1-05 → Phase B. M1-13 can start after M1-
 | M1-10 | **Done** 2026-10-20 (merged under standing approval, PR #20): perception, focus, AI LOD; B5 has 2 stand-in players |
 | M1-11 | **Done** 2026-10-20 (merged under standing approval, PR #21): Bonding Contract v1.0.0, Pact evaluator, obedience; B5 players offer Pacts |
 | M1-12 | **Done** 2026-10-20 (merged under standing approval, PR #22): rumours, reputation, job scheduler; Phase B complete |
-| M1-13 … M1-24 | Planned |
+| M1-13 | **Done** 2026-10-20 (merged under standing approval, PR #23): Net project, transport + loopback, message codec |
+| M1-14 … M1-24 | Planned |
