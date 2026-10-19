@@ -38,6 +38,7 @@ public class B5GateTests
         Assert.True(scenario.Interactions > 0, "B5 behaviour trees must carry out interactions (M1-09).");
         Assert.True(scenario.TierCounts.Count >= 2, "B5 creatures must be spread over several AI tiers (M1-10).");
         Assert.True(scenario.PlayerFocusEvents > 0, "B5 creatures must notice and focus on the players (M1-10).");
+        Assert.True(scenario.PactOffers > 0, "B5 players must offer Pacts (M1-11).");
     }
 
     [Fact]

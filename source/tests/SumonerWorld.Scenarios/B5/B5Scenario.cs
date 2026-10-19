@@ -1,4 +1,5 @@
 using System.Numerics;
+using SumonerWorld.Core.Bonding;
 using SumonerWorld.Core.Cognition;
 using SumonerWorld.Core.Cognition.Appraisal;
 using SumonerWorld.Core.Cognition.Behaviour;
@@ -23,7 +24,7 @@ namespace SumonerWorld.Scenarios.B5;
 /// Core without Godot. Creatures (species <c>mossback</c> from the shipped data) get an AI tier from their distance to the players
 /// (M1-10), perceive neighbours and players at their tier's rate and focus on the most notable one, choose goals with the utility
 /// AI (M1-08), carry them out with the shipped behaviour trees (M1-09), remember crowded spots as dangerous (M1-06), react with
-/// emotions and emotes (M1-07) and are replaced by churn. Each new AI system is added here so the gates keep covering it.
+/// emotions and emotes (M1-07), receive Pact offers from the players (M1-11) and are replaced by churn. Each new AI system is added here so the gates keep covering it.
 /// Used by the CI gates (0 allocations per tick, identical runs) and by the benchmark tool (timings).
 /// </summary>
 public sealed class B5Scenario
@@ -61,6 +62,8 @@ public sealed class B5Scenario
     private readonly SimulationScheduler _scheduler;
     private IntentSystem? _intents;
     private PerceptionSystem? _perception;
+    private PactOfferSystem? _pacts;
+    private BondingRules? _bonding;
 
     /// <summary>Builds the scenario from a seed; <paramref name="metrics"/> optionally receives stage timings.</summary>
     public B5Scenario(ulong seed, IMetrics? metrics = null)
@@ -114,6 +117,12 @@ public sealed class B5Scenario
     /// <summary>Times a creature chose a player as its focus since the start.</summary>
     public int PlayerFocusEvents => _perception?.PlayerFocusEvents ?? 0;
 
+    /// <summary>Pact offers made by the players since the start.</summary>
+    public int PactOffers => _pacts?.Offers ?? 0;
+
+    /// <summary>Pact offers accepted since the start.</summary>
+    public int PactsSealed => _pacts?.Accepted ?? 0;
+
     /// <summary>Interact intents carried out (eat, rest, socialise...) since the start.</summary>
     public int Interactions => _intents?.Interactions ?? 0;
 
@@ -138,6 +147,7 @@ public sealed class B5Scenario
         hash.Add<CurrentEmote>(_world.Store<CurrentEmote>().Components);
         hash.Add<CurrentGoal>(_world.Store<CurrentGoal>().Components);
         _minds.AddTo(ref hash);
+        _bonding?.AddTo(ref hash);
         return hash.Value;
     }
 
@@ -198,9 +208,11 @@ public sealed class B5Scenario
     private void RegisterSystems(MemoryRules rules, DataRegistry data)
     {
         ushort placeDanger = rules.FindByKey("PlaceDanger") ?? throw new InvalidOperationException("Shipped data has no PlaceDanger memory event.");
-        B5Ai ai = BuildAi(data);
+        B5Ai ai = BuildAi(data, rules);
         _perception = new PerceptionSystem(_world, new Perceiver(_grid, _opinions), ai.Lod, ai.Resolver, _appraisal, Events, _species.Perception);
         _intents = new IntentSystem(_world, Events, ai.Runner, _minds, _random, Speed, RegionSize);
+        _bonding = ai.Bonding;
+        _pacts = new PactOfferSystem(_world, ai.Bonding, ai.Resolver, _species, PactTerms.Of(0, 5));
 
         _scheduler.Register(new PlayerRouteSystem(_world, RegionSize, PlayerSpeed));
         RegisterAiSystems(ai, placeDanger);
@@ -216,16 +228,25 @@ public sealed class B5Scenario
         _scheduler.Register(new DecisionSystem(_world, ai.Evaluator, ai.Lod, ai.Resolver, ai.Evaluator.ForSpecies(_species), _random));
         _scheduler.Register(new CrowdReactionSystem(_world, Events, _minds, _appraisal, placeDanger));
         _scheduler.Register(new BehaviourSystem(_world, ai.Runner, ai.Lod, ai.Resolver));
+        _scheduler.Register(_pacts!);
     }
 
-    private B5Ai BuildAi(DataRegistry data)
+    private B5Ai BuildAi(DataRegistry data, MemoryRules rules)
     {
         var sampler = new InputSampler(_minds, _appraisal, _opinions, SimulationSettings.DefaultTicksPerDay);
         return new B5Ai(
             new AiLodPolicy(AiLodSettings.Default),
             new B5SubjectResolver(_world),
             new UtilityEvaluator(_minds, _appraisal, _opinions, data.Goals, SimulationSettings.DefaultTicksPerDay),
-            new BehaviourTreeRunner(_minds, sampler, Events, data.Goals, data.BehaviourTrees));
+            new BehaviourTreeRunner(_minds, sampler, Events, data.Goals, data.BehaviourTrees),
+            new BondingRules(
+                _minds,
+                _opinions,
+                new PactEvaluator(_minds, _opinions, data.PactTerms),
+                rules,
+                data.BondLevels,
+                data.PactTerms.Count,
+                SimulationSettings.DefaultTicksPerDay));
     }
 
     private void SpawnPlayer(int index)
@@ -246,4 +267,4 @@ public sealed class B5Scenario
 }
 
 /// <summary>The AI services shared by the B5 systems.</summary>
-internal sealed record B5Ai(AiLodPolicy Lod, B5SubjectResolver Resolver, UtilityEvaluator Evaluator, BehaviourTreeRunner Runner);
+internal sealed record B5Ai(AiLodPolicy Lod, B5SubjectResolver Resolver, UtilityEvaluator Evaluator, BehaviourTreeRunner Runner, BondingRules Bonding);

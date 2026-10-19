@@ -1,0 +1,75 @@
+{
+  "schemaVersion": 1,
+  "kind": "pactTerms",
+  "entries": [
+    {
+      "key": "FeedDaily",
+      "base": 60,
+      "need": "hunger",
+      "needWeight": 120,
+      "personality": []
+    },
+    {
+      "key": "TerritoryNearSanctum",
+      "base": 50,
+      "need": "territory",
+      "needWeight": 100,
+      "personality": [
+        {
+          "trait": "boldness",
+          "factor": -3
+        }
+      ]
+    },
+    {
+      "key": "ShareOfLoot",
+      "base": 40,
+      "personality": [
+        {
+          "trait": "temper",
+          "factor": 5
+        }
+      ]
+    },
+    {
+      "key": "FreedomAtNight",
+      "base": 40,
+      "personality": [
+        {
+          "trait": "loyalty",
+          "factor": -5
+        },
+        {
+          "trait": "curiosity",
+          "factor": 3
+        }
+      ]
+    },
+    {
+      "key": "NoFightingKin",
+      "base": 50,
+      "personality": [
+        {
+          "trait": "temper",
+          "factor": -5
+        },
+        {
+          "trait": "loyalty",
+          "factor": 3
+        }
+      ]
+    },
+    {
+      "key": "ProtectYoung",
+      "base": 70,
+      "need": "safety",
+      "needWeight": 80,
+      "personality": [
+        {
+          "trait": "loyalty",
+          "factor": 4
+        }
+      ]
+    }
+  ]
+}

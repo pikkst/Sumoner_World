@@ -223,6 +223,43 @@
       "baseSalience": 300,
       "halfLifeDays": 14,
       "isCore": false
+    },
+    {
+      "id": 19,
+      "key": "PactSealed",
+      "subjects": [
+        "player"
+      ],
+      "valence": 60,
+      "baseSalience": 800,
+      "halfLifeDays": null,
+      "isCore": true,
+      "traitDrift": {
+        "trait": "loyalty",
+        "amount": 2
+      }
+    },
+    {
+      "id": 20,
+      "key": "PactRefused",
+      "subjects": [
+        "player"
+      ],
+      "valence": -10,
+      "baseSalience": 200,
+      "halfLifeDays": 2,
+      "isCore": false
+    },
+    {
+      "id": 21,
+      "key": "ReleasedBy",
+      "subjects": [
+        "player"
+      ],
+      "valence": -30,
+      "baseSalience": 400,
+      "halfLifeDays": 14,
+      "isCore": false
     }
   ]
 }

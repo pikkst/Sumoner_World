@@ -68,9 +68,9 @@ Rules: R02, R07, R12, R47, R49 · Related: ADR-001 (layers), TDD v0.1, AI Bible 
 | Cognition inputs | `Core.Cognition.Decision` | `InputSampler` (class) | The one place that reads needs, emotions, opinion, distance, health, time as 0–1000 inputs; shared by utility AI and tree conditions | AI Bible §7.2 | **Implemented** (M1-09) |
 | Learning | `Core.Cognition.Learning` | `ILearningModel` | Tactic, habit and combo tables | AI Bible §8 | Planned (M2) |
 | AI LOD | `Core.Cognition.Lod` | `IAiLodPolicy` | Tier assignment with hysteresis and per-tier time slicing (`AiLodPolicy`, `AiLodSettings`) | AI Bible §9 | **Implemented** (M1-10) |
-| Bonding rules | `Core.Bonding` | `IBondingRules` | Ownership states and transitions (Bonding Contract v1.0.0) | AI Bible §10.1 | Planned (M1) |
-| Pact acceptance | `Core.Bonding` | `IPactEvaluator` | Pact Terms and acceptance utility | AI Bible §10.2 | Planned (M1) |
-| Obedience | `Core.Bonding` | `IObedienceModel` | Obey / Improvise / Hesitate / Refuse | AI Bible §7.4 | Planned (M1) |
+| Bonding rules | `Core.Bonding` | `IBondingRules` | Ownership states and transitions, terms, leaving, bond levels, summoning (Bonding Contract v1.0.0, `BondingRules`) | AI Bible §10 | **Implemented** (M1-11) |
+| Pact acceptance | `Core.Bonding` | `IPactEvaluator` | Pact Terms and acceptance score with full breakdown (`PactEvaluator`) | AI Bible §10.2 | **Implemented** (M1-11) |
+| Obedience | `Core.Bonding` | `IObedienceModel` | Obey / Improvise / Hesitate / Refuse (`ObedienceModel`) | AI Bible §7.4 | **Implemented** (M1-11) |
 | Population | `Core.Ecosystem` | `IPopulationModel` | T3 abstract populations, territory, migration | AI Bible §9.4 | Planned (M2) |
 | Reputation | `Core.Ecosystem` | `IReputationService` | Server-wide (species, region, player) reputation | AI Bible §4.5 | Planned (M1) |
 | Chunk map | `Core.World` | `IChunkMap` | 64 m chunk states: loaded / abstract | TDD §5 | Planned (M1) |

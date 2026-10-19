@@ -99,6 +99,9 @@ Values are **integers** so that decay, saves and replays are bit-exact (R11). Fl
 | 16 | `PlaceDanger` | place | −40 | 300 | 14 days | no |
 | 17 | `Mistreated` (hit, starved, ignored needs) | player | −50 | 450 | 14 days | no |
 | 18 | `PlaceSafe` | place | +40 | 300 | 14 days | no |
+| 19 | `PactSealed` | player | +60 | 800 | never | **yes** (Loyalty +2) |
+| 20 | `PactRefused` | player | −10 | 200 | 2 days | no |
+| 21 | `ReleasedBy` | player | −30 | 400 | 14 days | no |
 
 "2 days" means in-game days; 1 in-game day = 48 real minutes = 86,400 ticks (TDD §2.1). New event types are added in data, with a new id. Ids are never reused (save compatibility, R26).
 
@@ -173,6 +176,9 @@ For each remembered subject the creature holds four attitudes, each in [-100, +1
 | PlaceDanger | 0 | +60 | 0 | 0 |
 | Mistreated | −70 | +40 | −60 | 0 |
 | PlaceSafe | 0 | −40 | +20 | 0 |
+| PactSealed | +60 | 0 | +30 | +30 |
+| PactRefused | −20 | 0 | 0 | −10 |
+| ReleasedBy | −40 | 0 | −20 | 0 |
 
   BondedDied and OwnerDied have no weights (they drive Grief, not an opinion of the dead). AttackedBy fear is 100 so a single attack shows the Fear emote (M0-07 USP moment "a hit creature keeps its distance").
 
@@ -348,6 +354,17 @@ Bond level can **go down**. It is recalculated once per in-game day and immediat
 ### 10.6 Contract interfaces (Core)
 `IBondingRules` (state transitions and validation), `IPactEvaluator` (acceptance), `IObedienceModel` (command responses), `ICreatureMindStore` (memories and opinions). Names are reserved in the system registry (M0-06).
 
+### 10.7 Implementation v1.0.0 (M1-11, `SumonerWorld.Core.Bonding`)
+- **States:** `Wild`, `Pacted`, `SanctumResident`, `Fallen`, `Deceased`; Released and Left return to `Wild`. `BondState` (saved) holds owner account, agreed terms (bitmask), broken-term count, bond level, summoned flag, Pact tick and the distrust timer. A reused mind slot always starts wild.
+- **Memories the contract writes:** `PactOffered` on every offer, then `PactSealed` (new core type, Loyalty +2) or `PactRefused` (new; repeated pushing lowers trust); `PactTermKept` / `PactBroken` per term at the daily check; `ReleasedBy` (new) on release; `PactBroken` when lasting distrust makes it leave. The three new event types are ids 19–21 in §4.2; their opinion weights are in §5.
+- **Acceptance (`PactEvaluator`):** `Score = Σ term value + 3×Trust + 3×Respect + reputation/5 − 3×Fear − 300 (grudge: a negative core memory about the player)`; accepted when `Score ≥ species pactThreshold`. **No randomness.** Every part is returned (`PactDecision`) so the UI can show why. Term value = `base + need × needWeight/100 + Σ factor × trait/10` from `data/ai/pact_terms.json`; offers carry 1–3 terms; a term's position in the file is its saved bit and must never change.
+- **Leaving:** the third broken term, or Trust < −50 for 3 in-game days (`DailyUpdate`). A creature with Temper > 40 turns hostile when it leaves.
+- **Bond level:** highest level in `data/ai/bond_levels.json` whose Trust, Affection, core-memories-about-owner and days-bonded requirements are met; recalculated by `DailyUpdate`, after a broken term, and on demand. It goes down when care stops.
+- **Summoning:** owner only, `Pacted` only (not Sanctum residents), active summons < Bond Capacity (1–5).
+- **Death:** `Deceased` on Hardcore, `Fallen` otherwise; only the owner revives a Fallen creature. `BondedDied` memories for companions are written by the caller (it knows the companions).
+- **Obedience (`ObedienceModel`):** `450 + 60×bond level + 2×Trust + 2×Respect + Loyalty − 2×Fear − danger/2 − 200 (conflicts with its memories)`; ≥ 600 Obey, ≥ 400 Improvise, ≥ 200 Hesitate, else Refuse; danger ≥ 800 with Loyalty < 50 → Refuse (suicidal); knowing a better tactic turns Obey into Improvise. Weights in `ObedienceSettings` for playtest tuning.
+- **Atomicity:** each operation changes the bond in one step on the server; in multiplayer it runs inside the transaction processor (M1-15, R27/R34).
+
 ---
 
 ## 11. Generative AI policy (R16)
@@ -366,8 +383,8 @@ Bond level can **go down**. It is recalculated once per in-game day and immediat
 | `data/ai/opinion_weights.json` | event type → attitude weights |
 | `data/ai/goals.json` | §7 goals with their considerations and curves (implemented M1-08) |
 | `data/ai/bt/*.json` | behaviour trees, one per goal (implemented M1-09) |
-| `data/ai/pact_terms.json` | §10.2 term catalogue |
-| `data/ai/bond_levels.json` | §10.3 table |
+| `data/ai/pact_terms.json` | §10.2 term catalogue (implemented M1-11) |
+| `data/ai/bond_levels.json` | §10.3 table (implemented M1-11) |
 
 Every file has a `schemaVersion` and is validated at load (unknown ids, ranges, cycles in trees). A validation failure stops the server with a clear error; it never runs with half-loaded AI data.
 

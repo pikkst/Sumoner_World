@@ -13,8 +13,12 @@ public sealed class DataRegistry : IDataRegistry
         IReadOnlyList<SpeciesDefinition> species,
         IReadOnlyList<OpinionWeightsDefinition> opinionWeights,
         IReadOnlyList<GoalDefinition> goals,
-        IReadOnlyList<BehaviourTreeDefinition> behaviourTrees)
+        IReadOnlyList<BehaviourTreeDefinition> behaviourTrees,
+        IReadOnlyList<PactTermDefinition> pactTerms,
+        IReadOnlyList<BondLevelDefinition> bondLevels)
     {
+        PactTerms = pactTerms;
+        BondLevels = bondLevels;
         Goals = goals;
         BehaviourTrees = behaviourTrees;
         MemoryEventTypes = memoryEventTypes;
@@ -38,6 +42,12 @@ public sealed class DataRegistry : IDataRegistry
 
     /// <inheritdoc />
     public IReadOnlyList<BehaviourTreeDefinition> BehaviourTrees { get; }
+
+    /// <inheritdoc />
+    public IReadOnlyList<PactTermDefinition> PactTerms { get; }
+
+    /// <inheritdoc />
+    public IReadOnlyList<BondLevelDefinition> BondLevels { get; }
 
     /// <inheritdoc />
     public MemoryEventTypeDefinition GetMemoryEventType(ushort id) =>
