@@ -1,0 +1,10 @@
+{
+  "id": "dev-pc",
+  "recorded": "2026-10-19",
+  "cpu": "Intel Core i7-8700K (6 cores / 12 threads, 3.7 GHz)",
+  "gpu": "NVIDIA GeForce RTX 2060 SUPER (8 GB)",
+  "ram_gb": 32,
+  "os": "Windows 11 Pro 10.0.26200",
+  "profile": "between minimum and recommended: CPU is minimum class, GPU is above minimum and below recommended",
+  "use": "primary benchmark machine for the minimum profile; recommended-profile results here are indicative only"
+}
