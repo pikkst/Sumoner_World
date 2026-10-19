@@ -9,7 +9,8 @@ namespace SumonerWorld.Net.Sessions;
 /// <summary>
 /// The server side of the session handshake (TDD §3.3): a client must send a valid <see cref="Hello"/> first; the server answers
 /// <see cref="Welcome"/> with a fresh session token or <see cref="Rejected"/> and disconnects. Malformed messages are logged and the
-/// sender is dropped (R31). Reconnect windows and logout linger arrive with M1-16.
+/// sender is dropped (R31). Messages after the handshake go to the <see cref="IServerSessionHandler"/>; a handler that throws
+/// <see cref="MalformedMessageException"/> gets the sender dropped too. Reconnect windows and logout linger arrive with M1-16.
 /// </summary>
 public sealed class ServerEndpoint : ITransportHandler
 {
@@ -17,15 +18,17 @@ public sealed class ServerEndpoint : ITransportHandler
     private readonly IAuthenticator _authenticator;
     private readonly ILog _log;
     private readonly int _maxPlayers;
+    private readonly IServerSessionHandler? _sessions;
     private readonly Dictionary<ConnectionId, ulong> _accounts = [];
     private readonly HashSet<ConnectionId> _pending = [];
     private readonly byte[] _buffer = new byte[Protocol.MaxMessageSize];
     private readonly HelloCodec _hello = new();
     private readonly WelcomeCodec _welcome = new();
     private readonly RejectedCodec _rejected = new();
+    private ulong _lastSessionId;
 
     /// <summary>Creates the endpoint.</summary>
-    public ServerEndpoint(ITransport transport, IAuthenticator authenticator, ILog log, int maxPlayers)
+    public ServerEndpoint(ITransport transport, IAuthenticator authenticator, ILog log, int maxPlayers, IServerSessionHandler? sessions = null)
     {
         ArgumentNullException.ThrowIfNull(transport);
         ArgumentNullException.ThrowIfNull(authenticator);
@@ -36,6 +39,7 @@ public sealed class ServerEndpoint : ITransportHandler
         _authenticator = authenticator;
         _log = log;
         _maxPlayers = maxPlayers;
+        _sessions = sessions;
     }
 
     /// <summary>The current server tick, sent in <see cref="Welcome"/>.</summary>
@@ -61,6 +65,7 @@ public sealed class ServerEndpoint : ITransportHandler
         if (_accounts.Remove(connection, out ulong account))
         {
             Log(LogLevel.Info, "session.closed", $"account {account} left ({reason})");
+            _sessions?.OnSessionClosed(connection, account);
         }
     }
 
@@ -79,6 +84,15 @@ public sealed class ServerEndpoint : ITransportHandler
                 }
 
                 HandleHello(connection, _hello.Read(ref reader));
+            }
+            else if (_accounts.ContainsKey(connection))
+            {
+                if (type == MessageType.Hello)
+                {
+                    throw new MalformedMessageException("Hello sent twice.");
+                }
+
+                _sessions?.OnMessage(connection, type, ref reader);
             }
         }
         catch (MalformedMessageException exception)
@@ -109,6 +123,7 @@ public sealed class ServerEndpoint : ITransportHandler
         _welcome.Write(ref writer, new Welcome(token, account, ServerTick));
         _transport.Send(connection, Channel.ReliableOrdered, writer.WrittenSpan);
         Log(LogLevel.Info, "session.welcome", $"account {account} joined on connection {connection.Value}");
+        _sessions?.OnSessionOpened(connection, account, ++_lastSessionId);
     }
 
     private void Reject(ConnectionId connection, RejectReason reason, string detail)
@@ -123,7 +138,11 @@ public sealed class ServerEndpoint : ITransportHandler
     private void Drop(ConnectionId connection)
     {
         _pending.Remove(connection);
-        _accounts.Remove(connection);
+        if (_accounts.Remove(connection, out ulong account))
+        {
+            _sessions?.OnSessionClosed(connection, account);
+        }
+
         _transport.Disconnect(connection);
     }
 

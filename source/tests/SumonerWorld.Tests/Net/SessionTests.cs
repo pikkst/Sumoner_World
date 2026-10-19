@@ -66,7 +66,7 @@ public class SessionTests
         net.Run(steps: 3);
         var buffer = new byte[64];
         var writer = new MessageWriter(buffer);
-        new PlayerInputCodec().Write(ref writer, new PlayerInput(1, 0, 0, 0));
+        InputBatch.Write(ref writer, [new PlayerInput(1, 0, 0, 0)]);
         rogue.Send(link, Channel.ReliableOrdered, writer.WrittenSpan);
 
         net.Run(steps: 3);

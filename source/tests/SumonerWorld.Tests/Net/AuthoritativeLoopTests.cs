@@ -1,0 +1,198 @@
+using System.Numerics;
+using SumonerWorld.Core.Cognition;
+using SumonerWorld.Core.Diagnostics;
+using SumonerWorld.Core.Ecs;
+using SumonerWorld.Core.Intents;
+using SumonerWorld.Core.Movement;
+using SumonerWorld.Core.Randomness;
+using SumonerWorld.Core.World;
+using SumonerWorld.Net.Client;
+using SumonerWorld.Net.Messages;
+using SumonerWorld.Net.Server;
+using SumonerWorld.Net.Sessions;
+using SumonerWorld.Net.Transport;
+using SumonerWorld.Scenarios;
+
+namespace SumonerWorld.Tests.Net;
+
+public class AuthoritativeLoopTests
+{
+    private const string Secret = "loop-secret";
+
+    [Theory]
+    [InlineData(0)]
+    [InlineData(20)]
+    public void Two_clients_predict_their_own_movement_and_end_where_the_server_has_them(int lossPercent)
+    {
+        using var lan = new Lan(lossPercent);
+        GameClient alice = lan.Join(1001);
+        GameClient bob = lan.Join(1002);
+        lan.Run(30, _ => MoveInput.None);
+
+        lan.Run(150, client => client == alice
+            ? new MoveInput(1000, (short)(lan.Tick % 60 < 30 ? 300 : -300))
+            : new MoveInput(-700, 700));
+        lan.Run(30, _ => MoveInput.None);
+
+        foreach ((GameClient client, ulong account) in new[] { (alice, 1001UL), (bob, 1002UL) })
+        {
+            Vector3 server = lan.ServerPosition(account);
+            Assert.Equal(server, client.Prediction.Position);
+            Assert.True(Vector3.Distance(server, lan.Settings.SpawnPoint) > 20, "The avatar moved.");
+            uint inFlight = client.Prediction.LastSequence - lan.Server.LastAppliedInput(account);
+            Assert.True(inFlight <= InputBatch.MaxInputs, $"{inFlight} inputs not applied yet (only the idle ones in flight).");
+        }
+
+        if (lossPercent == 0)
+        {
+            Assert.Equal(0, alice.Prediction.Corrections[(int)Correction.Snapped] + alice.Prediction.Corrections[(int)Correction.Smoothed]);
+            Assert.True(alice.Prediction.Corrections[(int)Correction.None] > 100, "Every snapshot confirmed the prediction.");
+        }
+        else
+        {
+            Assert.True(lan.Network.Dropped > 100, "Loss was simulated.");
+        }
+
+        SnapshotEntity seenBob = alice.Entities[(SnapshotEntityKind.Player, 1002)];
+        Assert.True(Vector3.Distance(seenBob.Position, lan.ServerPosition(1002)) < 0.01f, "Alice sees Bob where the server has him.");
+    }
+
+    [Fact]
+    public void An_intent_over_the_network_is_applied_once_and_resending_it_returns_the_first_result()
+    {
+        using var lan = new Lan(0);
+        StableId creature = lan.SpawnCreature(lan.Settings.SpawnPoint + new Vector3(3, 0, 0));
+        GameClient alice = lan.Join(1001);
+        lan.Run(10, _ => MoveInput.None);
+
+        uint offer = alice.SendIntent(IntentKind.OfferPact, creature.Value, 0b1);
+        uint unknown = alice.SendIntent(IntentKind.OfferPact, 999_999, 0b1);
+        lan.Run(10, _ => MoveInput.None);
+        IntentResult first = alice.IntentResults[offer];
+        alice.Resend(new IntentRequest(offer, IntentKind.OfferPact, creature.Value, 0b1));
+        lan.Run(10, _ => MoveInput.None);
+
+        Assert.True(first.IsApplied);
+        Assert.Equal(first, alice.IntentResults[offer]);
+        Assert.Equal(IntentRejectReason.InvalidTarget, alice.IntentResults[unknown].Reason);
+        Assert.Equal(1, lan.Server.Transactions.Applied);
+        Assert.Equal(1, lan.Server.Transactions.Duplicates);
+    }
+
+    [Fact]
+    public void Snapshots_carry_everything_in_the_interest_radius_in_several_parts_and_nothing_beyond()
+    {
+        using var lan = new Lan(0);
+        var near = new List<StableId>();
+        for (int i = 0; i < 150; i++)
+        {
+            near.Add(lan.SpawnCreature(lan.Settings.SpawnPoint + new Vector3(i % 15, 0, i / 15)));
+        }
+
+        StableId far = lan.SpawnCreature(new Vector3(10, 0, 10));
+        GameClient alice = lan.Join(1001);
+        lan.Run(10, _ => MoveInput.None);
+        int partsBefore = lan.Server.SnapshotPartsSent;
+        lan.Run(3, _ => MoveInput.None);
+
+        Assert.True(lan.Server.SnapshotPartsSent - partsBefore >= 4, "150 creatures need several parts per snapshot.");
+        Assert.All(near, id => Assert.True(alice.Entities.ContainsKey((SnapshotEntityKind.Creature, id.Value))));
+        Assert.False(alice.Entities.ContainsKey((SnapshotEntityKind.Creature, far.Value)));
+    }
+
+    [Fact]
+    public void Leaving_removes_the_avatar_and_a_client_sending_server_messages_is_dropped()
+    {
+        using var lan = new Lan(0);
+        GameClient alice = lan.Join(1001);
+        GameClient bob = lan.Join(1002);
+        lan.Run(10, _ => MoveInput.None);
+        Assert.Equal(2, lan.Server.PlayerCount);
+
+        lan.TransportOf(alice).Disconnect(alice.Session.Connection);
+        var writer = new MessageWriter(new byte[Protocol.MaxMessageSize]);
+        new IntentAckCodec().Write(ref writer, new IntentAck(1, IntentResult.Applied()));
+        lan.TransportOf(bob).Send(bob.Session.Connection, Channel.ReliableOrdered, writer.WrittenSpan);
+        lan.Run(10, _ => MoveInput.None);
+
+        Assert.Equal(0, lan.Server.PlayerCount);
+        Assert.Equal(0, lan.Server.World.World.Store<PlayerAvatar>().Count);
+        Assert.Equal(ClientSessionState.Disconnected, bob.Session.State);
+    }
+
+    private sealed class Lan : IDisposable
+    {
+        private readonly LoopbackTransport _serverTransport;
+        private readonly List<(GameClient Client, LoopbackTransport Transport)> _clients = [];
+
+        public Lan(int lossPercent)
+        {
+            Network = new LoopbackNetwork(new SeededRandom(0x10AD), latencySteps: 3, lossPercent, bufferCount: 8192);
+            _serverTransport = Network.CreateEndpoint(2048);
+            World = new CreatureWorld(ShippedData.Current, new CreatureWorldSettings(), seed: 11);
+            Server = new GameServer(World, _serverTransport, new DevTokenAuthenticator(Secret), NullLog.Instance, Settings);
+        }
+
+        public LoopbackNetwork Network { get; }
+
+        public CreatureWorld World { get; }
+
+        public GameServer Server { get; }
+
+        public GameServerSettings Settings { get; } = new();
+
+        public int Tick { get; private set; }
+
+        public GameClient Join(ulong account)
+        {
+            LoopbackTransport transport = Network.CreateEndpoint(1024);
+            var client = new GameClient(transport, NullLog.Instance, new Hello(0, DevTokenAuthenticator.Ticket(account, Secret)), Settings.Movement);
+            transport.Connect(_serverTransport);
+            _clients.Add((client, transport));
+            return client;
+        }
+
+        public LoopbackTransport TransportOf(GameClient client) => _clients.Single(entry => entry.Client == client).Transport;
+
+        public StableId SpawnCreature(Vector3 position)
+        {
+            ushort species = World.SpeciesIndex("mossback");
+            Entity creature = World.SpawnCreature(species, position, Personality.Roll(World.Data.Species[species], World.Random), group: 0);
+            return World.World.GetComponent<StableId>(creature);
+        }
+
+        public Vector3 ServerPosition(ulong account)
+        {
+            Assert.True(Server.TryGetAvatar(account, out Entity avatar));
+            return World.World.GetComponent<Position>(avatar).Value;
+        }
+
+        public void Run(int steps, Func<GameClient, MoveInput> input)
+        {
+            for (int i = 0; i < steps; i++)
+            {
+                Network.Step();
+                Server.Tick();
+                foreach ((GameClient client, _) in _clients)
+                {
+                    client.Tick(input(client));
+                }
+
+                Tick++;
+            }
+        }
+
+        public void Dispose() => World.Dispose();
+    }
+
+    private sealed class NullLog : ILog
+    {
+        public static readonly NullLog Instance = new();
+
+        public bool IsEnabled(LogLevel level) => false;
+
+        public void Write(LogLevel level, string eventName, string message)
+        {
+        }
+    }
+}

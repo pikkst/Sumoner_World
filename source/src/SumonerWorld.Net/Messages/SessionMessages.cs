@@ -25,7 +25,8 @@ public readonly record struct Rejected(RejectReason Reason, string Detail)
 }
 
 /// <summary>
-/// Client → server: movement intent and buttons for one client tick (TDD §3.2). Clients send input, never positions (R31).
+/// Movement and buttons for one client tick (TDD §3.2), sent inside an <see cref="InputBatch"/>. Clients send input, never positions
+/// (R31).
 /// </summary>
 /// <param name="Sequence">Increases by one per input; the server acknowledges it for reconciliation.</param>
 /// <param name="MoveX">Desired movement along X, −1000…1000 (stick or keys, normalised).</param>
@@ -108,46 +109,6 @@ public sealed class RejectedCodec : IMessageCodec<Rejected>
         }
 
         var message = new Rejected(reason, reader.ReadString(Rejected.MaxDetailBytes));
-        reader.EnsureEnd();
-        return message;
-    }
-}
-
-/// <summary>Codec for <see cref="PlayerInput"/> (5–9 bytes after the header).</summary>
-public sealed class PlayerInputCodec : IMessageCodec<PlayerInput>
-{
-    /// <inheritdoc />
-    public MessageType Type => MessageType.PlayerInput;
-
-    /// <inheritdoc />
-    public void Write(ref MessageWriter writer, in PlayerInput message)
-    {
-        if (Math.Abs((int)message.MoveX) > PlayerInput.MaxAxis || Math.Abs((int)message.MoveZ) > PlayerInput.MaxAxis)
-        {
-            throw new ArgumentOutOfRangeException(nameof(message), message, $"Movement axes must be within ±{PlayerInput.MaxAxis}.");
-        }
-
-        Protocol.WriteHeader(ref writer, Type);
-        writer.WriteVarUInt(message.Sequence);
-        writer.WriteVarInt(message.MoveX);
-        writer.WriteVarInt(message.MoveZ);
-        writer.WriteByte(message.Buttons);
-    }
-
-    /// <inheritdoc />
-    public PlayerInput Read(ref MessageReader reader)
-    {
-        ulong sequence = reader.ReadVarUInt();
-        if (sequence > uint.MaxValue)
-        {
-            throw new MalformedMessageException($"Input sequence {sequence} is out of range.");
-        }
-
-        var message = new PlayerInput(
-            (uint)sequence,
-            (short)reader.ReadVarInt(-PlayerInput.MaxAxis, PlayerInput.MaxAxis),
-            (short)reader.ReadVarInt(-PlayerInput.MaxAxis, PlayerInput.MaxAxis),
-            reader.ReadByte());
         reader.EnsureEnd();
         return message;
     }
