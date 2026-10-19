@@ -85,14 +85,17 @@ Rules: R02, R07, R12, R47, R49 · Related: ADR-001 (layers), TDD v0.1, AI Bible 
 |---|---|---|---|---|
 | Transport | `ITransport` | Channels (unreliable / reliable ordered), connect, poll, disconnect; `LoopbackTransport` in-process (tests, bots, listen server); Godot ENet adapter in the Game project (M1-14); Steam sockets later | TDD §3.1 | **Implemented** (M1-13): interface + loopback |
 | Transport events | `ITransportHandler` | Receives connected / disconnected / data from `ITransport.Poll` on the sim thread | TDD §3.1 | **Implemented** (M1-13) |
-| Message codec | `IMessageCodec` | Versioned (header: protocol version + type), size-limited (1,200 B) encoding with `MessageWriter`/`MessageReader`; every read error is a `MalformedMessageException`; Hello/Welcome/Rejected/PlayerInput | TDD §3.3 | **Implemented** (M1-13) |
-| Sessions | `ServerEndpoint` / `ClientEndpoint` (planned interface `ISessionManager`) | Handshake Hello → Welcome / Rejected with random session token (M1-14); 30 s linger and 2 min reconnect in M1-16 | TDD §3.5 | **Partly implemented** (M1-14) |
+| Message codec | `IMessageCodec` | Versioned (header: protocol version + type; **protocol 2** since M1-15c), size-limited (1,200 B) encoding with `MessageWriter`/`MessageReader`; every read error is a `MalformedMessageException`; fuzz-tested. Hello/Welcome/Rejected, `InputBatch` (newest ≤ 8 inputs, redundant), `IntentRequest`/`IntentAck`, `Snapshot` parts | TDD §3.3 | **Implemented** (M1-13, M1-15c) |
+| Sessions | `ServerEndpoint` / `ClientEndpoint` (planned interface `ISessionManager`) | Handshake Hello → Welcome / Rejected with random session token and a server-assigned session id (M1-14, M1-15c); 30 s linger and 2 min reconnect in M1-16 | TDD §3.5 | **Partly implemented** (M1-14) |
+| Session handlers | `ISessionMessageHandler`, `IServerSessionHandler` | Where the endpoints hand over after the handshake: session opened/closed (server) and in-session messages (both sides) | TDD §3.2 | **Implemented** (M1-15c) |
+| Authoritative server | `GameServer` (class, Net.Server) | Server loop: poll → tick (player inputs at stage 1 via `PlayerInputBuffer`, creature systems, intents through `ITransactionProcessor` at stage 9) → 20 Hz snapshots; avatars follow sessions | TDD §3.2 | **Implemented** (M1-15c) |
+| Game client | `GameClient` (class, Net.Client) | Session, own-character prediction, redundant input batches, intents and their results, latest snapshot entities | TDD §3.2 | **Implemented** (M1-15c) |
 | Authentication | `IAuthenticator` | `DevTokenAuthenticator` (constant-time secret check) on the dev server; Steam tickets later | TDD §3.1a, §3.3 | **Implemented** (M1-14, dev) |
 | Host options | `HostOptions` (Net.Hosting) | Server/client/game mode from arguments and `SW_*` environment variables; unknown arguments are errors | TDD §3.1a | **Implemented** (M1-14) |
 | Rate limiting | `IRateLimiter` | Token buckets per message type | TDD §3.3 | Planned (M1) |
-| Interest | `IInterestManager` | Relevance radius and priority per client | TDD §3.2 | Planned (M1) |
-| Replication | `ISnapshotBuilder` | 20 Hz delta snapshots | TDD §3.2 | Planned (M1) |
-| Prediction | `IClientPrediction` | Own-character prediction and reconciliation | TDD §3.2 | Planned (M1) |
+| Interest | `IInterestManager` | Relevance radius and priority per client | TDD §3.2 | **Partly implemented** (M1-15c: 150 m radius in `SnapshotSender`; priority accumulator with M1-18) |
+| Replication | `ISnapshotBuilder` | 20 Hz snapshots (own avatar exact, others quantized to 1 cm, split into parts) | TDD §3.2 | **Partly implemented** (M1-15c: full snapshots; delta compression with M1-18) |
+| Prediction | `IClientPrediction` | Own-character prediction and reconciliation: replay unacked inputs from the server position; ≤ 0.5 m corrected at once, 0.5–3 m smoothed over 100 ms, > 3 m teleport (`ClientPrediction`) | TDD §3.2 | **Implemented** (M1-15c) |
 | Lag compensation | `ILagCompensation` | Hitbox rewind up to 200 ms | TDD §3.2 | Planned (M2) |
 
 ## 6. Persistence (`SumonerWorld.Persistence`, project created in M1)

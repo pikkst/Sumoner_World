@@ -12,8 +12,19 @@ public enum MessageType : byte
     /// <summary>Server → client: session refused.</summary>
     Rejected = 3,
 
-    /// <summary>Client → server: movement and buttons for one client tick.</summary>
-    PlayerInput = 4,
+    // 4: retired (single PlayerInput, protocol 1); replaced by InputBatch.
+
+    /// <summary>Client → server, unreliable: the newest inputs (redundant copies cover packet loss).</summary>
+    InputBatch = 5,
+
+    /// <summary>Client → server, reliable: a state-changing intent with its sequence.</summary>
+    Intent = 6,
+
+    /// <summary>Server → client, reliable: the result of an intent.</summary>
+    IntentAck = 7,
+
+    /// <summary>Server → client, unreliable: world state around the player (20 Hz, may come in several parts).</summary>
+    Snapshot = 8,
 }
 
 /// <summary>Why the server refused a session.</summary>
@@ -38,7 +49,7 @@ public enum RejectReason : byte
 public static class Protocol
 {
     /// <summary>Current protocol version; bump on any wire-format change.</summary>
-    public const ushort Version = 1;
+    public const ushort Version = 2;
 
     /// <summary>Largest message, in bytes (fits one UDP datagram on common networks).</summary>
     public const int MaxMessageSize = 1200;

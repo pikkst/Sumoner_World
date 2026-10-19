@@ -1,3 +1,5 @@
+using System.Numerics;
+using SumonerWorld.Core.Intents;
 using SumonerWorld.Core.Randomness;
 using SumonerWorld.Net.Messages;
 
@@ -45,7 +47,48 @@ public class MessageCodecTests
         Assert.Equal(new Hello(42, "dev-token"), RoundTrip(new HelloCodec(), new Hello(42, "dev-token")));
         Assert.Equal(new Welcome(7, 9_000_001, 123_456), RoundTrip(new WelcomeCodec(), new Welcome(7, 9_000_001, 123_456)));
         Assert.Equal(new Rejected(RejectReason.ServerFull, "16/16"), RoundTrip(new RejectedCodec(), new Rejected(RejectReason.ServerFull, "16/16")));
-        Assert.Equal(new PlayerInput(99, -1000, 250, 0b101), RoundTrip(new PlayerInputCodec(), new PlayerInput(99, -1000, 250, 0b101)));
+        var intent = new IntentRequest(5, IntentKind.OfferPact, 123_456, 0b11);
+        Assert.Equal(intent, RoundTrip(new IntentRequestCodec(), intent));
+        var ack = new IntentAck(5, IntentResult.Reject(IntentRejectReason.OnCooldown));
+        Assert.Equal(ack, RoundTrip(new IntentAckCodec(), ack));
+    }
+
+    [Fact]
+    public void Input_batches_round_trip_with_implied_sequences()
+    {
+        PlayerInput[] inputs = [new(98, -1000, 250, 0b101), new(99, 0, 0, 0), new(100, 1000, -1000, 1)];
+        var writer = new MessageWriter(new byte[Protocol.MaxMessageSize]);
+        InputBatch.Write(ref writer, inputs);
+        var reader = new MessageReader(writer.WrittenSpan);
+        var read = new PlayerInput[InputBatch.MaxInputs];
+
+        Assert.Equal(MessageType.InputBatch, Protocol.ReadHeader(ref reader));
+        Assert.Equal(3, InputBatch.Read(ref reader, read));
+        Assert.Equal(inputs, read[..3]);
+    }
+
+    [Fact]
+    public void Snapshots_round_trip_with_exact_own_position_and_centimetre_entities()
+    {
+        var buffer = new byte[Protocol.MaxMessageSize];
+        var writer = new MessageWriter(buffer);
+        int countOffset = Snapshot.WriteHeader(ref writer, 300, 41, new Vector3(1.2345678f, 0, 99.000001f));
+        Snapshot.WriteEntity(ref writer, new SnapshotEntity(SnapshotEntityKind.Creature, 77, new Vector3(10.004f, 0, -3.456f), 64, 3));
+        Snapshot.WriteEntity(ref writer, new SnapshotEntity(SnapshotEntityKind.Player, 9_000_001, new Vector3(511.99f, 0, 0), 0, 0));
+        Snapshot.SetEntityCount(buffer, countOffset, 2);
+
+        var reader = new MessageReader(writer.WrittenSpan);
+        Assert.Equal(MessageType.Snapshot, Protocol.ReadHeader(ref reader));
+        SnapshotHeader header = Snapshot.ReadHeader(ref reader);
+        SnapshotEntity creature = Snapshot.ReadEntity(ref reader);
+        SnapshotEntity player = Snapshot.ReadEntity(ref reader);
+        reader.EnsureEnd();
+
+        Assert.Equal(new SnapshotHeader(300, 41, new Vector3(1.2345678f, 0, 99.000001f), 2), header);
+        Assert.Equal(new SnapshotEntity(SnapshotEntityKind.Creature, 77, new Vector3(10f, 0, -3.46f), 64, 3), creature);
+        Assert.Equal(9_000_001UL, player.Id);
+        Assert.Equal(64, Snapshot.EncodeFacing(Vector3.UnitX));
+        Assert.Equal(0, Snapshot.EncodeFacing(Vector3.UnitZ));
     }
 
     [Fact]
@@ -53,9 +96,10 @@ public class MessageCodecTests
     {
         var buffer = new byte[Protocol.MaxMessageSize];
         var writer = new MessageWriter(buffer);
-        new PlayerInputCodec().Write(ref writer, new PlayerInput(1_000, 700, -700, 1));
+        PlayerInput[] inputs = [.. Enumerable.Range(993, InputBatch.MaxInputs).Select(i => new PlayerInput((uint)i, 700, -700, 1))];
+        InputBatch.Write(ref writer, inputs);
 
-        Assert.True(writer.Written <= 12, $"Input message is {writer.Written} bytes.");
+        Assert.True(writer.Written <= 56, $"A full input batch is {writer.Written} bytes.");
     }
 
     [Fact]
@@ -69,23 +113,31 @@ public class MessageCodecTests
         Assert.Throws<ArgumentOutOfRangeException>(() =>
         {
             var writer = new MessageWriter(new byte[64]);
-            new PlayerInputCodec().Write(ref writer, new PlayerInput(1, 2000, 0, 0));
+            InputBatch.Write(ref writer, [new PlayerInput(1, 2000, 0, 0)]);
+        });
+        Assert.Throws<ArgumentException>(() =>
+        {
+            var writer = new MessageWriter(new byte[64]);
+            InputBatch.Write(ref writer, [new PlayerInput(1, 0, 0, 0), new PlayerInput(3, 0, 0, 0)]);
         });
     }
 
     [Theory]
-    [InlineData(new byte[] { 0x01, 0x00 }, "truncated")]
-    [InlineData(new byte[] { 0x02, 0x00, 0x04 }, "Protocol version 2")]
-    [InlineData(new byte[] { 0x01, 0x00, 0x63 }, "Unknown message type 99")]
-    [InlineData(new byte[] { 0x01, 0x00, 0x04, 0x01, 0xA0, 0x1F, 0x00, 0x00 }, "outside")]
-    [InlineData(new byte[] { 0x01, 0x00, 0x04, 0x01, 0x00, 0x00, 0x00, 0xFF }, "trailing")]
+    [InlineData(new byte[] { 0x02, 0x00 }, "truncated")]
+    [InlineData(new byte[] { 0x01, 0x00, 0x05 }, "Protocol version 1")]
+    [InlineData(new byte[] { 0x02, 0x00, 0x63 }, "Unknown message type 99")]
+    [InlineData(new byte[] { 0x02, 0x00, 0x04 }, "Unknown message type 4")]
+    [InlineData(new byte[] { 0x02, 0x00, 0x05, 0x01, 0x01, 0xA0, 0x1F, 0x00, 0x00 }, "outside")]
+    [InlineData(new byte[] { 0x02, 0x00, 0x05, 0x01, 0x01, 0x00, 0x00, 0x00, 0xFF }, "trailing")]
+    [InlineData(new byte[] { 0x02, 0x00, 0x05, 0x01, 0x00 }, "out of range")]
+    [InlineData(new byte[] { 0x02, 0x00, 0x05, 0x01, 0x02 }, "out of range")]
     public void Malformed_input_is_rejected_with_a_reason(byte[] bytes, string expected)
     {
         var error = Assert.Throws<MalformedMessageException>(() =>
         {
             var reader = new MessageReader(bytes);
             Protocol.ReadHeader(ref reader);
-            new PlayerInputCodec().Read(ref reader);
+            InputBatch.Read(ref reader, new PlayerInput[InputBatch.MaxInputs]);
         });
 
         Assert.Contains(expected, error.Message, StringComparison.Ordinal);
@@ -107,9 +159,9 @@ public class MessageCodecTests
 
             if (length >= 3 && i % 2 == 0)
             {
-                buffer[0] = 1;
+                buffer[0] = (byte)Protocol.Version;
                 buffer[1] = 0;
-                buffer[2] = (byte)random.NextInt(1, 5);
+                buffer[2] = (byte)random.NextInt(1, 9);
             }
 
             ReadAnything(buffer.AsSpan(0, length));
@@ -132,8 +184,23 @@ public class MessageCodecTests
                 case MessageType.Rejected:
                     new RejectedCodec().Read(ref reader);
                     break;
+                case MessageType.InputBatch:
+                    InputBatch.Read(ref reader, new PlayerInput[InputBatch.MaxInputs]);
+                    break;
+                case MessageType.Intent:
+                    new IntentRequestCodec().Read(ref reader);
+                    break;
+                case MessageType.IntentAck:
+                    new IntentAckCodec().Read(ref reader);
+                    break;
                 default:
-                    new PlayerInputCodec().Read(ref reader);
+                    SnapshotHeader header = Snapshot.ReadHeader(ref reader);
+                    for (int i = 0; i < header.EntityCount; i++)
+                    {
+                        Snapshot.ReadEntity(ref reader);
+                    }
+
+                    reader.EnsureEnd();
                     break;
             }
         }

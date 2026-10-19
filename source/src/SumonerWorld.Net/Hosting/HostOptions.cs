@@ -55,7 +55,7 @@ public sealed record HostOptions
     /// <summary>Server: player limit.</summary>
     public int MaxPlayers { get; init; } = DefaultMaxPlayers;
 
-    /// <summary>Client: quit with code 0 as soon as the server welcomes us (smoke tests).</summary>
+    /// <summary>Client: quit with code 0 once the server has welcomed us and the first snapshot arrived (smoke tests).</summary>
     public bool ExitOnWelcome { get; init; }
 
     /// <summary>Server: quit after this many ticks (0 = run forever).</summary>

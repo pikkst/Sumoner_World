@@ -23,7 +23,10 @@ public enum ClientSessionState
     Disconnected,
 }
 
-/// <summary>The client side of the session handshake: sends <see cref="Hello"/> on connect and records the server's answer.</summary>
+/// <summary>
+/// The client side of the session handshake: sends <see cref="Hello"/> on connect and records the server's answer. Messages in the
+/// session go to <see cref="Messages"/>.
+/// </summary>
 public sealed class ClientEndpoint : ITransportHandler
 {
     private readonly ITransport _transport;
@@ -42,6 +45,12 @@ public sealed class ClientEndpoint : ITransportHandler
         _hello = hello;
     }
 
+    /// <summary>Receives messages after the handshake (snapshots, intent acks).</summary>
+    public ISessionMessageHandler? Messages { get; set; }
+
+    /// <summary>The connection to the server, once connected.</summary>
+    public ConnectionId Connection { get; private set; }
+
     /// <summary>Current state.</summary>
     public ClientSessionState State { get; private set; } = ClientSessionState.Connecting;
 
@@ -54,6 +63,7 @@ public sealed class ClientEndpoint : ITransportHandler
     /// <inheritdoc />
     public void OnConnected(ConnectionId connection)
     {
+        Connection = connection;
         var writer = new MessageWriter(_buffer);
         new HelloCodec().Write(ref writer, _hello);
         _transport.Send(connection, Channel.ReliableOrdered, writer.WrittenSpan);
@@ -77,7 +87,8 @@ public sealed class ClientEndpoint : ITransportHandler
         try
         {
             var reader = new MessageReader(payload);
-            switch (Protocol.ReadHeader(ref reader))
+            MessageType type = Protocol.ReadHeader(ref reader);
+            switch (type)
             {
                 case MessageType.Welcome:
                     Session = new WelcomeCodec().Read(ref reader);
@@ -91,6 +102,11 @@ public sealed class ClientEndpoint : ITransportHandler
                     _log.Write(LogLevel.Warning, "client.rejected", $"{rejected.Reason}: {rejected.Detail}");
                     break;
                 default:
+                    if (State == ClientSessionState.InSession)
+                    {
+                        Messages?.OnMessage(connection, type, ref reader);
+                    }
+
                     break;
             }
         }
