@@ -19,8 +19,8 @@ Rules: R02, R07, R12, R47, R49 · Related: ADR-001 (layers), TDD v0.1, AI Bible 
 | Random numbers | `Core.Randomness` | `IRandom` | Seeded, forkable deterministic RNG streams | ADR-001, TDD §2.3 | **Implemented** |
 | Simulation clock | `Core.Simulation` | `ISimulationClock` | World tick, in-game time of day and day count (`SimulationClock`, `FixedStepAccumulator`) | TDD §2.1 | **Implemented** (M1-01) |
 | Tick schedule | `Core.Simulation` | `ISimulationSystem` | One stage of the fixed 13-step tick order (run by `SimulationScheduler`) | TDD §2.2 | **Implemented** (M1-01) |
-| ECS facade | `Core.Ecs` | `IEcsWorld` | Entities, components, queries; hides the ECS library | TDD §2.2 | Planned (M1) |
-| Stable ids | `Core.Ecs` | `IStableIdAllocator` | Server-generated 64-bit ids for persistent things | TDD §2.2 | Planned (M1) |
+| ECS facade | `Core.Ecs` | `IEcsWorld` | Entities, components, views (in-house sparse set, `EcsWorld`) | TDD §2.2, ADR-002 | **Implemented** (M1-02b) |
+| Stable ids | `Core.Ecs` | `IStableIdAllocator` | Server-generated 64-bit ids for persistent things (`StableIdAllocator`) | TDD §2.2 | **Implemented** (M1-02b) |
 | Event buffers | `Core.Events` | `IEventBus` | Per-tick typed event buffers between systems (R10) (`EventBus`) | TDD §2.2 | **Implemented** (M1-01) |
 | Async jobs | `Core.Jobs` | `IJobScheduler` | Off-tick jobs, results applied at step 2 in job-id order | TDD §2.5 | Planned (M1) |
 | Spatial index | `Core.Spatial` | `ISpatialIndex` | Hash grid for perception, proximity, targeting, interest | TDD §3.2, AI Bible §9.3 | Planned (M1) |
