@@ -78,6 +78,10 @@ public sealed class ReputationService : IReputationService
         _pending = new (ReputationKey, int)[pendingCapacity];
         _jobPool = [new AggregationJob(this, pendingCapacity), new AggregationJob(this, pendingCapacity)];
         _seedBuffer = new PlayerReputation[ICreatureMindStore.OpinionCapacity];
+
+        // Create the key comparer now (first use allocates), not in the middle of a running game (R21).
+        _scores[default] = 0;
+        _scores.Remove(default);
     }
 
     /// <summary>Events queued and not yet summed.</summary>
