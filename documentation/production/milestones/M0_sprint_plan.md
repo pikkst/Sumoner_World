@@ -57,9 +57,10 @@ Acceptance criteria:
 Evidence: `documentation/technical/architecture/tdd.md` v0.1. Criteria 1–5 covered (§1 hardware + frame/memory budgets; §2 30 Hz tick, ECS layout, determinism; §3 network model, reconnect, idempotency; §4 SQLite saves + migrations; §5 64 m chunks + streaming radii).
 
 TASK: M0-06 System registry (anti-duplication)
-Agent: mechanics_developer · Est: 0.5d
+Agent: mechanics_developer · Est: 0.5d · **Status: Delivered 2026-10-19, review pending (stakeholder)**
 Rules: R47, R49
 Acceptance criteria: `documentation/technical/architecture/system_registry.md` lists every planned system, its owner layer and its interface name
+Evidence: registry v0.1 lists 76 systems (Core, Net, Persistence, Game, tools) with layer, interface, spec and status. New `ArchitectureRegistryTests` fails if a public Core interface is missing; verified by adding an unregistered probe interface (test failed), then removing it (10/10 pass).
 
 TASK: M0-07 M1 benchmark & playtest plan
 Agent: qa_agent + data_scientist · Est: 2d
