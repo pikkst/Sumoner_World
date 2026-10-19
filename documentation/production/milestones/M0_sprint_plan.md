@@ -26,7 +26,7 @@ A deliberate violation file was compiled and **rejected**: RS0030 (banned `Syste
 Notes: repository root is `projects/sumoner-worl` → https://github.com/pikkst/Sumoner_World (set up 2026-10-19). CI lives in `.github/workflows/ci.yml`; CODEOWNERS = @pikkst.
 
 TASK: M0-03 Design pillars + GDD v0.1
-Agent: sr_game_designer · Est: 3d · **Status: Delivered 2026-10-19, review pending (stakeholder)**
+Agent: sr_game_designer · Est: 3d · **Status: Done (stakeholder approved 2026-10-19, PR #1)**
 Rules: R28, R29, R50, R53, R57
 Acceptance criteria:
   1. 3 design pillars, with creature memory/bonding as Pillar #1

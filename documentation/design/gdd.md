@@ -1,5 +1,5 @@
 # Sumoner World - Game Design Document
-Version: **0.1** (M0-03) · Date: 2026-10-19 · Owner: Sr Game Designer · Status: **Delivered, review pending (Producer + stakeholder)**
+Version: **0.1** (M0-03) · Date: 2026-10-19 · Owner: Sr Game Designer · Status: **Approved by stakeholder 2026-10-19** (PvE default, permanent creature death on Hardcore, 16-player target confirmed)
 Rules: R28, R29, R50, R53, R57 · Related: `DEC-002` (monetization/art), `ADR-001` (tech), AI Bible (M0-04, pending), TDD (M0-05, pending)
 
 > All numbers in this document are **design targets or starting values**. Real tuning values live in versioned data files (R08, R48), not in code or here.
@@ -159,3 +159,4 @@ Premium early access at **$24.99** → 1.0 at **$29.99** → paid region expansi
 
 ## Changelog
 - **0.1 (2026-10-19):** First version. Pillars, loops, system intent, content targets, monetization and art references.
+- **0.1 approved (2026-10-19):** Stakeholder approved via PR #1 merge, including PvE-by-default, permanent creature death on Hardcore servers, and the 16-player server target (still to be validated at M1).
