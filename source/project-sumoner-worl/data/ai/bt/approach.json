@@ -1,0 +1,36 @@
+{
+  "schemaVersion": 1,
+  "kind": "behaviourTrees",
+  "entries": [
+    {
+      "goal": "Approach",
+      "root": {
+        "type": "sequence",
+        "children": [
+          {
+            "type": "condition",
+            "input": "hasTarget",
+            "op": "gte",
+            "value": 1000
+          },
+          {
+            "type": "action",
+            "intent": "emote",
+            "emote": "curiosity"
+          },
+          {
+            "type": "action",
+            "intent": "moveTo",
+            "target": "focus",
+            "speed": 50,
+            "timeout": 300
+          },
+          {
+            "type": "wait",
+            "ticks": 60
+          }
+        ]
+      }
+    }
+  ]
+}

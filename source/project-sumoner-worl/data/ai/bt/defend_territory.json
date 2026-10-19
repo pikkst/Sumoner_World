@@ -1,0 +1,36 @@
+{
+  "schemaVersion": 1,
+  "kind": "behaviourTrees",
+  "entries": [
+    {
+      "goal": "DefendTerritory",
+      "root": {
+        "type": "sequence",
+        "children": [
+          {
+            "type": "condition",
+            "input": "hasTarget",
+            "op": "gte",
+            "value": 1000
+          },
+          {
+            "type": "action",
+            "intent": "emote",
+            "emote": "grudge"
+          },
+          {
+            "type": "action",
+            "intent": "moveTo",
+            "target": "focus",
+            "speed": 150,
+            "timeout": 300
+          },
+          {
+            "type": "wait",
+            "ticks": 60
+          }
+        ]
+      }
+    }
+  ]
+}

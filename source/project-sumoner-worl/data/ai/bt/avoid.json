@@ -1,0 +1,32 @@
+{
+  "schemaVersion": 1,
+  "kind": "behaviourTrees",
+  "entries": [
+    {
+      "goal": "Avoid",
+      "root": {
+        "type": "sequence",
+        "children": [
+          {
+            "type": "condition",
+            "input": "hasTarget",
+            "op": "gte",
+            "value": 1000
+          },
+          {
+            "type": "action",
+            "intent": "emote",
+            "emote": "fear"
+          },
+          {
+            "type": "action",
+            "intent": "moveTo",
+            "target": "awayFromFocus",
+            "speed": 150,
+            "timeout": 200
+          }
+        ]
+      }
+    }
+  ]
+}

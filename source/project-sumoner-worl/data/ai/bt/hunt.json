@@ -1,0 +1,30 @@
+{
+  "schemaVersion": 1,
+  "kind": "behaviourTrees",
+  "entries": [
+    {
+      "goal": "Hunt",
+      "root": {
+        "type": "sequence",
+        "children": [
+          {
+            "type": "action",
+            "intent": "moveTo",
+            "target": "wander",
+            "speed": 150,
+            "timeout": 300
+          },
+          {
+            "type": "action",
+            "intent": "interact",
+            "verb": "hunt"
+          },
+          {
+            "type": "wait",
+            "ticks": 60
+          }
+        ]
+      }
+    }
+  ]
+}

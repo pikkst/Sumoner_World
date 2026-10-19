@@ -8,11 +8,8 @@ namespace SumonerWorld.Scenarios.B5;
 /// <summary>World position in metres.</summary>
 public record struct Position(Vector3 Value);
 
-/// <summary>Velocity in metres per tick.</summary>
-public record struct Velocity(Vector3 Value);
-
-/// <summary>Ticks until the creature picks a new heading.</summary>
-public record struct WanderTimer(int TicksLeft);
+/// <summary>Where the creature is walking to (from a MoveTo intent); <c>Active</c> is 1 while moving, 0 when stopped.</summary>
+public record struct MoveTarget(Vector3 Target, float Speed, int Active);
 
 /// <summary>The emote the creature currently shows (replicated to clients later, AI Bible §6.2).</summary>
 public record struct CurrentEmote(Emote Value);

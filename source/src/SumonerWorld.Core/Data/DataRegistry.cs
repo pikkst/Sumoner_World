@@ -12,9 +12,11 @@ public sealed class DataRegistry : IDataRegistry
         IReadOnlyList<MemoryEventTypeDefinition> memoryEventTypes,
         IReadOnlyList<SpeciesDefinition> species,
         IReadOnlyList<OpinionWeightsDefinition> opinionWeights,
-        IReadOnlyList<GoalDefinition> goals)
+        IReadOnlyList<GoalDefinition> goals,
+        IReadOnlyList<BehaviourTreeDefinition> behaviourTrees)
     {
         Goals = goals;
+        BehaviourTrees = behaviourTrees;
         MemoryEventTypes = memoryEventTypes;
         Species = species;
         OpinionWeights = opinionWeights;
@@ -33,6 +35,9 @@ public sealed class DataRegistry : IDataRegistry
 
     /// <inheritdoc />
     public IReadOnlyList<GoalDefinition> Goals { get; }
+
+    /// <inheritdoc />
+    public IReadOnlyList<BehaviourTreeDefinition> BehaviourTrees { get; }
 
     /// <inheritdoc />
     public MemoryEventTypeDefinition GetMemoryEventType(ushort id) =>

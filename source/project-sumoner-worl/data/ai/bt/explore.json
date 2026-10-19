@@ -1,0 +1,25 @@
+{
+  "schemaVersion": 1,
+  "kind": "behaviourTrees",
+  "entries": [
+    {
+      "goal": "Explore",
+      "root": {
+        "type": "sequence",
+        "children": [
+          {
+            "type": "action",
+            "intent": "moveTo",
+            "target": "wander",
+            "speed": 100,
+            "timeout": 450
+          },
+          {
+            "type": "wait",
+            "ticks": 30
+          }
+        ]
+      }
+    }
+  ]
+}
