@@ -62,3 +62,4 @@ The market projections stay as they are (P50: about 100K units / $2.0M gross in 
 
 ### Next step
 M0-09 (Sr Game Artist + Technical Artist): style guide v0.1 with mood boards, a palette, a creature silhouette sheet, the LOD/poly budget table and a lighting test scene in Godot.
+Delivered 2026-10-19: `documentation/art/style-guides/style_guide.md` v0.1 (mood boards still to be collected by hand).

@@ -75,9 +75,10 @@ Rules: R56
 Acceptance criteria: ~~decision on title spelling~~ (done 2026-10-19: "Sumoner World"); trademark search done; capture-mechanic design reviewed against the Nintendo patent claims
 
 TASK: M0-09 Art style guide v0.1 (unblocked: style decided in DEC-002)
-Agent: sr_game_artist + technical_artist · Est: 3d
+Agent: sr_game_artist + technical_artist · Est: 3d · **Status: Delivered 2026-10-19, review pending (stakeholder)**
 Rules: R22, R24
 Acceptance criteria: style pillars, creature silhouette rules, LOD/poly budgets aligned with the TDD
+Evidence: `documentation/art/style-guides/style_guide.md` v0.1 (5 pillars §1, silhouette and role rules §3, budgets aligned with TDD §6). Lighting test scene `scenes/dev/LightingTest.tscn` imports without errors and renders on the dev PC (screenshot in the guide).
 
 ---
 ## M0 exit gate (Producer validation)
