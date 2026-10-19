@@ -1,0 +1,9 @@
+# R41: critical systems require review by the stakeholder.
+/source/src/SumonerWorld.Core/          @pikkst
+/source/src/SumonerWorld.Net/           @pikkst
+/source/src/SumonerWorld.Persistence/   @pikkst
+/source/BannedSymbols.Simulation.txt    @pikkst
+/source/Directory.Build.props           @pikkst
+/source/.editorconfig                   @pikkst
+/.github/                               @pikkst
+/project-config.json                    @pikkst

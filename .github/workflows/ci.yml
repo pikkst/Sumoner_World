@@ -1,0 +1,33 @@
+# Quality gates (development_rules_enforcement.md, layers A-D; R45).
+name: ci
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: source
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-dotnet@v4
+        with:
+          global-json-file: source/global.json
+          dotnet-version: 8.0.x
+      - name: Restore
+        run: dotnet restore SumonerWorld.sln
+      - name: Format & style (R04, R45)
+        run: dotnet format SumonerWorld.sln --verify-no-changes --no-restore
+      - name: Build with analyzers, warnings as errors (R05, R11, R35, R36, R49)
+        run: dotnet build SumonerWorld.sln -c Release --no-restore
+      - name: Unit, integration & architecture tests (R12, R42-R44)
+        run: dotnet test SumonerWorld.sln -c Release --no-build --logger "trx;LogFileName=results.trx"
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: test-results
+          path: "source/**/TestResults/*.trx"

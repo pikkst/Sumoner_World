@@ -1,0 +1,30 @@
+; Engine configuration file.
+; Pinned engine: Godot 4.7.2-stable .NET (ADR-001).
+
+config_version=5
+
+[application]
+
+config/name="Sumoner World"
+config/features=PackedStringArray("4.7", "C#", "Forward Plus")
+
+[dotnet]
+
+project/assembly_name="SumonerWorld.Game"
+project/solution_directory="../"
+
+[debug]
+
+gdscript/warnings/untyped_declaration=2
+gdscript/warnings/inferred_declaration=0
+gdscript/warnings/unsafe_property_access=2
+gdscript/warnings/unsafe_method_access=2
+gdscript/warnings/unsafe_call_argument=2
+
+[physics]
+
+common/physics_ticks_per_second=60
+
+[rendering]
+
+anti_aliasing/quality/msaa_3d=2

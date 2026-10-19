@@ -1,0 +1,19 @@
+<Project>
+  <!-- Quality gates shared by every project (development_rules_enforcement.md, layer A). -->
+  <PropertyGroup>
+    <LangVersion>latest</LangVersion>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
+    <AnalysisLevel>latest-recommended</AnalysisLevel>
+    <EnforceCodeStyleInBuild>true</EnforceCodeStyleInBuild>
+    <GenerateDocumentationFile>true</GenerateDocumentationFile>
+    <Deterministic>true</Deterministic>
+  </PropertyGroup>
+
+  <!-- Simulation and networking layers must not use nondeterministic or blocking APIs (R11, R21). -->
+  <ItemGroup Condition="'$(IsSimulationLayer)' == 'true'">
+    <PackageReference Include="Microsoft.CodeAnalysis.BannedApiAnalyzers" Version="3.3.4" PrivateAssets="all" />
+    <AdditionalFiles Include="$(MSBuildThisFileDirectory)BannedSymbols.Simulation.txt" />
+  </ItemGroup>
+</Project>

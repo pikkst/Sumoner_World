@@ -1,0 +1,14 @@
+<Project Sdk="Godot.NET.Sdk/4.7.2">
+
+  <!-- Presentation layer: scenes, rendering, input, UI. Gameplay state lives in SumonerWorld.Core (ADR-001, R12, R38). -->
+  <PropertyGroup>
+    <TargetFramework>net8.0</TargetFramework>
+    <RootNamespace>SumonerWorld.Game</RootNamespace>
+    <EnableDynamicLoading>true</EnableDynamicLoading>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\src\SumonerWorld.Core\SumonerWorld.Core.csproj" />
+  </ItemGroup>
+
+</Project>
