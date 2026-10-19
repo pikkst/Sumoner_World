@@ -83,4 +83,13 @@ public sealed record MemoryEventTypeDefinition
 
     /// <summary>Personality shift applied once when this core memory forms; only allowed on core types.</summary>
     public TraitDrift? TraitDrift { get; init; }
+
+    /// <summary>Largest allowed reputation change per event.</summary>
+    public const int MaxReputationDelta = 500;
+
+    /// <summary>
+    /// Change to the player's server reputation with the creature's species in that region when this event happens to a creature
+    /// (AI Bible §4.5); 0 = no effect.
+    /// </summary>
+    public int ReputationDelta { get; init; }
 }

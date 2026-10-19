@@ -13,7 +13,7 @@ public class B5GateTests
     [Fact]
     public void Steady_state_ticks_allocate_nothing()
     {
-        var scenario = new B5Scenario(Seed);
+        using var scenario = new B5Scenario(Seed);
         for (int i = 0; i < B5Scenario.WarmUpTicks; i++)
         {
             scenario.RunTick();
@@ -39,6 +39,8 @@ public class B5GateTests
         Assert.True(scenario.TierCounts.Count >= 2, "B5 creatures must be spread over several AI tiers (M1-10).");
         Assert.True(scenario.PlayerFocusEvents > 0, "B5 creatures must notice and focus on the players (M1-10).");
         Assert.True(scenario.PactOffers > 0, "B5 players must offer Pacts (M1-11).");
+        Assert.True(scenario.RumoursShared > 0, "B5 herd-mates must pass rumours (M1-12).");
+        Assert.True(scenario.KillsByPlayers > 0 && scenario.ReputationAggregations > 0, "B5 must feed and aggregate reputation (M1-12).");
     }
 
     [Fact]
@@ -52,14 +54,25 @@ public class B5GateTests
     }
 
     [Fact]
+    public void Background_job_threads_do_not_change_the_result()
+    {
+        // TDD §2.3: 1 vs N worker threads must give identical state on every tick.
+        ulong[] inline = RunAndHash(Seed, workers: 0);
+        ulong[] threaded = RunAndHash(Seed, workers: 2);
+
+        int firstDifference = Enumerable.Range(0, inline.Length).FirstOrDefault(tick => inline[tick] != threaded[tick], -1);
+        Assert.True(firstDifference < 0, $"Worker threads changed the result at tick {firstDifference} (R11).");
+    }
+
+    [Fact]
     public void Different_seeds_produce_different_worlds()
     {
         Assert.NotEqual(RunAndHash(Seed)[^1], RunAndHash(Seed + 1)[^1]);
     }
 
-    private static ulong[] RunAndHash(ulong seed)
+    private static ulong[] RunAndHash(ulong seed, int workers = 0)
     {
-        var scenario = new B5Scenario(seed);
+        using var scenario = new B5Scenario(seed, jobWorkers: workers);
         var hashes = new ulong[B5Scenario.WarmUpTicks + B5Scenario.MeasuredTicks];
         for (int i = 0; i < hashes.Length; i++)
         {

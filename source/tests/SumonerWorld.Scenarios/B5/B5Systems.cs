@@ -7,6 +7,7 @@ using SumonerWorld.Core.Cognition.Lod;
 using SumonerWorld.Core.Cognition.Memory;
 using SumonerWorld.Core.Cognition.Perception;
 using SumonerWorld.Core.Data.Definitions;
+using SumonerWorld.Core.Ecosystem;
 using SumonerWorld.Core.Ecs;
 using SumonerWorld.Core.Events;
 using SumonerWorld.Core.Randomness;
@@ -128,10 +129,15 @@ internal sealed class PerceptionSystem(
     private readonly ComponentStore<FocusRef> _focus = world.Store<FocusRef>();
     private readonly ComponentStore<MindRef> _minds = world.Store<MindRef>();
     private readonly ComponentStore<PlayerTag> _players = world.Store<PlayerTag>();
+    private readonly ComponentStore<GroupRef> _groups = world.Store<GroupRef>();
 
     public SimulationStage Stage => SimulationStage.Perception;
 
     public int PlayerFocusEvents { get; private set; }
+
+    public int RumoursShared { get; private set; }
+
+    public ICreatureMindStore? Minds { get; init; }
 
     public void Execute(in SimulationTick tick)
     {
@@ -160,9 +166,20 @@ internal sealed class PerceptionSystem(
             }
 
             int creaturesSensed = 0;
+            bool told = false;
             foreach (Percept percept in percepts)
             {
-                creaturesSensed += _minds.Has(percept.Entity) ? 1 : 0;
+                if (!_minds.Has(percept.Entity))
+                {
+                    continue;
+                }
+
+                creaturesSensed++;
+                if (!told && Minds is not null && _groups.Get(percept.Entity).Group == _groups.Get(creature).Group)
+                {
+                    RumoursShared += Minds.ShareRumours(mind, _minds.Get(percept.Entity).Handle, tick.Index, maxShared: 3);
+                    told = true;
+                }
             }
 
             events.Publish(new NeighbourCount(creature, creaturesSensed));
@@ -453,12 +470,36 @@ internal sealed class PactOfferSystem(IEcsWorld world, IBondingRules bonding, B5
     }
 }
 
-/// <summary>Every 30 ticks one creature dies and a new one spawns (ECS, spatial index, mind store and stable id churn).</summary>
-internal sealed class ChurnSystem(B5Scenario scenario, IEcsWorld world) : ISimulationSystem
+/// <summary>Every 10 s the reputation events of the period are handed to the background aggregation job (AI Bible §4.5).</summary>
+internal sealed class ReputationFlushSystem(IReputationService reputation) : ISimulationSystem
+{
+    private const int Interval = 300;
+
+    public SimulationStage Stage => SimulationStage.Ecosystem;
+
+    public void Execute(in SimulationTick tick)
+    {
+        if (tick.Index % Interval == 0)
+        {
+            reputation.Flush();
+        }
+    }
+}
+
+/// <summary>
+/// Every 30 ticks one creature dies and a new one spawns (ECS, spatial index, mind store and stable id churn). A death within
+/// 30 m of a stand-in player counts as that player killing it, for the species' reputation (M1-12).
+/// </summary>
+internal sealed class ChurnSystem(B5Scenario scenario, IEcsWorld world, IReputationService reputation, ushort killedKin) : ISimulationSystem
 {
     private const int Interval = 30;
+    private const float KillRange = 30f;
 
     private readonly ComponentStore<MindRef> _creatures = world.Store<MindRef>();
+    private readonly ComponentStore<PlayerTag> _players = world.Store<PlayerTag>();
+    private readonly ComponentStore<Position> _positions = world.Store<Position>();
+
+    public int KillsByPlayers { get; private set; }
 
     public SimulationStage Stage => SimulationStage.Ecosystem;
 
@@ -469,7 +510,20 @@ internal sealed class ChurnSystem(B5Scenario scenario, IEcsWorld world) : ISimul
             return;
         }
 
-        scenario.Despawn(_creatures.Entities[0]);
+        Entity victim = _creatures.Entities[0];
+        Vector3 where = _positions.Get(victim).Value;
+        ReadOnlySpan<Entity> players = _players.Entities;
+        for (int i = 0; i < players.Length; i++)
+        {
+            if (Vector3.Distance(where, _positions.Get(players[i]).Value) <= KillRange)
+            {
+                reputation.Record(killedKin, new ReputationKey(0, B5Scenario.RegionOf(where), _players.Get(players[i]).AccountId));
+                KillsByPlayers++;
+                break;
+            }
+        }
+
+        scenario.Despawn(victim);
         scenario.Spawn();
     }
 }

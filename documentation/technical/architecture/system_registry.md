@@ -22,7 +22,8 @@ Rules: R02, R07, R12, R47, R49 · Related: ADR-001 (layers), TDD v0.1, AI Bible 
 | ECS facade | `Core.Ecs` | `IEcsWorld` | Entities, components, views (in-house sparse set, `EcsWorld`) | TDD §2.2, ADR-002 | **Implemented** (M1-02b) |
 | Stable ids | `Core.Ecs` | `IStableIdAllocator` | Server-generated 64-bit ids for persistent things (`StableIdAllocator`) | TDD §2.2 | **Implemented** (M1-02b) |
 | Event buffers | `Core.Events` | `IEventBus` | Per-tick typed event buffers between systems (R10) (`EventBus`) | TDD §2.2 | **Implemented** (M1-01) |
-| Async jobs | `Core.Jobs` | `IJobScheduler` | Off-tick jobs, results applied at step 2 in job-id order | TDD §2.5 | Planned (M1) |
+| Async jobs | `Core.Jobs` | `IJobScheduler` | Off-tick jobs, results applied at step 2 in job-id order (`JobScheduler`, `JobApplySystem`); same result with 0 or N workers | TDD §2.5 | **Implemented** (M1-12) |
+| Job contract | `Core.Jobs` | `IJob` | `Execute` off-thread on job-owned data, `Apply` on the simulation thread; reusable (no allocation per submit) | TDD §2.5 | **Implemented** (M1-12) |
 | Spatial index | `Core.Spatial` | `ISpatialIndex` | Uniform grid over the world bounds for perception, proximity, targeting, interest (`SpatialGrid`) | TDD §3.2, AI Bible §9.3 | **Implemented** (M1-03) |
 | Physics port | `Core.Physics` | `IPhysicsQueries` | Ray cast, sweep, overlap (implemented by Godot adapter) | TDD §2.4 | Planned (M1) |
 | Navigation port | `Core.Navigation` | `INavigation` | Async path requests (implemented by Godot adapter) | TDD §2.4 | Planned (M1) |
@@ -72,7 +73,8 @@ Rules: R02, R07, R12, R47, R49 · Related: ADR-001 (layers), TDD v0.1, AI Bible 
 | Pact acceptance | `Core.Bonding` | `IPactEvaluator` | Pact Terms and acceptance score with full breakdown (`PactEvaluator`) | AI Bible §10.2 | **Implemented** (M1-11) |
 | Obedience | `Core.Bonding` | `IObedienceModel` | Obey / Improvise / Hesitate / Refuse (`ObedienceModel`) | AI Bible §7.4 | **Implemented** (M1-11) |
 | Population | `Core.Ecosystem` | `IPopulationModel` | T3 abstract populations, territory, migration | AI Bible §9.4 | Planned (M2) |
-| Reputation | `Core.Ecosystem` | `IReputationService` | Server-wide (species, region, player) reputation | AI Bible §4.5 | Planned (M1) |
+| Reputation | `Core.Ecosystem` | `IReputationService` | Server-wide (species, region, player) reputation from data `reputationDelta`, summed by a background job; seeds new creatures' opinions (`ReputationService`) | AI Bible §4.5 | **Implemented** (M1-12) |
+| Rumours | `Core.Cognition.Memory` | `ICreatureMindStore.ShareRumours` (method) | Groupmates pass on their 3 strongest first-hand memories about players at half strength; never passed on again | AI Bible §4.5 | **Implemented** (M1-12) |
 | Chunk map | `Core.World` | `IChunkMap` | 64 m chunk states: loaded / abstract | TDD §5 | Planned (M1) |
 | World generation | `Core.World` | `IWorldGenerator` | Seeded scatter of resources and props | TDD §5.1 | Planned (M2) |
 | Weather | `Core.World` | `IWeatherModel` | Deterministic weather and world events | GDD §7 | Planned (M2) |

@@ -155,14 +155,28 @@ public sealed class CreatureMindStore : ICreatureMindStore
             existing = FindIndex(episodicStart, _episodicCounts[mind.Slot], eventType, subject);
         }
 
+        var tags = definition.IsCore ? MemoryTags.Core : MemoryTags.None;
+        var record = new MemoryRecord(eventType, subject, (sbyte)definition.Valence, (ushort)definition.BaseSalience, tick, tick, 1, tags);
+
+        // First-hand experience replaces a rumour of the same event (rumours only ever sit in episodic slots).
+        if (existing >= 0 && (_records[existing].Tags & MemoryTags.Rumour) != 0)
+        {
+            if (!definition.IsCore)
+            {
+                int strength = Math.Max(definition.BaseSalience, Effective(_records[existing], tick));
+                _records[existing] = record with { Salience = (ushort)Math.Min(strength, ICreatureMindStore.MaxSalience) };
+                return new RememberResult(MemoryOutcome.Created, EvictedAnother: false, DriftedTrait: null);
+            }
+
+            RemoveEpisodic(mind, existing);
+            existing = -1;
+        }
+
         if (existing >= 0 && Effective(_records[existing], tick) >= ICreatureMindStore.ForgetThreshold)
         {
             _records[existing] = Reinforce(_records[existing], definition, tick);
             return new RememberResult(MemoryOutcome.Reinforced, EvictedAnother: false, DriftedTrait: null);
         }
-
-        var tags = definition.IsCore ? MemoryTags.Core : MemoryTags.None;
-        var record = new MemoryRecord(eventType, subject, (sbyte)definition.Valence, (ushort)definition.BaseSalience, tick, tick, 1, tags);
 
         if (existing >= 0)
         {
@@ -205,6 +219,62 @@ public sealed class CreatureMindStore : ICreatureMindStore
             tenths.Fear / BaselineTenthsPerPoint,
             tenths.Affection / BaselineTenthsPerPoint,
             tenths.Respect / BaselineTenthsPerPoint);
+    }
+
+    /// <inheritdoc />
+    public void SeedOpinionBaseline(MindHandle mind, MemorySubject subject, Opinion baseline)
+    {
+        EnsureValid(mind);
+        int index = FindOpinion(mind, subject);
+        if (index >= 0 && _opinionBaselineTenths[index] != Opinion.Neutral)
+        {
+            return;
+        }
+
+        if (index < 0)
+        {
+            index = AddOpinionSlot(mind, subject);
+        }
+
+        _opinionBaselineTenths[index] = new Opinion(
+            Math.Clamp(baseline.Trust * BaselineTenthsPerPoint, -MaxBaselineTenths, MaxBaselineTenths),
+            Math.Clamp(baseline.Fear * BaselineTenthsPerPoint, -MaxBaselineTenths, MaxBaselineTenths),
+            Math.Clamp(baseline.Affection * BaselineTenthsPerPoint, -MaxBaselineTenths, MaxBaselineTenths),
+            Math.Clamp(baseline.Respect * BaselineTenthsPerPoint, -MaxBaselineTenths, MaxBaselineTenths));
+    }
+
+    /// <inheritdoc />
+    public int ShareRumours(MindHandle teller, MindHandle listener, ulong now, int maxShared)
+    {
+        EnsureValid(teller);
+        EnsureValid(listener);
+        ArgumentOutOfRangeException.ThrowIfNegative(maxShared);
+        if (teller == listener || maxShared == 0)
+        {
+            return 0;
+        }
+
+        uint tick = ToRecordTick(now);
+        int shared = 0;
+        int previousStrength = int.MaxValue;
+        int previousIndex = -1;
+        while (shared < maxShared)
+        {
+            int best = StrongestFirstHandAboutPlayers(teller, tick, previousStrength, previousIndex, out int strength);
+            if (best < 0)
+            {
+                break;
+            }
+
+            previousStrength = strength;
+            previousIndex = best;
+            if (ReceiveRumour(listener, _records[best], strength / 2, tick))
+            {
+                shared++;
+            }
+        }
+
+        return shared;
     }
 
     /// <inheritdoc />
@@ -403,6 +473,76 @@ public sealed class CreatureMindStore : ICreatureMindStore
         _opinionSubjects[index] = subject;
         _opinionBaselineTenths[index] = Opinion.Neutral;
         return index;
+    }
+
+    // Next strongest first-hand (non-rumour), remembered memory about a player, strictly after (previousStrength, previousIndex)
+    // in "strongest first, then lowest index" order. No allocation: scans the creature's slots.
+    private int StrongestFirstHandAboutPlayers(MindHandle mind, uint tick, int previousStrength, int previousIndex, out int strength)
+    {
+        int start = mind.Slot * SlotsPerMind;
+        int best = -1;
+        strength = -1;
+        for (int i = start; i < start + SlotsPerMind; i++)
+        {
+            bool used = i < start + _coreCounts[mind.Slot]
+                || (i >= start + ICreatureMindStore.CoreCapacity && i < start + ICreatureMindStore.CoreCapacity + _episodicCounts[mind.Slot]);
+            if (!used || _records[i].SubjectKind != SubjectKind.Player || (_records[i].Tags & MemoryTags.Rumour) != 0)
+            {
+                continue;
+            }
+
+            int value = Effective(_records[i], tick);
+            bool afterPrevious = value < previousStrength || (value == previousStrength && i > previousIndex);
+            if (value >= ICreatureMindStore.ForgetThreshold && afterPrevious && value > strength)
+            {
+                best = i;
+                strength = value;
+            }
+        }
+
+        return best;
+    }
+
+    // Removes an episodic record by moving the last one into its slot (deterministic order).
+    private void RemoveEpisodic(MindHandle mind, int index)
+    {
+        int last = (mind.Slot * SlotsPerMind) + ICreatureMindStore.CoreCapacity + _episodicCounts[mind.Slot] - 1;
+        _records[index] = _records[last];
+        _records[last] = default;
+        _episodicCounts[mind.Slot]--;
+    }
+
+    // A rumour never overrides first-hand experience; it only refreshes a weaker rumour of the same event and subject.
+    private bool ReceiveRumour(MindHandle to, in MemoryRecord heard, int salience, uint tick)
+    {
+        if (salience < ICreatureMindStore.ForgetThreshold)
+        {
+            return false;
+        }
+
+        var rumour = new MemoryRecord(heard.EventType, heard.Subject, heard.Valence, (ushort)salience, tick, tick, 1, MemoryTags.Rumour);
+        int start = (to.Slot * SlotsPerMind) + ICreatureMindStore.CoreCapacity;
+        int existing = FindIndex(to.Slot * SlotsPerMind, _coreCounts[to.Slot], heard.EventType, heard.Subject);
+        if (existing < 0)
+        {
+            existing = FindIndex(start, _episodicCounts[to.Slot], heard.EventType, heard.Subject);
+        }
+
+        if (existing >= 0)
+        {
+            MemoryRecord current = _records[existing];
+            bool currentIsRumour = (current.Tags & MemoryTags.Rumour) != 0;
+            if (!currentIsRumour || Effective(current, tick) >= salience)
+            {
+                return false;
+            }
+
+            _records[existing] = rumour;
+            return true;
+        }
+
+        AddEpisodic(to, rumour, tick);
+        return true;
     }
 
     private int FindIndex(int start, int count, ushort eventType, MemorySubject subject)

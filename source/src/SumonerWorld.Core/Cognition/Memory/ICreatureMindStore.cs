@@ -116,6 +116,19 @@ public interface ICreatureMindStore
     /// <summary>Long-term opinion baseline about <paramref name="subject"/>, in attitude points (neutral if none is kept).</summary>
     Opinion GetOpinionBaseline(MindHandle mind, MemorySubject subject);
 
+    /// <summary>
+    /// Sets the long-term baseline about <paramref name="subject"/> when it is still neutral, e.g. from the server reputation when a
+    /// wild creature spawns (AI Bible §4.5). Values are clamped to ±<see cref="MaxBaseline"/>.
+    /// </summary>
+    void SeedOpinionBaseline(MindHandle mind, MemorySubject subject, Opinion baseline);
+
+    /// <summary>
+    /// <paramref name="teller"/> tells <paramref name="listener"/> about players (AI Bible §4.5): its strongest first-hand memories about
+    /// players (at most <paramref name="maxShared"/>) are copied as rumours at half strength. Rumours are never passed on again, never
+    /// pinned, carry no core tag and do not move baselines. Returns how many were shared.
+    /// </summary>
+    int ShareRumours(MindHandle teller, MindHandle listener, ulong now, int maxShared);
+
     /// <summary>A need's level at tick <paramref name="now"/>, in [0, 100].</summary>
     int GetNeed(MindHandle mind, Need need, ulong now);
 

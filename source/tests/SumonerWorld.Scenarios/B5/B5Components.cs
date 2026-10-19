@@ -30,6 +30,9 @@ public record struct FocusRef(Entity Entity, int Distance, int Has);
 /// <summary>The creature's mind in the mind store.</summary>
 public record struct MindRef(MindHandle Handle);
 
+/// <summary>The herd a creature belongs to (rumours spread between herd-mates, AI Bible §4.5).</summary>
+public record struct GroupRef(int Group);
+
 /// <summary>Marks a stand-in player (B5 has no network yet); <c>AccountId</c> is what creatures remember them by.</summary>
 public record struct PlayerTag(ulong AccountId, int Waypoint);
 

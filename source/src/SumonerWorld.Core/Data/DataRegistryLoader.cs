@@ -300,6 +300,7 @@ public static class DataRegistryLoader
             errors.Add($"{where}: halfLifeDays must be at least 1, or null for memories that never decay.");
         }
 
+        CheckRange(entry.ReputationDelta, -MemoryEventTypeDefinition.MaxReputationDelta, MemoryEventTypeDefinition.MaxReputationDelta, "reputationDelta", where, errors);
         if (entry.TraitDrift is TraitDrift drift)
         {
             if (!entry.IsCore)

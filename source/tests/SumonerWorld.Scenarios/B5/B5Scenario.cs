@@ -1,21 +1,13 @@
 using System.Numerics;
-using SumonerWorld.Core.Bonding;
 using SumonerWorld.Core.Cognition;
 using SumonerWorld.Core.Cognition.Appraisal;
-using SumonerWorld.Core.Cognition.Behaviour;
 using SumonerWorld.Core.Cognition.Decision;
 using SumonerWorld.Core.Cognition.Lod;
 using SumonerWorld.Core.Cognition.Memory;
-using SumonerWorld.Core.Cognition.Opinions;
-using SumonerWorld.Core.Cognition.Perception;
-using SumonerWorld.Core.Data;
-using SumonerWorld.Core.Data.Definitions;
 using SumonerWorld.Core.Diagnostics;
 using SumonerWorld.Core.Ecs;
 using SumonerWorld.Core.Events;
-using SumonerWorld.Core.Randomness;
 using SumonerWorld.Core.Simulation;
-using SumonerWorld.Core.Spatial;
 
 namespace SumonerWorld.Scenarios.B5;
 
@@ -24,10 +16,11 @@ namespace SumonerWorld.Scenarios.B5;
 /// Core without Godot. Creatures (species <c>mossback</c> from the shipped data) get an AI tier from their distance to the players
 /// (M1-10), perceive neighbours and players at their tier's rate and focus on the most notable one, choose goals with the utility
 /// AI (M1-08), carry them out with the shipped behaviour trees (M1-09), remember crowded spots as dangerous (M1-06), react with
-/// emotions and emotes (M1-07), receive Pact offers from the players (M1-11) and are replaced by churn. Each new AI system is added here so the gates keep covering it.
-/// Used by the CI gates (0 allocations per tick, identical runs) and by the benchmark tool (timings).
+/// emotions and emotes (M1-07), receive Pact offers from the players (M1-11), pass rumours to herd-mates and feed the species'
+/// reputation, summed by a background job (M1-12), and are replaced by churn. Each new AI system is added here so the gates keep
+/// covering it. Used by the CI gates (0 allocations per tick, identical runs) and by the benchmark tool (timings).
 /// </summary>
-public sealed class B5Scenario
+public sealed class B5Scenario : IDisposable
 {
     /// <summary>Creatures alive at any time.</summary>
     public const int CreatureCount = 200;
@@ -41,49 +34,25 @@ public sealed class B5Scenario
     /// <summary>Measured run: 5 min at 30 Hz (M0-07 A1).</summary>
     public const int MeasuredTicks = 9_000;
 
-    private const float RegionSize = 512f;
-    private const float Speed = 0.1f;
-    private const float PlayerSpeed = 0.15f;
-    private const int EntityCapacity = 256;
-    private const int EventCapacity = 256;
-    private const int IntentCapacity = 1024;
-    private const string SpeciesId = "mossback";
     private const ulong FirstAccountId = 9_000_001;
+    private const int Herds = 10;
+    private const int RegionCellSize = 256;
+    private const int RegionsPerRow = 2;
 
-    private readonly EcsWorld _world;
-    private readonly SpatialGrid _grid;
-    private readonly SeededRandom _random;
+    private readonly B5World _b5;
     private readonly StableIdAllocator _ids = new();
-    private readonly CreatureMindStore _minds;
-    private readonly AppraisalModel _appraisal;
-    private readonly OpinionModel _opinions;
-    private readonly SpeciesDefinition _species;
-    private readonly SimulationClock _clock;
     private readonly SimulationScheduler _scheduler;
-    private IntentSystem? _intents;
-    private PerceptionSystem? _perception;
-    private PactOfferSystem? _pacts;
-    private BondingRules? _bonding;
+    private readonly B5Probes _probes;
 
-    /// <summary>Builds the scenario from a seed; <paramref name="metrics"/> optionally receives stage timings.</summary>
-    public B5Scenario(ulong seed, IMetrics? metrics = null)
+    /// <summary>
+    /// Builds the scenario from a seed; <paramref name="metrics"/> optionally receives stage timings; <paramref name="jobWorkers"/> is
+    /// the number of background job threads (0 = run jobs inline). The result must not depend on it.
+    /// </summary>
+    public B5Scenario(ulong seed, IMetrics? metrics = null, int jobWorkers = 0)
     {
-        _random = new SeededRandom(seed);
-        _world = CreateWorld();
-        DataRegistry data = ShippedData.Current;
-        _species = data.GetSpecies(SpeciesId);
-        var rules = new MemoryRules(data.MemoryEventTypes, data.OpinionWeights, SimulationSettings.DefaultTicksPerDay);
-        _minds = new CreatureMindStore(rules, EntityCapacity);
-        _opinions = new OpinionModel(_minds, rules);
-        _appraisal = new AppraisalModel(_minds, _opinions, rules, AppraisalSettings.Default);
-        _grid = new SpatialGrid(new SpatialGridSettings(0, 0, RegionSize, RegionSize, SpatialGridSettings.DefaultCellSize, EntityCapacity));
-
-        Events = new EventBus();
-        Events.Register<NeighbourCount>(EventCapacity);
-        Events.Register<CreatureIntent>(IntentCapacity);
-        _clock = new SimulationClock(SimulationSettings.Default);
-        _scheduler = new SimulationScheduler(_clock, Events, metrics);
-        RegisterSystems(rules, data);
+        _b5 = new B5World(seed, jobWorkers);
+        _scheduler = new SimulationScheduler(_b5.Clock, _b5.Events, metrics);
+        _probes = B5Pipeline.Register(_b5, _scheduler, this);
 
         for (int i = 0; i < PlayerCount; i++)
         {
@@ -97,84 +66,106 @@ public sealed class B5Scenario
     }
 
     /// <summary>The scenario's event bus (its growth counter shows hidden allocations).</summary>
-    public EventBus Events { get; }
+    public EventBus Events => _b5.Events;
 
     /// <summary>Creatures currently alive (players not counted).</summary>
-    public int LiveCreatures => _world.Store<MindRef>().Count;
+    public int LiveCreatures => _b5.World.Store<MindRef>().Count;
 
     /// <summary>Minds currently allocated.</summary>
-    public int LiveMinds => _minds.Count;
+    public int LiveMinds => _b5.Minds.Count;
 
     /// <summary>How many creatures currently pursue each goal id (for the gate test).</summary>
-    public IReadOnlyDictionary<ushort, int> GoalCounts => Count(_world.Store<CurrentGoal>().Components, goal => goal.Goal);
+    public IReadOnlyDictionary<ushort, int> GoalCounts => Count(_b5.World.Store<CurrentGoal>().Components, goal => goal.Goal);
 
     /// <summary>How many creatures are in each AI tier right now.</summary>
-    public IReadOnlyDictionary<AiLodTier, int> TierCounts => Count(_world.Store<AiTier>().Components, tier => tier.Tier);
+    public IReadOnlyDictionary<AiLodTier, int> TierCounts => Count(_b5.World.Store<AiTier>().Components, tier => tier.Tier);
 
     /// <summary>Creatures currently showing an emote.</summary>
-    public int CreaturesShowingAnEmote => _world.Store<CurrentEmote>().Components.ToArray().Count(emote => emote.Value != Emote.None);
+    public int CreaturesShowingAnEmote => _b5.World.Store<CurrentEmote>().Components.ToArray().Count(emote => emote.Value != Emote.None);
 
     /// <summary>Times a creature chose a player as its focus since the start.</summary>
-    public int PlayerFocusEvents => _perception?.PlayerFocusEvents ?? 0;
+    public int PlayerFocusEvents => _probes.Perception.PlayerFocusEvents;
+
+    /// <summary>Rumours passed between herd-mates since the start.</summary>
+    public int RumoursShared => _probes.Perception.RumoursShared;
+
+    /// <summary>Creature deaths attributed to a nearby player (reputation events) since the start.</summary>
+    public int KillsByPlayers => _probes.Churn.KillsByPlayers;
+
+    /// <summary>Reputation aggregation jobs applied since the start.</summary>
+    public int ReputationAggregations => _b5.Reputation.Aggregations;
 
     /// <summary>Pact offers made by the players since the start.</summary>
-    public int PactOffers => _pacts?.Offers ?? 0;
+    public int PactOffers => _probes.Pacts.Offers;
 
     /// <summary>Pact offers accepted since the start.</summary>
-    public int PactsSealed => _pacts?.Accepted ?? 0;
+    public int PactsSealed => _probes.Pacts.Accepted;
 
     /// <summary>Interact intents carried out (eat, rest, socialise...) since the start.</summary>
-    public int Interactions => _intents?.Interactions ?? 0;
+    public int Interactions => _probes.Intents.Interactions;
 
     /// <summary>Memory records currently stored by all creatures.</summary>
-    public int StoredMemories => _minds.TotalRecords;
+    public int StoredMemories => _b5.Minds.TotalRecords;
 
     /// <summary>Simulates one tick.</summary>
     public void RunTick() => _scheduler.RunTick();
 
-    /// <summary>Hash of all deterministic state: ids, positions, facings, targets, tiers, focus, emotes, goals and minds (TDD §2.3).</summary>
+    /// <summary>Hash of all deterministic state: entities, components, minds, bonds and reputation (TDD §2.3).</summary>
     public ulong ComputeStateHash()
     {
+        EcsWorld world = _b5.World;
         var hash = default(StateHash);
-        hash.Add(_clock.Current.Index);
-        hash.Add<Entity>(_world.Store<Position>().Entities);
-        hash.Add<StableId>(_world.Store<StableId>().Components);
-        hash.Add<Position>(_world.Store<Position>().Components);
-        hash.Add<Facing>(_world.Store<Facing>().Components);
-        hash.Add<MoveTarget>(_world.Store<MoveTarget>().Components);
-        hash.Add<AiTier>(_world.Store<AiTier>().Components);
-        hash.Add<FocusRef>(_world.Store<FocusRef>().Components);
-        hash.Add<CurrentEmote>(_world.Store<CurrentEmote>().Components);
-        hash.Add<CurrentGoal>(_world.Store<CurrentGoal>().Components);
-        _minds.AddTo(ref hash);
-        _bonding?.AddTo(ref hash);
+        hash.Add(_b5.Clock.Current.Index);
+        hash.Add<Entity>(world.Store<Position>().Entities);
+        hash.Add<StableId>(world.Store<StableId>().Components);
+        hash.Add<Position>(world.Store<Position>().Components);
+        hash.Add<Facing>(world.Store<Facing>().Components);
+        hash.Add<MoveTarget>(world.Store<MoveTarget>().Components);
+        hash.Add<AiTier>(world.Store<AiTier>().Components);
+        hash.Add<FocusRef>(world.Store<FocusRef>().Components);
+        hash.Add<CurrentEmote>(world.Store<CurrentEmote>().Components);
+        hash.Add<CurrentGoal>(world.Store<CurrentGoal>().Components);
+        hash.Add<GroupRef>(world.Store<GroupRef>().Components);
+        _b5.Minds.AddTo(ref hash);
+        _probes.Bonding.AddTo(ref hash);
+        _b5.Reputation.AddTo(ref hash);
         return hash.Value;
     }
 
+    /// <summary>Stops the background job threads.</summary>
+    public void Dispose() => _b5.Dispose();
+
+    internal static int RegionOf(Vector3 position) =>
+        ((int)(position.Z / RegionCellSize) * RegionsPerRow) + (int)(position.X / RegionCellSize);
+
     internal void Spawn()
     {
-        Entity creature = _world.Create();
-        var position = new Vector3((float)(_random.NextDouble() * RegionSize), 0, (float)(_random.NextDouble() * RegionSize));
-        _world.Add(creature, _ids.Allocate());
+        EcsWorld world = _b5.World;
+        Entity creature = world.Create();
+        var position = new Vector3((float)(_b5.Random.NextDouble() * B5World.RegionSize), 0, (float)(_b5.Random.NextDouble() * B5World.RegionSize));
+        world.Add(creature, _ids.Allocate());
         AddBody(creature, position);
-        _world.Add(creature, new CurrentEmote(Emote.None));
-        _world.Add(creature, new CurrentGoal(Decision.Idle));
-        _world.Add(creature, new AiTier(AiLodTier.Far));
-        _world.Add(creature, default(FocusRef));
-        MindHandle mind = _minds.Allocate(Personality.Roll(_species, _random), _species.Needs);
-        _world.Add(creature, new MindRef(mind));
+        world.Add(creature, new CurrentEmote(Emote.None));
+        world.Add(creature, new CurrentGoal(Decision.Idle));
+        world.Add(creature, new AiTier(AiLodTier.Far));
+        world.Add(creature, default(FocusRef));
+        MindHandle mind = _b5.Minds.Allocate(Personality.Roll(_b5.Species, _b5.Random), _b5.Species.Needs);
+        world.Add(creature, new MindRef(mind));
+        world.Add(creature, new GroupRef(_b5.Random.NextInt(0, Herds)));
+        _b5.Reputation.SeedOpinions(_b5.Minds, mind, species: 0, RegionOf(position));
 
         // Creatures enter the world with varied needs, so goals differ from the start.
-        _minds.SetNeed(mind, Need.Hunger, _random.NextInt(0, ICreatureMindStore.MaxNeed + 1), _clock.Current.Index);
-        _minds.SetNeed(mind, Need.Rest, _random.NextInt(0, ICreatureMindStore.MaxNeed + 1), _clock.Current.Index);
-        _minds.SetNeed(mind, Need.Social, _random.NextInt(0, ICreatureMindStore.MaxNeed + 1), _clock.Current.Index);
+        ulong now = _b5.Clock.Current.Index;
+        _b5.Minds.SetNeed(mind, Need.Hunger, _b5.Random.NextInt(0, ICreatureMindStore.MaxNeed + 1), now);
+        _b5.Minds.SetNeed(mind, Need.Rest, _b5.Random.NextInt(0, ICreatureMindStore.MaxNeed + 1), now);
+        _b5.Minds.SetNeed(mind, Need.Social, _b5.Random.NextInt(0, ICreatureMindStore.MaxNeed + 1), now);
     }
 
     internal void Despawn(Entity creature)
     {
-        _grid.Remove(creature);
-        _minds.Release(_world.GetComponent<MindRef>(creature).Handle);
-        _world.Destroy(creature);
+        _b5.Grid.Remove(creature);
+        _b5.Minds.Release(_b5.World.GetComponent<MindRef>(creature).Handle);
+        _b5.World.Destroy(creature);
     }
 
     private static Dictionary<TKey, int> Count<T, TKey>(Span<T> values, Func<T, TKey> key)
@@ -189,82 +180,19 @@ public sealed class B5Scenario
         return counts;
     }
 
-    private static EcsWorld CreateWorld()
-    {
-        var world = new EcsWorld(EntityCapacity);
-        world.Register<StableId>();
-        world.Register<Position>();
-        world.Register<Facing>();
-        world.Register<MoveTarget>();
-        world.Register<MindRef>();
-        world.Register<CurrentEmote>();
-        world.Register<CurrentGoal>();
-        world.Register<AiTier>();
-        world.Register<FocusRef>();
-        world.Register<PlayerTag>();
-        return world;
-    }
-
-    private void RegisterSystems(MemoryRules rules, DataRegistry data)
-    {
-        ushort placeDanger = rules.FindByKey("PlaceDanger") ?? throw new InvalidOperationException("Shipped data has no PlaceDanger memory event.");
-        B5Ai ai = BuildAi(data, rules);
-        _perception = new PerceptionSystem(_world, new Perceiver(_grid, _opinions), ai.Lod, ai.Resolver, _appraisal, Events, _species.Perception);
-        _intents = new IntentSystem(_world, Events, ai.Runner, _minds, _random, Speed, RegionSize);
-        _bonding = ai.Bonding;
-        _pacts = new PactOfferSystem(_world, ai.Bonding, ai.Resolver, _species, PactTerms.Of(0, 5));
-
-        _scheduler.Register(new PlayerRouteSystem(_world, RegionSize, PlayerSpeed));
-        RegisterAiSystems(ai, placeDanger);
-        _scheduler.Register(_intents);
-        _scheduler.Register(new MovementSystem(_world, _grid, ai.Runner));
-        _scheduler.Register(new ChurnSystem(this, _world));
-    }
-
-    private void RegisterAiSystems(B5Ai ai, ushort placeDanger)
-    {
-        _scheduler.Register(new LodSystem(_world, ai.Lod));
-        _scheduler.Register(_perception!);
-        _scheduler.Register(new DecisionSystem(_world, ai.Evaluator, ai.Lod, ai.Resolver, ai.Evaluator.ForSpecies(_species), _random));
-        _scheduler.Register(new CrowdReactionSystem(_world, Events, _minds, _appraisal, placeDanger));
-        _scheduler.Register(new BehaviourSystem(_world, ai.Runner, ai.Lod, ai.Resolver));
-        _scheduler.Register(_pacts!);
-    }
-
-    private B5Ai BuildAi(DataRegistry data, MemoryRules rules)
-    {
-        var sampler = new InputSampler(_minds, _appraisal, _opinions, SimulationSettings.DefaultTicksPerDay);
-        return new B5Ai(
-            new AiLodPolicy(AiLodSettings.Default),
-            new B5SubjectResolver(_world),
-            new UtilityEvaluator(_minds, _appraisal, _opinions, data.Goals, SimulationSettings.DefaultTicksPerDay),
-            new BehaviourTreeRunner(_minds, sampler, Events, data.Goals, data.BehaviourTrees),
-            new BondingRules(
-                _minds,
-                _opinions,
-                new PactEvaluator(_minds, _opinions, data.PactTerms),
-                rules,
-                data.BondLevels,
-                data.PactTerms.Count,
-                SimulationSettings.DefaultTicksPerDay));
-    }
-
     private void SpawnPlayer(int index)
     {
-        Entity player = _world.Create();
-        Vector3 start = PlayerRouteSystem.Waypoint(index * 2, RegionSize);
-        _world.Add(player, new PlayerTag(FirstAccountId + (ulong)index, index * 2));
+        Entity player = _b5.World.Create();
+        Vector3 start = PlayerRouteSystem.Waypoint(index * 2, B5World.RegionSize);
+        _b5.World.Add(player, new PlayerTag(FirstAccountId + (ulong)index, index * 2));
         AddBody(player, start);
     }
 
     private void AddBody(Entity entity, Vector3 position)
     {
-        _world.Add(entity, new Position(position));
-        _world.Add(entity, new Facing(Vector3.UnitZ));
-        _world.Add(entity, new MoveTarget(position, 0, 0));
-        _grid.Insert(entity, position);
+        _b5.World.Add(entity, new Position(position));
+        _b5.World.Add(entity, new Facing(Vector3.UnitZ));
+        _b5.World.Add(entity, new MoveTarget(position, 0, 0));
+        _b5.Grid.Insert(entity, position);
     }
 }
-
-/// <summary>The AI services shared by the B5 systems.</summary>
-internal sealed record B5Ai(AiLodPolicy Lod, B5SubjectResolver Resolver, UtilityEvaluator Evaluator, BehaviourTreeRunner Runner, BondingRules Bonding);
