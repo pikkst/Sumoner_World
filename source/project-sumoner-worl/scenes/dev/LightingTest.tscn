@@ -1,0 +1,413 @@
+[gd_scene load_steps=22 format=3]
+
+[sub_resource type="ProceduralSkyMaterial" id="sky_mat"]
+sky_top_color = Color(0.247, 0.353, 0.451, 1)
+sky_horizon_color = Color(0.725, 0.718, 0.639, 1)
+ground_bottom_color = Color(0.118, 0.141, 0.102, 1)
+ground_horizon_color = Color(0.725, 0.718, 0.639, 1)
+sun_angle_max = 20.0
+
+[sub_resource type="Sky" id="sky"]
+sky_material = SubResource("sky_mat")
+
+[sub_resource type="Environment" id="env"]
+background_mode = 2
+sky = SubResource("sky")
+ambient_light_source = 3
+ambient_light_energy = 0.5
+tonemap_mode = 4
+tonemap_exposure = 1.0
+ssao_enabled = true
+glow_enabled = true
+glow_intensity = 1.2
+glow_bloom = 0.05
+glow_hdr_threshold = 1.2
+volumetric_fog_enabled = true
+volumetric_fog_density = 0.012
+volumetric_fog_albedo = Color(0.561, 0.639, 0.627, 1)
+volumetric_fog_anisotropy = 0.6
+volumetric_fog_length = 96.0
+
+[sub_resource type="StandardMaterial3D" id="m_ground"]
+albedo_color = Color(0.243, 0.290, 0.184, 1)
+roughness = 1.0
+
+[sub_resource type="StandardMaterial3D" id="m_conifer"]
+albedo_color = Color(0.169, 0.227, 0.165, 1)
+roughness = 1.0
+
+[sub_resource type="StandardMaterial3D" id="m_trunk"]
+albedo_color = Color(0.290, 0.231, 0.180, 1)
+roughness = 1.0
+
+[sub_resource type="StandardMaterial3D" id="m_rock"]
+albedo_color = Color(0.369, 0.373, 0.353, 1)
+roughness = 1.0
+
+[sub_resource type="StandardMaterial3D" id="m_fur"]
+albedo_color = Color(0.541, 0.478, 0.361, 1)
+roughness = 1.0
+rim_enabled = true
+rim = 0.6
+rim_tint = 0.4
+
+[sub_resource type="StandardMaterial3D" id="m_antler"]
+albedo_color = Color(0.788, 0.749, 0.651, 1)
+roughness = 1.0
+rim_enabled = true
+rim = 0.4
+rim_tint = 0.3
+
+[sub_resource type="StandardMaterial3D" id="m_primal"]
+albedo_color = Color(0.722, 0.878, 0.353, 1)
+roughness = 1.0
+emission_enabled = true
+emission = Color(0.722, 0.878, 0.353, 1)
+emission_energy_multiplier = 10.0
+
+[sub_resource type="StandardMaterial3D" id="m_ember"]
+albedo_color = Color(1.000, 0.478, 0.180, 1)
+roughness = 1.0
+emission_enabled = true
+emission = Color(1.000, 0.478, 0.180, 1)
+emission_energy_multiplier = 10.0
+
+[sub_resource type="StandardMaterial3D" id="m_storm"]
+albedo_color = Color(0.435, 0.718, 1.000, 1)
+roughness = 1.0
+emission_enabled = true
+emission = Color(0.435, 0.718, 1.000, 1)
+emission_energy_multiplier = 10.0
+
+[sub_resource type="PlaneMesh" id="mesh_ground"]
+size = Vector2(240, 240)
+
+[sub_resource type="CylinderMesh" id="mesh_cone"]
+top_radius = 0.0
+bottom_radius = 1.6
+height = 5.0
+radial_segments = 6
+rings = 0
+
+[sub_resource type="CylinderMesh" id="mesh_trunk"]
+top_radius = 0.18
+bottom_radius = 0.25
+height = 2.0
+radial_segments = 5
+rings = 0
+
+[sub_resource type="SphereMesh" id="mesh_rock"]
+radius = 1.0
+height = 1.4
+radial_segments = 6
+rings = 3
+
+[sub_resource type="CapsuleMesh" id="mesh_body"]
+radius = 0.45
+height = 1.8
+radial_segments = 8
+rings = 2
+
+[sub_resource type="BoxMesh" id="mesh_head"]
+size = Vector3(0.35, 0.4, 0.55)
+
+[sub_resource type="PrismMesh" id="mesh_antler"]
+size = Vector3(0.12, 0.7, 0.12)
+
+[sub_resource type="CylinderMesh" id="mesh_leg"]
+top_radius = 0.08
+bottom_radius = 0.06
+height = 0.9
+radial_segments = 5
+rings = 0
+
+[sub_resource type="SphereMesh" id="mesh_orb"]
+radius = 0.22
+height = 0.44
+radial_segments = 8
+rings = 4
+
+[node name="LightingTest" type="Node3D"]
+
+
+[node name="WorldEnvironment" type="WorldEnvironment" parent="."]
+environment = SubResource("env")
+
+[node name="Sun" type="DirectionalLight3D" parent="."]
+transform = Transform3D(-0.9397, -0.0827, 0.3319, 0, 0.9703, 0.2419, -0.342, 0.2273, -0.9118, 0, 20, 0)
+light_color = Color(1.000, 0.851, 0.659, 1)
+light_energy = 1.3
+light_volumetric_fog_energy = 1.0
+shadow_enabled = true
+directional_shadow_max_distance = 150.0
+
+[node name="Camera" type="Camera3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 0.9976, 0.0698, 0, -0.0698, 0.9976, 0, 1.7, 10)
+fov = 70.0
+current = true
+
+[node name="Ground" type="MeshInstance3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0)
+mesh = SubResource("mesh_ground")
+surface_material_override/0 = SubResource("m_ground")
+
+[node name="Tree00" type="Node3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -6, 0, -8)
+
+[node name="Trunk" type="MeshInstance3D" parent="Tree00"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1, 0)
+mesh = SubResource("mesh_trunk")
+surface_material_override/0 = SubResource("m_trunk")
+
+[node name="Crown" type="MeshInstance3D" parent="Tree00"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 4.2, 0)
+mesh = SubResource("mesh_cone")
+surface_material_override/0 = SubResource("m_conifer")
+
+[node name="Tree01" type="Node3D" parent="."]
+transform = Transform3D(1.0382, 0, 0.7824, 0, 1.3, 0, -0.7824, 0, 1.0382, -3, 0, -18)
+
+[node name="Trunk" type="MeshInstance3D" parent="Tree01"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1, 0)
+mesh = SubResource("mesh_trunk")
+surface_material_override/0 = SubResource("m_trunk")
+
+[node name="Crown" type="MeshInstance3D" parent="Tree01"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 4.2, 0)
+mesh = SubResource("mesh_cone")
+surface_material_override/0 = SubResource("m_conifer")
+
+[node name="Tree02" type="Node3D" parent="."]
+transform = Transform3D(0.3032, 0, 1.0574, 0, 1.1, 0, -1.0574, 0, 0.3032, 4, 0, -12)
+
+[node name="Trunk" type="MeshInstance3D" parent="Tree02"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1, 0)
+mesh = SubResource("mesh_trunk")
+surface_material_override/0 = SubResource("m_trunk")
+
+[node name="Crown" type="MeshInstance3D" parent="Tree02"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 4.2, 0)
+mesh = SubResource("mesh_cone")
+surface_material_override/0 = SubResource("m_conifer")
+
+[node name="Tree03" type="Node3D" parent="."]
+transform = Transform3D(-0.5017, 0, 1.307, 0, 1.4, 0, -1.307, 0, -0.5017, 8, 0, -22)
+
+[node name="Trunk" type="MeshInstance3D" parent="Tree03"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1, 0)
+mesh = SubResource("mesh_trunk")
+surface_material_override/0 = SubResource("m_trunk")
+
+[node name="Crown" type="MeshInstance3D" parent="Tree03"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 4.2, 0)
+mesh = SubResource("mesh_cone")
+surface_material_override/0 = SubResource("m_conifer")
+
+[node name="Tree04" type="Node3D" parent="."]
+transform = Transform3D(-1.0177, 0, 0.6359, 0, 1.2, 0, -0.6359, 0, -1.0177, -10, 0, -26)
+
+[node name="Trunk" type="MeshInstance3D" parent="Tree04"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1, 0)
+mesh = SubResource("mesh_trunk")
+surface_material_override/0 = SubResource("m_trunk")
+
+[node name="Crown" type="MeshInstance3D" parent="Tree04"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 4.2, 0)
+mesh = SubResource("mesh_cone")
+surface_material_override/0 = SubResource("m_conifer")
+
+[node name="Tree05" type="Node3D" parent="."]
+transform = Transform3D(-1.4943, 0, -0.1307, 0, 1.5, 0, 0.1307, 0, -1.4943, 2, 0, -32)
+
+[node name="Trunk" type="MeshInstance3D" parent="Tree05"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1, 0)
+mesh = SubResource("mesh_trunk")
+surface_material_override/0 = SubResource("m_trunk")
+
+[node name="Crown" type="MeshInstance3D" parent="Tree05"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 4.2, 0)
+mesh = SubResource("mesh_cone")
+surface_material_override/0 = SubResource("m_conifer")
+
+[node name="Tree06" type="Node3D" parent="."]
+transform = Transform3D(-0.9661, 0, -0.8699, 0, 1.3, 0, 0.8699, 0, -0.9661, 12, 0, -36)
+
+[node name="Trunk" type="MeshInstance3D" parent="Tree06"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1, 0)
+mesh = SubResource("mesh_trunk")
+surface_material_override/0 = SubResource("m_trunk")
+
+[node name="Crown" type="MeshInstance3D" parent="Tree06"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 4.2, 0)
+mesh = SubResource("mesh_cone")
+surface_material_override/0 = SubResource("m_conifer")
+
+[node name="Tree07" type="Node3D" parent="."]
+transform = Transform3D(-0.3053, 0, -1.5706, 0, 1.6, 0, 1.5706, 0, -0.3053, -14, 0, -40)
+
+[node name="Trunk" type="MeshInstance3D" parent="Tree07"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1, 0)
+mesh = SubResource("mesh_trunk")
+surface_material_override/0 = SubResource("m_trunk")
+
+[node name="Crown" type="MeshInstance3D" parent="Tree07"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 4.2, 0)
+mesh = SubResource("mesh_cone")
+surface_material_override/0 = SubResource("m_conifer")
+
+[node name="Tree08" type="Node3D" parent="."]
+transform = Transform3D(0.6137, 0, -1.2583, 0, 1.4, 0, 1.2583, 0, 0.6137, -2, 0, -48)
+
+[node name="Trunk" type="MeshInstance3D" parent="Tree08"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1, 0)
+mesh = SubResource("mesh_trunk")
+surface_material_override/0 = SubResource("m_trunk")
+
+[node name="Crown" type="MeshInstance3D" parent="Tree08"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 4.2, 0)
+mesh = SubResource("mesh_cone")
+surface_material_override/0 = SubResource("m_conifer")
+
+[node name="Tree09" type="Node3D" parent="."]
+transform = Transform3D(1.5147, 0, -0.7718, 0, 1.7, 0, 0.7718, 0, 1.5147, 9, 0, -52)
+
+[node name="Trunk" type="MeshInstance3D" parent="Tree09"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1, 0)
+mesh = SubResource("mesh_trunk")
+surface_material_override/0 = SubResource("m_trunk")
+
+[node name="Crown" type="MeshInstance3D" parent="Tree09"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 4.2, 0)
+mesh = SubResource("mesh_cone")
+surface_material_override/0 = SubResource("m_conifer")
+
+[node name="Tree10" type="Node3D" parent="."]
+transform = Transform3D(1.4772, 0, 0.2605, 0, 1.5, 0, -0.2605, 0, 1.4772, -8, 0, -60)
+
+[node name="Trunk" type="MeshInstance3D" parent="Tree10"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1, 0)
+mesh = SubResource("mesh_trunk")
+surface_material_override/0 = SubResource("m_trunk")
+
+[node name="Crown" type="MeshInstance3D" parent="Tree10"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 4.2, 0)
+mesh = SubResource("mesh_cone")
+surface_material_override/0 = SubResource("m_conifer")
+
+[node name="Tree11" type="Node3D" parent="."]
+transform = Transform3D(0.682, 0, 0.7314, 0, 1, 0, -0.7314, 0, 0.682, 16, 0, -14)
+
+[node name="Trunk" type="MeshInstance3D" parent="Tree11"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1, 0)
+mesh = SubResource("mesh_trunk")
+surface_material_override/0 = SubResource("m_trunk")
+
+[node name="Crown" type="MeshInstance3D" parent="Tree11"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 4.2, 0)
+mesh = SubResource("mesh_cone")
+surface_material_override/0 = SubResource("m_conifer")
+
+[node name="Rock00" type="MeshInstance3D" parent="."]
+transform = Transform3D(1.17, 0, 0, 0, 0.72, 0, 0, 0, 0.9, -3.5, 0.225, -4)
+mesh = SubResource("mesh_rock")
+surface_material_override/0 = SubResource("m_rock")
+
+[node name="Rock01" type="MeshInstance3D" parent="."]
+transform = Transform3D(1.0953, 0, 1.1181, 0, 1.12, 0, -1.4535, 0, 0.8425, 5, 0.35, -6)
+mesh = SubResource("mesh_rock")
+surface_material_override/0 = SubResource("m_rock")
+
+[node name="Rock02" type="MeshInstance3D" parent="."]
+transform = Transform3D(-0.645, 0, 1.7303, 0, 1.44, 0, -2.2494, 0, -0.4961, -7, 0.45, -14)
+mesh = SubResource("mesh_rock")
+surface_material_override/0 = SubResource("m_rock")
+
+[node name="Rock03" type="MeshInstance3D" parent="."]
+transform = Transform3D(-1.4564, 0, 0.43, 0, 0.96, 0, -0.5591, 0, -1.1203, 1, 0.3, -24)
+mesh = SubResource("mesh_rock")
+surface_material_override/0 = SubResource("m_rock")
+
+[node name="CreaturePlaceholder" type="Node3D" parent="."]
+transform = Transform3D(0.5, 0, -0.866, 0, 1, 0, 0.866, 0, 0.5, -0.8, 0, -3)
+
+[node name="Body" type="MeshInstance3D" parent="CreaturePlaceholder"]
+transform = Transform3D(1, 0, 0, 0, 0, -1, 0, 1, 0, 0, 1, 0)
+mesh = SubResource("mesh_body")
+surface_material_override/0 = SubResource("m_fur")
+
+[node name="Head" type="MeshInstance3D" parent="CreaturePlaceholder"]
+transform = Transform3D(1, 0, 0, 0, 0.9397, 0.342, 0, -0.342, 0.9397, 0, 1.45, -1)
+mesh = SubResource("mesh_head")
+surface_material_override/0 = SubResource("m_fur")
+
+[node name="AntlerL" type="MeshInstance3D" parent="CreaturePlaceholder"]
+transform = Transform3D(0.9063, -0.4226, 0, 0.4226, 0.9063, 0, 0, 0, 1, 0.12, 1.95, -0.95)
+mesh = SubResource("mesh_antler")
+surface_material_override/0 = SubResource("m_antler")
+
+[node name="AntlerR" type="MeshInstance3D" parent="CreaturePlaceholder"]
+transform = Transform3D(0.9063, 0.4226, 0, -0.4226, 0.9063, 0, 0, 0, 1, -0.12, 1.95, -0.95)
+mesh = SubResource("mesh_antler")
+surface_material_override/0 = SubResource("m_antler")
+
+[node name="Leg0" type="MeshInstance3D" parent="CreaturePlaceholder"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.25, 0.45, -0.55)
+mesh = SubResource("mesh_leg")
+surface_material_override/0 = SubResource("m_fur")
+
+[node name="Leg1" type="MeshInstance3D" parent="CreaturePlaceholder"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -0.25, 0.45, -0.55)
+mesh = SubResource("mesh_leg")
+surface_material_override/0 = SubResource("m_fur")
+
+[node name="Leg2" type="MeshInstance3D" parent="CreaturePlaceholder"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.25, 0.45, 0.55)
+mesh = SubResource("mesh_leg")
+surface_material_override/0 = SubResource("m_fur")
+
+[node name="Leg3" type="MeshInstance3D" parent="CreaturePlaceholder"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -0.25, 0.45, 0.55)
+mesh = SubResource("mesh_leg")
+surface_material_override/0 = SubResource("m_fur")
+
+[node name="Orb_Primal" type="Node3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 1.6, 1.2, -2.5)
+
+[node name="Mesh" type="MeshInstance3D" parent="Orb_Primal"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0)
+mesh = SubResource("mesh_orb")
+surface_material_override/0 = SubResource("m_primal")
+
+[node name="Light" type="OmniLight3D" parent="Orb_Primal"]
+light_color = Color(0.722, 0.878, 0.353, 1)
+light_energy = 2.5
+omni_range = 5.0
+light_volumetric_fog_energy = 2.0
+
+[node name="Orb_Storm" type="Node3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 2.4, 1.2, -2.5)
+
+[node name="Mesh" type="MeshInstance3D" parent="Orb_Storm"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0)
+mesh = SubResource("mesh_orb")
+surface_material_override/0 = SubResource("m_storm")
+
+[node name="Light" type="OmniLight3D" parent="Orb_Storm"]
+light_color = Color(0.435, 0.718, 1.000, 1)
+light_energy = 2.5
+omni_range = 5.0
+light_volumetric_fog_energy = 2.0
+
+[node name="Orb_Ember" type="Node3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 3.2, 1.2, -2.5)
+
+[node name="Mesh" type="MeshInstance3D" parent="Orb_Ember"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0)
+mesh = SubResource("mesh_orb")
+surface_material_override/0 = SubResource("m_ember")
+
+[node name="Light" type="OmniLight3D" parent="Orb_Ember"]
+light_color = Color(1.000, 0.478, 0.180, 1)
+light_energy = 2.5
+omni_range = 5.0
+light_volumetric_fog_energy = 2.0

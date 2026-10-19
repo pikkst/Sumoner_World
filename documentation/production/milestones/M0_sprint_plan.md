@@ -77,9 +77,10 @@ Acceptance criteria: ~~decision on title spelling~~ (done 2026-10-19: "Sumoner W
 Evidence: `documentation/production/reports/M0-08_legal_naming_check.md`. No exact-name conflict found; Summoners War (Com2uS) flagged as the main similarity risk. Design reviewed against JP7545191, JP7493117, JP7528390/US 12,409,387 and US 12,403,397; five guardrails added to the GDD. Open (stakeholder): attorney clearance search + filing, patent freedom-to-operate review, both before M2. Not an M0 exit blocker (exit gate lists M0-01…M0-07).
 
 TASK: M0-09 Art style guide v0.1 (unblocked: style decided in DEC-002)
-Agent: sr_game_artist + technical_artist · Est: 3d
+Agent: sr_game_artist + technical_artist · Est: 3d · **Status: Delivered 2026-10-19, review pending (stakeholder)**
 Rules: R22, R24
 Acceptance criteria: style pillars, creature silhouette rules, LOD/poly budgets aligned with the TDD
+Evidence: `documentation/art/style-guides/style_guide.md` v0.1 (5 pillars §1, silhouette and role rules §3, budgets aligned with TDD §6). Lighting test scene `scenes/dev/LightingTest.tscn` imports without errors and renders on the dev PC (screenshot in the guide).
 
 ---
 ## M0 exit gate (Producer validation)
