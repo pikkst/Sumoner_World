@@ -189,6 +189,19 @@ public static class DataRegistryLoader
         {
             errors.Add($"{where}: halfLifeDays must be at least 1, or null for memories that never decay.");
         }
+
+        if (entry.TraitDrift is TraitDrift drift)
+        {
+            if (!entry.IsCore)
+            {
+                errors.Add($"{where}: traitDrift is only allowed on core memory types (AI Bible §3).");
+            }
+
+            if (drift.Amount == 0 || Math.Abs(drift.Amount) > TraitDrift.MaxAmount)
+            {
+                errors.Add($"{where}: traitDrift.amount = {drift.Amount} must be between 1 and {TraitDrift.MaxAmount} points in either direction.");
+            }
+        }
     }
 
     private static void ValidateUniqueMemoryEventTypes(List<MemoryEventTypeDefinition> definitions, List<string> errors)

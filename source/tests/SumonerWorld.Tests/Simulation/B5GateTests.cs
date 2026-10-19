@@ -31,6 +31,8 @@ public class B5GateTests
         Assert.True(allocated == 0, $"B5 allocated {allocated} bytes over {B5Scenario.MeasuredTicks} ticks (R21: must be 0).");
         Assert.Equal(growthsBefore, scenario.Events.CapacityGrowths);
         Assert.Equal(B5Scenario.CreatureCount, scenario.LiveCreatures);
+        Assert.Equal(B5Scenario.CreatureCount, scenario.LiveMinds);
+        Assert.True(scenario.StoredMemories > 0, "B5 must exercise the memory store (M1-06).");
     }
 
     [Fact]

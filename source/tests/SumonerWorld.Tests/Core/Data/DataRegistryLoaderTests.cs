@@ -63,6 +63,8 @@ public class DataRegistryLoaderTests
     [InlineData("\"schemaVersion\": 1", "\"schemaVersion\": 2", "schemaVersion 2 is not supported")]
     [InlineData("\"kind\": \"memoryEventTypes\"", "\"kind\": \"spells\"", "unknown kind 'spells'")]
     [InlineData("] }", "", "invalid JSON")]
+    [InlineData("\"halfLifeDays\": 2, \"isCore\": false", "\"halfLifeDays\": 2, \"isCore\": false, \"traitDrift\": { \"trait\": \"loyalty\", \"amount\": 2 }", "only allowed on core")]
+    [InlineData("\"halfLifeDays\": null, \"isCore\": true", "\"halfLifeDays\": null, \"isCore\": true, \"traitDrift\": { \"trait\": \"loyalty\", \"amount\": 9 }", "traitDrift.amount = 9")]
     public void Invalid_memory_event_data_is_rejected_with_a_clear_reason(string find, string replace, string expectedFragment)
     {
         string broken = ValidEventTypes.Replace(find, replace, StringComparison.Ordinal);
