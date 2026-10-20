@@ -37,6 +37,13 @@ public sealed partial class EntityViewSync : Node3D
     /// <summary>Views shown now.</summary>
     public int Shown => _views.Count;
 
+    /// <summary>Creature views shown now, by stable id (the dev tools pick from these).</summary>
+    public IEnumerable<(ulong Id, Node3D View)> Creatures =>
+        _views.Where(entry => entry.Key.Item1 == SnapshotEntityKind.Creature).Select(entry => (entry.Key.Item2, entry.Value));
+
+    /// <summary>The view of a creature shown now.</summary>
+    public bool TryGetCreature(ulong id, out Node3D? view) => _views.TryGetValue((SnapshotEntityKind.Creature, id), out view);
+
     /// <inheritdoc />
     public override void _Process(double delta)
     {
