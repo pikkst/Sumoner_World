@@ -97,6 +97,12 @@ Two levels, chosen so a solo team can keep them:
 - Core does **not** own a physics engine. It calls `IPhysicsQueries` (ray cast, shape sweep, overlap) and `INavigation` (path request, async). The Godot adapter implements them with Godot's physics server (**Jolt**, set in project settings) and `NavigationServer3D`.
 - The **dedicated server is the Godot project running headless in server mode** (`--headless`, no rendering), so server and client share the same collision data and navmesh. Unit tests use fake implementations of both interfaces.
 - Godot physics on the client is presentation-only (ragdolls, foliage, debris) and never changes gameplay state (R12, R38).
+- **Implemented in M1-20a (Core):**
+  - **Physics port:** `IPhysicsQueries` offers `Raycast` and `IsClear` (line of sight). `HeightfieldPhysics` answers them against the terrain heightfield, or flat ground without one.
+  - **Navigation port:** `INavigation.FindPath` must be thread-safe and returns at most 8 waypoints. `PathPlanner` gathers a tick's path requests into one job and delivers the results to the `IPathSink` at the next tick's job stage, in request order. Results therefore never depend on thread timing.
+  - **Creatures:** a `MoveTo` now asks for a path and the creature waits one tick for it. The `MovementSystem` follows the waypoints and reports failure when there is no path.
+  - **Ground height:** walking takes its height from the shared `Heightfield`, not from physics queries. The server's movement and the client's prediction then compute bit-identical positions. `DevRegion.CreateGround()` is the M1 region every host builds. Without a heightfield, everything stays flat as before; B5 runs flat with straight-line paths.
+  - **Next (M1-20b):** the Jolt and NavigationServer3D adapters and the hosts on terrain.
 
 ### 2.5 Threads
 | Thread | Work |

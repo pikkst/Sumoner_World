@@ -129,3 +129,20 @@ public sealed class Heightfield
 
     private static float Lerp(float a, float b, float t) => a + ((b - a) * t);
 }
+
+/// <summary>
+/// The M1 test region every host builds the same way (until worlds are authored and loaded in M2): server movement, client prediction
+/// and the client terrain all use <see cref="CreateGround"/>, so they stand on identical heights.
+/// </summary>
+public static class DevRegion
+{
+    /// <summary>World seed (the dev server's).</summary>
+    public const ulong Seed = 0x53570001;
+
+    /// <summary>Chunks per side (8 × 64 m = 512 m).</summary>
+    public const int Chunks = 8;
+
+    /// <summary>The ground of a region <paramref name="chunks"/> chunks across.</summary>
+    public static Heightfield CreateGround(int chunks = Chunks) =>
+        Heightfield.Generate(Seed, new HeightfieldSettings { Samples = (chunks * (int)ChunkCoord.Size) + 1 });
+}

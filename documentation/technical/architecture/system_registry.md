@@ -25,8 +25,8 @@ Rules: R02, R07, R12, R47, R49 · Related: ADR-001 (layers), TDD v0.1, AI Bible 
 | Async jobs | `Core.Jobs` | `IJobScheduler` | Off-tick jobs, results applied at step 2 in job-id order (`JobScheduler`, `JobApplySystem`); same result with 0 or N workers | TDD §2.5 | **Implemented** (M1-12) |
 | Job contract | `Core.Jobs` | `IJob` | `Execute` off-thread on job-owned data, `Apply` on the simulation thread; reusable (no allocation per submit) | TDD §2.5 | **Implemented** (M1-12) |
 | Spatial index | `Core.Spatial` | `ISpatialIndex` | Uniform grid over the world bounds for perception, proximity, targeting, interest (`SpatialGrid`) | TDD §3.2, AI Bible §9.3 | **Implemented** (M1-03) |
-| Physics port | `Core.Physics` | `IPhysicsQueries` | Ray cast, sweep, overlap (implemented by Godot adapter) | TDD §2.4 | Planned (M1) |
-| Navigation port | `Core.Navigation` | `INavigation` | Async path requests (implemented by Godot adapter) | TDD §2.4 | Planned (M1) |
+| Physics port | `Core.Physics` | `IPhysicsQueries` | Ray cast and line of sight; `HeightfieldPhysics` answers against the terrain (tests, Godot-free hosts); Jolt adapter in the Game layer | TDD §2.4 | **Implemented** (M1-20a: port + heightfield; Jolt adapter M1-20b) |
+| Navigation port | `Core.Navigation` | `INavigation`, `IPathSink` | Thread-safe `FindPath` (≤ 8 waypoints); `PathPlanner` batches a tick's requests into one job and delivers them at the next tick's job stage in request order; `StraightLineNavigation` fake; creatures follow waypoints | TDD §2.4, AI Bible §9.3 | **Implemented** (M1-20a; NavigationServer3D adapter M1-20b) |
 | Game data | `Core.Data` | `IDataRegistry` | Loads and validates versioned data files; read-only lookups (`DataRegistryLoader`, `DataRegistry`) | TDD §7, AI Bible §12 | **Implemented** (M1-04): memory event types, species |
 | Logging | `Core.Diagnostics` | `ILog` | Structured log sink (implemented in Game as JSON lines) | TDD §6 | **Implemented** (M1-14) |
 | Metrics | `Core.Diagnostics` | `IMetrics` | Tick/stage boundaries from the scheduler; timing done by the implementation outside Core | TDD §6 | **Implemented** (M1-05) |

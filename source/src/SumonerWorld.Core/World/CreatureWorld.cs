@@ -14,6 +14,7 @@ using SumonerWorld.Core.Ecosystem;
 using SumonerWorld.Core.Ecs;
 using SumonerWorld.Core.Events;
 using SumonerWorld.Core.Jobs;
+using SumonerWorld.Core.Navigation;
 using SumonerWorld.Core.Randomness;
 using SumonerWorld.Core.Simulation;
 using SumonerWorld.Core.Spatial;
@@ -43,6 +44,12 @@ public sealed class CreatureWorldSettings
 
     /// <summary>Behaviour-tree intents that can be queued in one tick.</summary>
     public int IntentCapacity { get; init; } = 1024;
+
+    /// <summary>The terrain everything walks on (TDD §5.1); null = flat ground at each entity's own height.</summary>
+    public Heightfield? Ground { get; init; }
+
+    /// <summary>Path finding (TDD §2.4); null = straight lines.</summary>
+    public INavigation? Navigation { get; init; }
 }
 
 /// <summary>The AI services shared by the creature systems.</summary>
@@ -72,6 +79,42 @@ public sealed record CreatureSystems(
     MovementSystem Movement,
     ReputationFlushSystem ReputationFlush)
 {
+    /// <summary>Builds the systems for <paramref name="world"/> (wires the path planner to the movement system).</summary>
+    public static CreatureSystems Create(CreatureWorld world)
+    {
+        ArgumentNullException.ThrowIfNull(world);
+        (PerceptionSystem perception, DecisionSystem decision) = MindSystems(world);
+        (CreatureIntentSystem intents, MovementSystem movement) = BodySystems(world);
+        return new CreatureSystems(
+            new JobApplySystem(world.Jobs),
+            new LodSystem(world.World, world.Services.Lod),
+            perception,
+            decision,
+            new BehaviourSystem(world.World, world.Services.Runner, world.Services.Lod, world.Services.Resolver),
+            intents,
+            movement,
+            new ReputationFlushSystem(world.Reputation));
+    }
+
+    private static (PerceptionSystem Perception, DecisionSystem Decision) MindSystems(CreatureWorld world)
+    {
+        CreatureServices services = world.Services;
+        GoalSet[] goals = [.. world.Data.Species.Select(services.Evaluator.ForSpecies)];
+        return (
+            new PerceptionSystem(world.World, new Perceiver(world.Grid, world.Opinions), services.Lod, services.Resolver, world.Appraisal, world.Minds, world.Events, world.Data.Species),
+            new DecisionSystem(world.World, services.Evaluator, services.Lod, services.Resolver, goals, world.Random));
+    }
+
+    private static (CreatureIntentSystem Intents, MovementSystem Movement) BodySystems(CreatureWorld world)
+    {
+        CreatureWorldSettings settings = world.Settings;
+        var movement = new MovementSystem(world.World, world.Grid, world.Services.Runner, settings.Ground, settings.EntityCapacity);
+        world.Paths.Sink = movement;
+        var intents = new CreatureIntentSystem(
+            world.World, world.Events, world.Services.Runner, world.Minds, world.Random, world.Paths, world.Jobs, settings.WalkSpeed, settings.BoundsMin, settings.BoundsMax);
+        return (intents, movement);
+    }
+
     /// <summary>Registers every system with the scheduler (hosts that add their own systems may register individually instead).</summary>
     public void RegisterAll(SimulationScheduler scheduler)
     {
@@ -134,6 +177,7 @@ public sealed class CreatureWorld : IDisposable
         Events.Register<CreatureIntent>(settings.IntentCapacity);
         Clock = new SimulationClock(SimulationSettings.Default, startTick);
         Services = CreateServices();
+        Paths = new PathPlanner(settings.Navigation ?? StraightLineNavigation.Instance, World, settings.EntityCapacity);
         _regionsPerRow = Math.Max(1, (int)MathF.Ceiling(size.X / settings.RegionCellSize));
     }
 
@@ -176,6 +220,12 @@ public sealed class CreatureWorld : IDisposable
     /// <summary>AI services.</summary>
     public CreatureServices Services { get; }
 
+    /// <summary>Asynchronous path requests (results at the next tick's job stage).</summary>
+    public PathPlanner Paths { get; }
+
+    /// <summary>The settings the world was built with.</summary>
+    public CreatureWorldSettings Settings => _settings;
+
     /// <summary>The playable area's south-west corner.</summary>
     public Vector3 BoundsMin => _settings.BoundsMin;
 
@@ -206,16 +256,7 @@ public sealed class CreatureWorld : IDisposable
     /// <summary>Creates the creature systems (register them with <see cref="CreatureSystems.RegisterAll"/> or one by one).</summary>
     public CreatureSystems CreateSystems()
     {
-        (PerceptionSystem perception, DecisionSystem decision) = CreateMindSystems();
-        return new CreatureSystems(
-            new JobApplySystem(Jobs),
-            new LodSystem(World, Services.Lod),
-            perception,
-            decision,
-            new BehaviourSystem(World, Services.Runner, Services.Lod, Services.Resolver),
-            new CreatureIntentSystem(World, Events, Services.Runner, Minds, Random, _settings.WalkSpeed, _settings.BoundsMin, _settings.BoundsMax),
-            new MovementSystem(World, Grid, Services.Runner),
-            new ReputationFlushSystem(Reputation));
+        return CreatureSystems.Create(this);
     }
 
     /// <summary>
@@ -317,14 +358,6 @@ public sealed class CreatureWorld : IDisposable
         return world;
     }
 
-    private (PerceptionSystem Perception, DecisionSystem Decision) CreateMindSystems()
-    {
-        GoalSet[] goals = [.. Data.Species.Select(Services.Evaluator.ForSpecies)];
-        return (
-            new PerceptionSystem(World, new Perceiver(Grid, Opinions), Services.Lod, Services.Resolver, Appraisal, Minds, Events, Data.Species),
-            new DecisionSystem(World, Services.Evaluator, Services.Lod, Services.Resolver, goals, Random));
-    }
-
     private CreatureServices CreateServices()
     {
         var sampler = new InputSampler(Minds, Appraisal, Opinions, SimulationSettings.DefaultTicksPerDay);
@@ -356,6 +389,11 @@ public sealed class CreatureWorld : IDisposable
 
     private void AddBody(Entity entity, Vector3 position)
     {
+        if (_settings.Ground is Heightfield ground)
+        {
+            position.Y = ground.HeightAt(position.X, position.Z);
+        }
+
         World.Add(entity, new Position(position));
         World.Add(entity, new Facing(Vector3.UnitZ));
         World.Add(entity, new MoveTarget(position, 0, 0));
