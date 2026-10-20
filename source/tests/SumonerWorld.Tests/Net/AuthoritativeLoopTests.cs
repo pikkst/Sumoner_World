@@ -80,6 +80,34 @@ public class AuthoritativeLoopTests
         Assert.Equal(1, lan.Server.Transactions.Duplicates);
     }
 
+    [Theory]
+    [InlineData(2, 0.17f, 0.23f)]
+    [InlineData(20, 0.01f, 0.4f)]
+    public void Another_player_moves_smoothly_on_screen(int lossPercent, float minStep, float maxStep)
+    {
+        using var lan = new Lan(lossPercent);
+        GameClient alice = lan.Join(1001);
+        GameClient bob = lan.Join(1002);
+        lan.Run(30, _ => MoveInput.None);
+
+        var shown = new List<float>();
+        for (int i = 0; i < 240; i++)
+        {
+            lan.Run(1, client => client == bob ? new MoveInput(1000, 0) : MoveInput.None);
+            if (i >= 30 && alice.Remote.TrySample(SnapshotEntityKind.Player, 1002, out RemoteState state))
+            {
+                shown.Add(state.Position.X);
+            }
+        }
+
+        // 0.2 m per tick. At the supported 2 % loss every frame's step stays within 15 % of that (1 cm quantization and the server's
+        // input catch-up move the true position unevenly too). At 20 % loss steps vary more, but the player never stops or goes back.
+        Assert.Equal(210, shown.Count);
+        float[] steps = [.. shown.Zip(shown.Skip(1), (a, b) => b - a)];
+        Assert.InRange(steps.Min(), minStep, 0.2f);
+        Assert.InRange(steps.Max(), 0.2f, maxStep);
+    }
+
     [Fact]
     public void On_terrain_prediction_ends_exactly_where_the_server_has_the_player_and_on_the_ground()
     {
@@ -314,6 +342,7 @@ public class AuthoritativeLoopTests
                 foreach ((GameClient client, _) in _clients)
                 {
                     client.Tick(input(client));
+                    client.Remote.Advance(1.0 / 30);
                 }
 
                 Tick++;

@@ -20,7 +20,7 @@ namespace SumonerWorld.Game.Hosting;
 /// <summary>
 /// The headless dedicated server (TDD §2.4, §3.1a, §4.2): listens on UDP and runs the authoritative <see cref="GameServer"/> loop at
 /// 30 Hz from a fixed-step accumulator. The world lives in <see cref="HostOptions.WorldPath"/>: a saved world is loaded, otherwise a
-/// new one is made (until the M2 ecosystem exists: the 512 m test region with 200 seeded mossbacks) and saved at once. Everything
+/// new one is made (until the M2 ecosystem exists: the 512 m test region with 170 seeded mossbacks in 10 herds and 30 bogfoxes in 5 packs) and saved at once. Everything
 /// walks on the <see cref="DevWorld"/> ground; creatures find paths on a navigation mesh baked from it at start-up, and Jolt gets
 /// the same ground as height-map collision (checked against the heightfield once at start). A checkpoint
 /// goes to the persistence thread every 30 s, and every intent's result is sent only after the thread made it durable; on shutdown a last checkpoint is written and a backup made.
@@ -31,9 +31,13 @@ public sealed partial class ServerHost : Node
 {
     private const long NanosecondsPerSecond = 1_000_000_000L;
     private const ulong DevWorldSeed = 0x53570001;
-    private const string DevSpecies = "mossback";
-    private const int DevCreatures = 200;
-    private const int DevHerds = 10;
+    private const string DevGrazer = "mossback";
+    private const string DevPredator = "bogfox";
+    private const int DevGrazers = 170;
+    private const int DevGrazerHerds = 10;
+    private const int DevPredators = 30;
+    private const int DevPredatorPacks = 5;
+    private const int DevCreatures = DevGrazers + DevPredators;
     private const int MaxFps = 120;
     private const string WireStatistics = "/sys/class/net/eth0/statistics/";
 
@@ -79,7 +83,8 @@ public sealed partial class ServerHost : Node
         _server = new GameServer(_world, metered, new DevTokenAuthenticator(_options.DevSecret), _log, settings, _benchmark, _writer);
         if (saved is null)
         {
-            _server.Populate(DevSpecies, DevCreatures, DevHerds);
+            _server.Populate(DevGrazer, DevGrazers, DevGrazerHerds);
+            _server.Populate(DevPredator, DevPredators, DevPredatorPacks, firstGroup: DevGrazerHerds);
             Checkpoint();
             _log.Write(LogLevel.Info, "world.created", $"{path}: new world with {DevCreatures} creatures");
         }

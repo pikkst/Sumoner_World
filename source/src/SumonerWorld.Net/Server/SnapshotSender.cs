@@ -19,6 +19,7 @@ internal sealed class SnapshotSender(CreatureWorld world, ITransport transport, 
     private readonly ComponentStore<PlayerAvatar> _players = world.World.Store<PlayerAvatar>();
     private readonly ComponentStore<StableId> _ids = world.World.Store<StableId>();
     private readonly ComponentStore<CurrentEmote> _emotes = world.World.Store<CurrentEmote>();
+    private readonly ComponentStore<SpeciesRef> _species = world.World.Store<SpeciesRef>();
 
     public int PartsSent { get; private set; }
 
@@ -59,7 +60,7 @@ internal sealed class SnapshotSender(CreatureWorld world, ITransport transport, 
         byte facing = Snapshot.EncodeFacing(_facings.Get(entity).Value);
         return _players.Has(entity)
             ? new SnapshotEntity(SnapshotEntityKind.Player, _players.Get(entity).AccountId, position, facing, 0)
-            : new SnapshotEntity(SnapshotEntityKind.Creature, _ids.Get(entity).Value, position, facing, (byte)_emotes.Get(entity).Value);
+            : new SnapshotEntity(SnapshotEntityKind.Creature, _ids.Get(entity).Value, position, facing, (byte)_emotes.Get(entity).Value, (byte)_species.Get(entity).Index);
     }
 
     private void Flush(ConnectionId connection, ref MessageWriter writer, int countOffset, int count)

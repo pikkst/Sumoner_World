@@ -11,8 +11,8 @@ namespace SumonerWorld.Net.Client;
 /// The client side of the authoritative loop (TDD §3.2): opens the session, predicts the own character, sends the newest inputs
 /// every tick (unreliable, redundant) and intents (reliable), and keeps the latest snapshot's entities. After a lost connection,
 /// <see cref="Reconnect"/> resumes the session (TDD §3.5): prediction restarts from the next snapshot and unanswered intents are sent
-/// again with their sequences (the server's dedupe window answers repeats with the first result). Remote entities are shown as last
-/// received; the 100 ms interpolation buffer belongs to creature presentation (M1-21).
+/// again with their sequences (the server's dedupe window answers repeats with the first result). Remote entities also go into
+/// <see cref="Remote"/>, the 100 ms interpolation buffer the presentation draws from (M1-21).
 /// </summary>
 public sealed class GameClient : IClientSessionHandler
 {
@@ -48,6 +48,9 @@ public sealed class GameClient : IClientSessionHandler
     /// <summary>Tick of the newest snapshot received (0 = none yet).</summary>
     public ulong LastSnapshotTick { get; private set; }
 
+    /// <summary>Remote entities for presentation, interpolated 100 ms in the past; the host advances it every frame.</summary>
+    public RemoteInterpolation Remote { get; } = new();
+
     /// <summary>Entities in the newest snapshot, by kind and id.</summary>
     public IReadOnlyDictionary<(SnapshotEntityKind Kind, ulong Id), SnapshotEntity> Entities => _entities;
 
@@ -79,6 +82,7 @@ public sealed class GameClient : IClientSessionHandler
     {
         Prediction.Reset();
         _entities.Clear();
+        Remote.Clear();
         LastSnapshotTick = 0;
         if (!welcome.Resumed)
         {
@@ -174,6 +178,7 @@ public sealed class GameClient : IClientSessionHandler
         {
             SnapshotEntity entity = Snapshot.ReadEntity(ref reader);
             _entities[(entity.Kind, entity.Id)] = entity;
+            Remote.Add(header.ServerTick, entity);
         }
 
         reader.EnsureEnd();
