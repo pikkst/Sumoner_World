@@ -44,6 +44,22 @@ public class HostOptionsTests
     }
 
     [Fact]
+    public void Bots_and_the_b2_benchmark_are_started_with_arguments()
+    {
+        Func<string, string?> docker = name => name == "SW_SERVER_MODE" ? "dev" : null;
+
+        HostOptions bots = HostOptions.Parse(["--bots=16", "--connect=server:7777", "--account=3001"], docker);
+        HostOptions botsFirst = HostOptions.Parse(["--connect=server:7777", "--bots=4"], NoEnvironment);
+        HostOptions server = HostOptions.Parse(["--server", "--benchmark-out=/results", "--benchmark-players=8", "--warmup-ticks=30", "--measure-ticks=60"], NoEnvironment);
+
+        Assert.Equal((HostMode.Bots, 16, "server", 7777, 3001UL), (bots.Mode, bots.Bots, bots.Address, bots.Port, bots.Account));
+        Assert.Equal((HostMode.Bots, 4), (botsFirst.Mode, botsFirst.Bots));
+        Assert.Equal(("/results", 8, 30, 60), (server.BenchmarkOut, server.BenchmarkPlayers, server.WarmupTicks, server.MeasureTicks));
+        Assert.Equal((string.Empty, 900, 18_000), (bots.BenchmarkOut, bots.WarmupTicks, bots.MeasureTicks));
+        Assert.Throws<ArgumentException>(() => HostOptions.Parse(["--bots=0"], NoEnvironment));
+    }
+
+    [Fact]
     public void Arguments_win_over_the_environment()
     {
         HostOptions options = HostOptions.Parse(

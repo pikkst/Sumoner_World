@@ -1,0 +1,49 @@
+# Benchmark B2 "Server-16" (M0-07 A1, TDD §8 spike 2): the dev server image with 200 creatures and 16 bot clients, both
+# containers shaping their outgoing traffic with tc netem (75 ms each way = 150 ms RTT, 2% loss each way). The server is
+# limited to 4 cores and 8 GB (M0-07 A5). Its own project name and world volume, so the dev world is never touched.
+#   Full run (≈ 11 min):  scripts/run-b2.sh
+#   Short run:            B2_MEASURE_TICKS=1800 scripts/run-b2.sh
+# The server writes summary.json and ticks.csv into ./b2-results (B2_RESULTS) and stops when the measured ticks are done.
+name: sumoner-b2
+
+services:
+  server:
+    build:
+      context: .
+      dockerfile: server/Dockerfile
+    image: sumoner-world-dev-server
+    cap_add:
+      - NET_ADMIN
+    cpus: 4
+    mem_limit: 8g
+    environment:
+      SW_SERVER_MODE: dev
+      SW_DEV_SECRET: ${SW_DEV_SECRET:-local-dev-secret}
+      SW_MAX_PLAYERS: "16"
+      SW_WORLD: /data/world.db
+      SW_NETEM: ${B2_NETEM:-delay 75ms loss 2%}
+    command:
+      - --server
+      - --benchmark-out=/results
+      - --benchmark-players=16
+      - --warmup-ticks=${B2_WARMUP_TICKS:-900}
+      - --measure-ticks=${B2_MEASURE_TICKS:-18000}
+    volumes:
+      - b2-world:/data
+      - ${B2_RESULTS:-./b2-results}:/results
+    restart: "no"
+
+  bots:
+    image: sumoner-world-dev-server
+    depends_on:
+      - server
+    cap_add:
+      - NET_ADMIN
+    environment:
+      SW_DEV_SECRET: ${SW_DEV_SECRET:-local-dev-secret}
+      SW_NETEM: ${B2_NETEM:-delay 75ms loss 2%}
+    command: ["--bots=16", "--connect=server:7777", "--account=3001"]
+    restart: "no"
+
+volumes:
+  b2-world:

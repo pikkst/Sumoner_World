@@ -38,6 +38,9 @@ public sealed partial class Bootstrap : Node
             case HostMode.Client:
                 AddChild(new ClientHost(options, log));
                 break;
+            case HostMode.Bots:
+                AddChild(new BotHost(options, log));
+                break;
             default:
                 GetTree().CallDeferred(SceneTree.MethodName.ChangeSceneToFile, GameScene);
                 break;
