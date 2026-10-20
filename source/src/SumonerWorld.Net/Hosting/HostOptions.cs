@@ -58,6 +58,9 @@ public sealed record HostOptions
     /// <summary>Client: quit with code 0 once the server has welcomed us and the first snapshot arrived (smoke tests).</summary>
     public bool ExitOnWelcome { get; init; }
 
+    /// <summary>Server: path of the world database (empty = the user data folder).</summary>
+    public string WorldPath { get; init; } = string.Empty;
+
     /// <summary>Server: quit after this many ticks (0 = run forever).</summary>
     public ulong QuitAfterTicks { get; init; }
 
@@ -77,6 +80,7 @@ public sealed record HostOptions
             DevSecret = environment("SW_DEV_SECRET") is { Length: > 0 } secret ? secret : DefaultDevSecret,
             MaxPlayers = environment("SW_MAX_PLAYERS") is string max ? ParseInt(max, "SW_MAX_PLAYERS") : DefaultMaxPlayers,
             LogLevel = environment("SW_LOG_LEVEL") is string level ? Enum.Parse<LogLevel>(level, ignoreCase: true) : LogLevel.Info,
+            WorldPath = environment("SW_WORLD") ?? string.Empty,
         };
 
         foreach (string argument in arguments)
@@ -100,6 +104,7 @@ public sealed record HostOptions
             "--account" => options with { Account = ulong.Parse(value, NumberStyles.None, CultureInfo.InvariantCulture) },
             "--max-players" => options with { MaxPlayers = ParseInt(value, argument) },
             "--exit-on-welcome" => options with { ExitOnWelcome = true },
+            "--world" when value.Length > 0 => options with { WorldPath = value },
             "--quit-after-ticks" => options with { QuitAfterTicks = ulong.Parse(value, NumberStyles.None, CultureInfo.InvariantCulture) },
             _ => throw new ArgumentException($"Unknown argument '{argument}'.", nameof(argument)),
         };

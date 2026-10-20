@@ -111,6 +111,13 @@ public sealed class ReputationService : IReputationService
     /// <inheritdoc />
     public int GetScore(ReputationKey key) => _scores.GetValueOrDefault(key);
 
+    /// <summary>Every score, ordered by species, region and player (for saving, M1-17b).</summary>
+    public IReadOnlyList<KeyValuePair<ReputationKey, int>> ExportScores() =>
+        [.. _scores.OrderBy(entry => entry.Key.Species).ThenBy(entry => entry.Key.Region).ThenBy(entry => entry.Key.Player)];
+
+    /// <summary>Sets a saved score (M1-17b).</summary>
+    public void RestoreScore(ReputationKey key, int score) => _scores[key] = Math.Clamp(score, -MaxScore, MaxScore);
+
     /// <inheritdoc />
     public int KnownPlayers(ushort species, int region, Span<PlayerReputation> results)
     {

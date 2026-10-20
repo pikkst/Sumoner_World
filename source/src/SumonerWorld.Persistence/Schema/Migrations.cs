@@ -19,7 +19,7 @@ public interface IMigration
 public static class Migrations
 {
     /// <summary>All steps, oldest first.</summary>
-    public static IReadOnlyList<IMigration> All { get; } = [new CreateWorldV1()];
+    public static IReadOnlyList<IMigration> All { get; } = [new CreateWorldV1(), new AddWorldTablesV2()];
 
     /// <summary>The newest schema version.</summary>
     public static int Latest => All[^1].ToVersion;
@@ -37,7 +37,7 @@ public static class Migrations
 
 /// <summary>
 /// v0 → v1 (M1-17a): <c>meta</c> (key → integer), <c>items</c> (id, owner, payload) and <c>intent_dedupe</c> (TDD §3.4: written in the
-/// same transaction as the effect). Players, creatures and reputation follow in v2 (M1-17b).
+/// same transaction as the effect). Players, creatures and reputation follow in v2.
 /// </summary>
 internal sealed class CreateWorldV1 : IMigration
 {
@@ -55,5 +55,27 @@ internal sealed class CreateWorldV1 : IMigration
             transaction,
             "CREATE TABLE intent_dedupe (session INTEGER NOT NULL, sequence INTEGER NOT NULL, status INTEGER NOT NULL, reason INTEGER NOT NULL, " +
             "detail INTEGER NOT NULL, tick INTEGER NOT NULL, PRIMARY KEY (session, sequence)) WITHOUT ROWID;");
+    }
+}
+
+/// <summary>
+/// v1 → v2 (M1-17b): <c>players</c> (account, payload), <c>creatures</c> (stable id, payload with the mind) and <c>reputation</c>
+/// (species id, region, player, score). The world meta values (tick, random state, last stable id) live in <c>meta</c>.
+/// </summary>
+internal sealed class AddWorldTablesV2 : IMigration
+{
+    public int FromVersion => 1;
+
+    public int ToVersion => 2;
+
+    public void Apply(SqliteConnection connection, SqliteTransaction transaction)
+    {
+        Migrations.Execute(connection, transaction, "CREATE TABLE players (account INTEGER PRIMARY KEY, payload BLOB NOT NULL);");
+        Migrations.Execute(connection, transaction, "CREATE TABLE creatures (stable_id INTEGER PRIMARY KEY, payload BLOB NOT NULL);");
+        Migrations.Execute(
+            connection,
+            transaction,
+            "CREATE TABLE reputation (species TEXT NOT NULL, region INTEGER NOT NULL, player INTEGER NOT NULL, score INTEGER NOT NULL, " +
+            "PRIMARY KEY (species, region, player)) WITHOUT ROWID;");
     }
 }

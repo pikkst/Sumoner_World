@@ -12,6 +12,9 @@ public sealed class SeededRandom : IRandom
 
     private ulong _state;
 
+    /// <summary>The generator state; <c>new SeededRandom(State)</c> continues exactly from here (saved with the world).</summary>
+    public ulong State => _state;
+
     /// <summary>Creates a generator from a world or session seed.</summary>
     public SeededRandom(ulong seed)
     {

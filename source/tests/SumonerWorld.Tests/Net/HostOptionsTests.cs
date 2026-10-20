@@ -35,6 +35,15 @@ public class HostOptionsTests
     }
 
     [Fact]
+    public void The_world_path_comes_from_the_environment_or_an_argument()
+    {
+        Assert.Equal(string.Empty, HostOptions.Parse([], NoEnvironment).WorldPath);
+        Assert.Equal("/data/world.db", HostOptions.Parse([], name => name == "SW_WORLD" ? "/data/world.db" : null).WorldPath);
+        Assert.Equal("my.db", HostOptions.Parse(["--world=my.db"], name => name == "SW_WORLD" ? "/data/world.db" : null).WorldPath);
+        Assert.Throws<ArgumentException>(() => HostOptions.Parse(["--world="], NoEnvironment));
+    }
+
+    [Fact]
     public void Arguments_win_over_the_environment()
     {
         HostOptions options = HostOptions.Parse(

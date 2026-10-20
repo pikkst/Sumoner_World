@@ -1,4 +1,6 @@
+using System.Runtime.InteropServices;
 using Godot;
+using SumonerWorld.Core.Data;
 using SumonerWorld.Core.Diagnostics;
 using SumonerWorld.Core.Simulation;
 using SumonerWorld.Core.World;
@@ -7,12 +9,16 @@ using SumonerWorld.Game.Net;
 using SumonerWorld.Net.Hosting;
 using SumonerWorld.Net.Server;
 using SumonerWorld.Net.Sessions;
+using SumonerWorld.Persistence;
+using SumonerWorld.Persistence.Backups;
 
 namespace SumonerWorld.Game.Hosting;
 
 /// <summary>
-/// The headless dedicated server (TDD §2.4, §3.1a): listens on UDP and runs the authoritative <see cref="GameServer"/> loop at 30 Hz
-/// from a fixed-step accumulator. Until the M2 ecosystem exists, the dev world is the 512 m test region with 200 seeded mossbacks.
+/// The headless dedicated server (TDD §2.4, §3.1a, §4.2): listens on UDP and runs the authoritative <see cref="GameServer"/> loop at
+/// 30 Hz from a fixed-step accumulator. The world lives in <see cref="HostOptions.WorldPath"/>: a saved world is loaded, otherwise a
+/// new one is made (until the M2 ecosystem exists: the 512 m test region with 200 seeded mossbacks) and saved at once. A checkpoint
+/// goes to the persistence thread every 30 s; on shutdown a last checkpoint is written and a backup made.
 /// </summary>
 public sealed partial class ServerHost : Node
 {
@@ -28,6 +34,12 @@ public sealed partial class ServerHost : Node
     private CreatureWorld? _world;
     private GameServer? _server;
     private FixedStepAccumulator? _accumulator;
+    private WorldStore? _store;
+    private CheckpointWriter? _writer;
+    private ulong _lastCheckpoint;
+    private PosixSignalRegistration? _sigterm;
+    private PosixSignalRegistration? _sigint;
+    private volatile bool _stopRequested;
 
     /// <summary>Creates the host.</summary>
     public ServerHost(HostOptions options, ILog log)
@@ -39,12 +51,35 @@ public sealed partial class ServerHost : Node
     /// <inheritdoc />
     public override void _Ready()
     {
+        string path = WorldPath();
+        _store = WorldStore.Open(path, new WorldBackups(Path.Combine(Path.GetDirectoryName(path)!, "backups")));
+        SavedWorld? saved = _store.LoadWorld();
+        DataRegistry data = GameData.Load();
+        _world = saved is null
+            ? new CreatureWorld(data, new CreatureWorldSettings(), DevWorldSeed)
+            : WorldSnapshots.Restore(data, new CreatureWorldSettings(), saved.World);
         _transport = GodotENetTransport.Listen(_options.Port, _options.MaxPlayers);
-        _world = new CreatureWorld(GameData.Load(), new CreatureWorldSettings(), DevWorldSeed);
         _server = new GameServer(
             _world, _transport, new DevTokenAuthenticator(_options.DevSecret), _log, new GameServerSettings { MaxPlayers = _options.MaxPlayers });
-        _server.Populate(DevSpecies, DevCreatures, DevHerds);
+        _writer = new CheckpointWriter(_store, _log);
+        if (saved is null)
+        {
+            _server.Populate(DevSpecies, DevCreatures, DevHerds);
+            Checkpoint();
+            _log.Write(LogLevel.Info, "world.created", $"{path}: new world with {DevCreatures} creatures");
+        }
+        else
+        {
+            _server.RestorePlayers(saved.Players);
+            _lastCheckpoint = _world.Clock.Current.Index;
+            _log.Write(LogLevel.Info, "world.loaded", $"{path}: tick {saved.World.Tick}, {saved.World.Creatures.Count} creatures, {saved.Players.Count} players");
+        }
+
         _accumulator = new FixedStepAccumulator(SimulationSettings.Default);
+
+        // docker stop sends SIGTERM: quit through the main loop so the last checkpoint and the shutdown backup are written.
+        _sigterm = PosixSignalRegistration.Create(PosixSignal.SIGTERM, RequestStop);
+        _sigint = PosixSignalRegistration.Create(PosixSignal.SIGINT, RequestStop);
         _log.Write(LogLevel.Info, "server.listening", $"UDP port {_options.Port}, up to {_options.MaxPlayers} players, {SimulationSettings.DefaultTicksPerSecond} Hz, {DevCreatures} creatures");
     }
 
@@ -60,6 +95,18 @@ public sealed partial class ServerHost : Node
         _transport!.Flush();
 
         ulong tick = _world!.Clock.Current.Index;
+        if (_stopRequested)
+        {
+            _log.Write(LogLevel.Info, "server.stopping", "stop signal received");
+            _stopRequested = false;
+            GetTree().Quit();
+        }
+
+        if (tick - _lastCheckpoint >= CheckpointWriter.DefaultIntervalTicks)
+        {
+            Checkpoint();
+        }
+
         if (_options.QuitAfterTicks > 0 && tick >= _options.QuitAfterTicks)
         {
             _log.Write(LogLevel.Info, "server.stopping", $"reached {_options.QuitAfterTicks} ticks");
@@ -70,7 +117,42 @@ public sealed partial class ServerHost : Node
     /// <inheritdoc />
     public override void _ExitTree()
     {
+        _sigterm?.Dispose();
+        _sigint?.Dispose();
+        if (_writer is not null)
+        {
+            Checkpoint();
+            if (!_writer.Flush(TimeSpan.FromSeconds(10)))
+            {
+                _log.Write(LogLevel.Error, "world.shutdown", "the last checkpoint did not finish in 10 s");
+            }
+
+            _writer.Dispose();
+            _store!.Backup("shutdown");
+            _log.Write(LogLevel.Info, "world.shutdown", $"saved at tick {_writer.LastSavedTick} and backed up");
+        }
+
+        _store?.Dispose();
         _transport?.Dispose();
         _world?.Dispose();
+    }
+
+    private void RequestStop(PosixSignalContext context)
+    {
+        context.Cancel = true;
+        _stopRequested = true;
+    }
+
+    private void Checkpoint()
+    {
+        _writer!.Submit(WorldSnapshots.Capture(_world!), _server!.CapturePlayers());
+        _lastCheckpoint = _world!.Clock.Current.Index;
+    }
+
+    private string WorldPath()
+    {
+        string path = _options.WorldPath.Length > 0 ? _options.WorldPath : ProjectSettings.GlobalizePath("user://world/world.db");
+        Directory.CreateDirectory(Path.GetDirectoryName(Path.GetFullPath(path))!);
+        return Path.GetFullPath(path);
     }
 }

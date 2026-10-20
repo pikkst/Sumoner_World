@@ -56,6 +56,7 @@ public sealed class GameServer : IServerSessionHandler
     private readonly List<PlayerSlot> _players = [];
     private readonly Dictionary<ConnectionId, PlayerSlot> _byConnection = [];
     private readonly Dictionary<ulong, PlayerSlot> _bySession = [];
+    private readonly Dictionary<ulong, Vector3> _knownPlayers = [];
     private readonly PlayerInput[] _batch = new PlayerInput[InputBatch.MaxInputs];
     private readonly byte[] _buffer = new byte[Protocol.MaxMessageSize];
     private readonly IntentRequestCodec _intentCodec = new();
@@ -135,6 +136,30 @@ public sealed class GameServer : IServerSessionHandler
         return 0;
     }
 
+    /// <summary>Where every known player is or was last (for saving, M1-17b), by account.</summary>
+    public IReadOnlyList<PlayerSave> CapturePlayers()
+    {
+        foreach (PlayerSlot player in _players)
+        {
+            if (player.InWorld)
+            {
+                _knownPlayers[player.Account] = _world.World.GetComponent<Position>(player.Avatar).Value;
+            }
+        }
+
+        return [.. _knownPlayers.OrderBy(entry => entry.Key).Select(entry => new PlayerSave(entry.Key, entry.Value))];
+    }
+
+    /// <summary>Loads saved players: each appears where it was when it next joins.</summary>
+    public void RestorePlayers(IEnumerable<PlayerSave> players)
+    {
+        ArgumentNullException.ThrowIfNull(players);
+        foreach (PlayerSave player in players)
+        {
+            _knownPlayers[player.Account] = player.Position;
+        }
+    }
+
     /// <summary>Adds <paramref name="count"/> wild creatures of a species at seeded random spots (dev servers before M2 ecosystem).</summary>
     public void Populate(string speciesId, int count, int herds)
     {
@@ -176,7 +201,11 @@ public sealed class GameServer : IServerSessionHandler
     /// <inheritdoc />
     public void OnSessionOpened(ConnectionId connection, ulong accountId, ulong sessionId)
     {
-        var player = new PlayerSlot(accountId, sessionId) { Connection = connection, LastPosition = _settings.SpawnPoint };
+        var player = new PlayerSlot(accountId, sessionId)
+        {
+            Connection = connection,
+            LastPosition = _knownPlayers.TryGetValue(accountId, out Vector3 known) ? known : _settings.SpawnPoint,
+        };
         Enter(player);
         _players.Add(player);
         _byConnection.Add(connection, player);
@@ -282,6 +311,7 @@ public sealed class GameServer : IServerSessionHandler
     private void Leave(PlayerSlot player)
     {
         player.LastPosition = _world.World.GetComponent<Position>(player.Avatar).Value;
+        _knownPlayers[player.Account] = player.LastPosition;
         _world.DespawnPlayerAvatar(player.Avatar);
         player.InWorld = false;
     }

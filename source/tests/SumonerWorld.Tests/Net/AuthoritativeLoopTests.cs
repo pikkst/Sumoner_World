@@ -174,6 +174,22 @@ public class AuthoritativeLoopTests
     }
 
     [Fact]
+    public void Saved_players_reappear_where_they_were_and_are_captured_with_the_players_in_the_world()
+    {
+        using var lan = new Lan(0);
+        lan.Server.RestorePlayers([new PlayerSave(1001, new Vector3(100, 0, 120)), new PlayerSave(3003, new Vector3(5, 0, 5))]);
+        lan.Join(1001);
+        lan.Join(1002);
+        lan.Run(10, _ => MoveInput.None);
+
+        Assert.Equal(new Vector3(100, 0, 120), lan.ServerPosition(1001));
+        Assert.Equal(lan.Settings.SpawnPoint, lan.ServerPosition(1002));
+        Assert.Equal(
+            [new PlayerSave(1001, new Vector3(100, 0, 120)), new PlayerSave(1002, lan.Settings.SpawnPoint), new PlayerSave(3003, new Vector3(5, 0, 5))],
+            lan.Server.CapturePlayers());
+    }
+
+    [Fact]
     public void Inputs_far_ahead_after_an_outage_skip_forward_instead_of_stalling()
     {
         using var lan = new Lan(0);

@@ -99,20 +99,26 @@ public sealed class CreatureWorld : IDisposable
     private const int ReputationCapacity = 256;
 
     private readonly CreatureWorldSettings _settings;
-    private readonly StableIdAllocator _ids = new();
+    private readonly StableIdAllocator _ids;
     private readonly Dictionary<StableId, Entity> _creaturesById;
     private readonly int _regionsPerRow;
 
     /// <summary>Builds an empty world from the game data.</summary>
     public CreatureWorld(DataRegistry data, CreatureWorldSettings settings, ulong seed)
+        : this(data, settings, seed, startTick: 0, lastStableId: 0)
+    {
+    }
+
+    private CreatureWorld(DataRegistry data, CreatureWorldSettings settings, ulong randomState, ulong startTick, ulong lastStableId)
     {
         ArgumentNullException.ThrowIfNull(data);
         ArgumentNullException.ThrowIfNull(settings);
 
         _settings = settings;
+        _ids = new StableIdAllocator(lastStableId);
         _creaturesById = new Dictionary<StableId, Entity>(settings.EntityCapacity);
         Data = data;
-        Random = new SeededRandom(seed);
+        Random = new SeededRandom(randomState);
         World = CreateEcsWorld(settings.EntityCapacity);
         Rules = new MemoryRules(data.MemoryEventTypes, data.OpinionWeights, SimulationSettings.DefaultTicksPerDay);
         Minds = new CreatureMindStore(Rules, settings.EntityCapacity);
@@ -126,7 +132,7 @@ public sealed class CreatureWorld : IDisposable
         Events = new EventBus();
         Events.Register<NeighboursSensed>(NeighbourEventCapacity);
         Events.Register<CreatureIntent>(settings.IntentCapacity);
-        Clock = new SimulationClock(SimulationSettings.Default);
+        Clock = new SimulationClock(SimulationSettings.Default, startTick);
         Services = CreateServices();
         _regionsPerRow = Math.Max(1, (int)MathF.Ceiling(size.X / settings.RegionCellSize));
     }
@@ -263,6 +269,13 @@ public sealed class CreatureWorld : IDisposable
         World.Destroy(avatar);
     }
 
+    /// <summary>Last stable id issued (saved with the world).</summary>
+    internal ulong LastStableId => _ids.LastIssued;
+
+    /// <summary>An empty world that continues a saved clock, random stream and id counter (see <see cref="WorldSnapshots"/>).</summary>
+    internal static CreatureWorld Continue(DataRegistry data, CreatureWorldSettings settings, ulong randomState, ulong tick, ulong lastStableId) =>
+        new(data, settings, randomState, tick, lastStableId);
+
     /// <summary>Adds all deterministic world state to a hash (TDD §2.3).</summary>
     public void AddTo(ref StateHash hash, BondingRules bonding)
     {
@@ -328,6 +341,17 @@ public sealed class CreatureWorld : IDisposable
                 Data.BondLevels,
                 Data.PactTerms.Count,
                 SimulationSettings.DefaultTicksPerDay));
+    }
+
+    /// <summary>Adds a creature with a saved id and mind (see <see cref="WorldSnapshots"/>).</summary>
+    internal Entity AddRestoredCreature(StableId id, Vector3 position, MindHandle mind)
+    {
+        Entity creature = World.Create();
+        World.Add(creature, id);
+        _creaturesById.Add(id, creature);
+        AddBody(creature, position);
+        World.Add(creature, new MindRef(mind));
+        return creature;
     }
 
     private void AddBody(Entity entity, Vector3 position)

@@ -504,6 +504,17 @@ public sealed class BondingRules : IBondingRules
         return core;
     }
 
+    /// <summary>Sets a loaded creature's saved bond (M1-17b); not a gameplay transition.</summary>
+    public void Restore(MindHandle creature, BondState state)
+    {
+        if (!_store.IsValid(creature))
+        {
+            throw new InvalidOperationException($"{creature} is not a live creature mind.");
+        }
+
+        Set(creature, state);
+    }
+
     // A slot reused by a new creature starts wild.
     private BondState State(MindHandle creature)
     {

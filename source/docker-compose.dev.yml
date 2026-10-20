@@ -17,6 +17,7 @@ services:
       SW_SERVER_MODE: dev
       SW_DEV_SECRET: ${SW_DEV_SECRET:-local-dev-secret}
       SW_MAX_PLAYERS: "16"
+      SW_WORLD: /data/world.db
     volumes:
       - world-data:/data
     restart: unless-stopped

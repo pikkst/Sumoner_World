@@ -1,5 +1,13 @@
 using System.Globalization;
+using System.Numerics;
+using SumonerWorld.Core.Bonding;
+using SumonerWorld.Core.Cognition;
+using SumonerWorld.Core.Cognition.Memory;
+using SumonerWorld.Core.Cognition.Opinions;
+using SumonerWorld.Core.Data.Definitions;
+using SumonerWorld.Core.Ecs;
 using SumonerWorld.Core.Intents;
+using SumonerWorld.Core.World;
 using SumonerWorld.CrashHarness;
 using SumonerWorld.Persistence;
 using SumonerWorld.Persistence.Backups;
@@ -66,8 +74,22 @@ static int WriteFixture(string path)
     transaction.PutItem(2, 1001, new ItemRecord { Kind = 4, Quantity = 20 });
     transaction.PutItem(3, 1002, new ItemRecord { Kind = 0, Quantity = 1 });
     transaction.RecordIntent(new IntentId(7, 42), IntentResult.Applied(1), 300);
-    transaction.SetMeta("world_tick", 300);
+    transaction.SaveWorld(FixtureWorld(), [new PlayerSave(1001, new Vector3(250, 0, 260))]);
     transaction.Commit();
     Console.WriteLine($"fixture v{store.SchemaVersion} written to {path}");
     return 0;
+}
+
+static WorldSnapshot FixtureWorld()
+{
+    var memory = new MemoryRecord(5, new MemorySubject(SubjectKind.Player, 1001), 40, 600, 120, 200, 2, MemoryTags.None);
+    var mind = new MindState(
+        new Personality(10, -20, 30, -40),
+        new Personality(12, -20, 30, -38),
+        [],
+        [memory],
+        [new OpinionBaseline(new MemorySubject(SubjectKind.Player, 1001), new Opinion(150, -20, 80, 0))],
+        [new NeedState(1000, 100, 200), new NeedState(0, 100, 300), new NeedState(0, 0, 50), new NeedState(5000, 90, 100), new NeedState(0, 0, 10)]);
+    var creature = new CreatureSave(new StableId(17), "mossback", new Vector3(255, 0, 255), Vector3.UnitX, 3, mind, default(BondState));
+    return new WorldSnapshot(300, 0xDEADBEEF, 17, [creature], [new ReputationSave("mossback", 0, 1001, -40)]);
 }

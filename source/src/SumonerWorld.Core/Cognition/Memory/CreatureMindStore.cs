@@ -325,6 +325,71 @@ public sealed class CreatureMindStore : ICreatureMindStore
         return new ReadOnlySpan<MemoryRecord>(_records, (mind.Slot * SlotsPerMind) + ICreatureMindStore.CoreCapacity, _episodicCounts[mind.Slot]);
     }
 
+    /// <summary>Copies everything saved about a mind (M1-17b).</summary>
+    public MindState Export(MindHandle mind)
+    {
+        EnsureValid(mind);
+        int slot = mind.Slot;
+        int opinionStart = slot * ICreatureMindStore.OpinionCapacity;
+        var baselines = new OpinionBaseline[_opinionCounts[slot]];
+        for (int i = 0; i < baselines.Length; i++)
+        {
+            baselines[i] = new OpinionBaseline(_opinionSubjects[opinionStart + i], _opinionBaselineTenths[opinionStart + i]);
+        }
+
+        var needs = new NeedState[NeedCount];
+        for (int i = 0; i < NeedCount; i++)
+        {
+            int index = (slot * NeedCount) + i;
+            needs[i] = new NeedState(_needMilli[index], _needTicks[index], _needRates[index]);
+        }
+
+        return new MindState(
+            _birth[slot], _current[slot], GetCoreRecords(mind).ToArray(), GetEpisodicRecords(mind).ToArray(), baselines, needs);
+    }
+
+    /// <summary>Allocates a mind with saved state (M1-17b); the inverse of <see cref="Export"/>.</summary>
+    public MindHandle Import(MindState state)
+    {
+        ArgumentNullException.ThrowIfNull(state);
+        if (state.CoreRecords.Count > ICreatureMindStore.CoreCapacity || state.EpisodicRecords.Count > ICreatureMindStore.EpisodicCapacity
+            || state.Baselines.Count > ICreatureMindStore.OpinionCapacity || state.Needs.Count != NeedCount)
+        {
+            throw new ArgumentException("Saved mind exceeds the store's capacities.", nameof(state));
+        }
+
+        MindHandle mind = Allocate(state.Birth, new NeedRates { Hunger = 0, Rest = 0, Safety = 0, Social = 0, Territory = 0 });
+        int slot = mind.Slot;
+        _current[slot] = state.Current;
+        for (int i = 0; i < state.CoreRecords.Count; i++)
+        {
+            _records[(slot * SlotsPerMind) + i] = state.CoreRecords[i];
+        }
+
+        for (int i = 0; i < state.EpisodicRecords.Count; i++)
+        {
+            _records[(slot * SlotsPerMind) + ICreatureMindStore.CoreCapacity + i] = state.EpisodicRecords[i];
+        }
+
+        _coreCounts[slot] = state.CoreRecords.Count;
+        _episodicCounts[slot] = state.EpisodicRecords.Count;
+        int opinionStart = slot * ICreatureMindStore.OpinionCapacity;
+        for (int i = 0; i < state.Baselines.Count; i++)
+        {
+            _opinionSubjects[opinionStart + i] = state.Baselines[i].Subject;
+            _opinionBaselineTenths[opinionStart + i] = state.Baselines[i].Tenths;
+        }
+
+        _opinionCounts[slot] = state.Baselines.Count;
+        for (int i = 0; i < NeedCount; i++)
+        {
+            int index = (slot * NeedCount) + i;
+            (_needMilli[index], _needTicks[index], _needRates[index]) = (state.Needs[i].Milli, state.Needs[i].Tick, state.Needs[i].Rate);
+        }
+
+        return mind;
+    }
+
     /// <summary>Total records stored across all live minds (core and episodic, including forgotten ones not yet replaced).</summary>
     public int TotalRecords
     {

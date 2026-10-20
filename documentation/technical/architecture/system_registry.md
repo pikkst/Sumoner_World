@@ -76,6 +76,7 @@ Rules: R02, R07, R12, R47, R49 · Related: ADR-001 (layers), TDD v0.1, AI Bible 
 | Reputation | `Core.Ecosystem` | `IReputationService` | Server-wide (species, region, player) reputation from data `reputationDelta`, summed by a background job; seeds new creatures' opinions (`ReputationService`) | AI Bible §4.5 | **Implemented** (M1-12) |
 | Rumours | `Core.Cognition.Memory` | `ICreatureMindStore.ShareRumours` (method) | Groupmates pass on their 3 strongest first-hand memories about players at half strength; never passed on again | AI Bible §4.5 | **Implemented** (M1-12) |
 | Creature world | `Core.World` | `CreatureWorld` (class) | Composition root for one region's creature simulation: ECS components, spawn/despawn of creatures and player avatars, production creature systems in tick order, state hash | TDD §2.2 | **Implemented** (M1-15a) |
+| World snapshots | `Core.World` | `WorldSnapshots` (class) | Capture a `CreatureWorld` (clock, random state, ids, creatures with `MindState` and bond, reputation) and restore it; `CreatureMindStore.Export/Import` | TDD §4.4 | **Implemented** (M1-17b) |
 | Chunk map | `Core.World` | `IChunkMap` | 64 m chunk states: loaded / abstract | TDD §5 | Planned (M1) |
 | World generation | `Core.World` | `IWorldGenerator` | Seeded scatter of resources and props | TDD §5.1 | Planned (M2) |
 | Weather | `Core.World` | `IWeatherModel` | Deterministic weather and world events | GDD §7 | Planned (M2) |
@@ -101,7 +102,8 @@ Rules: R02, R07, R12, R47, R49 · Related: ADR-001 (layers), TDD v0.1, AI Bible 
 ## 6. Persistence (`SumonerWorld.Persistence`, project created in M1)
 | System | Interface | Responsibility | Spec | Status |
 |---|---|---|---|---|
-| World store | `IWorldStore`, `IWorldTransaction` | SQLite world database (WAL, `synchronous=FULL`), atomic transactions that write the effect and the `intent_dedupe` record together (`WorldStore`); items in M1-17a, players/creatures/reputation in M1-17b | TDD §4.1–4.2, §3.4 | **Partly implemented** (M1-17a) |
+| World store | `IWorldStore`, `IWorldTransaction` | SQLite world database (WAL, `synchronous=FULL`), atomic transactions that write the effect and the `intent_dedupe` record together (`WorldStore`); items, players, creatures with minds, reputation (`SaveWorld` / `LoadWorld`) | TDD §4.1–4.2, §3.4 | **Implemented** (M1-17a, M1-17b) |
+| World checkpoints | `CheckpointWriter` (class) | Persistence thread: writes the newest 30 s world snapshot in one transaction, timed backups every 30 min | TDD §4.2 | **Implemented** (M1-17b) |
 | Record codec | `IRecordCodec` | Version byte + MessagePack payload with integer keys, read with untrusted-data security (`MessagePackRecordCodec`, `ItemRecord` v1) | TDD §4.1 | **Implemented** (M1-17a) |
 | Migrations | `IMigration` | One schema step `FromVersion → ToVersion`, run by the store at start-up in one transaction after a backup; newer saves refused (`Migrations.All`: v1) | TDD §4.3 | **Implemented** (M1-17a) |
 | Backups | `IBackupService` | Consistent online copies (SQLite backup API), newest 10 kept, pre-migration backups (`WorldBackups`); timed and shutdown backups started by the host in M1-17b | TDD §4.2 | **Implemented** (M1-17a) |

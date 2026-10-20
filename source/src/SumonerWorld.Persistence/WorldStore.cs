@@ -1,5 +1,6 @@
 using Microsoft.Data.Sqlite;
 using SumonerWorld.Core.Intents;
+using SumonerWorld.Core.World;
 using SumonerWorld.Persistence.Backups;
 using SumonerWorld.Persistence.Records;
 using SumonerWorld.Persistence.Schema;
@@ -54,6 +55,9 @@ public interface IWorldStore : IDisposable
 
     /// <summary>Makes a backup now; returns its path.</summary>
     string Backup(string reason);
+
+    /// <summary>The last saved world, or null for a world that was never saved.</summary>
+    SavedWorld? LoadWorld();
 }
 
 /// <summary>One atomic unit of change. Reads see the transaction's own writes.</summary>
@@ -83,6 +87,9 @@ public interface IWorldTransaction : IDisposable
     /// <summary>Sets a meta value.</summary>
     void SetMeta(string key, long value);
 
+    /// <summary>Replaces the saved world (creatures, players, reputation, clock, random state, id counter) with this one.</summary>
+    void SaveWorld(WorldSnapshot world, IReadOnlyList<PlayerSave> players);
+
     /// <summary>Commits everything at once.</summary>
     void Commit();
 }
@@ -96,11 +103,13 @@ public sealed class WorldStore : IWorldStore
     private readonly SqliteConnection _connection;
     private readonly IBackupService _backups;
     private readonly MessagePackRecordCodec<ItemRecord> _items = new(1);
+    private readonly WorldTables _world;
 
     private WorldStore(SqliteConnection connection, IBackupService backups)
     {
         _connection = connection;
         _backups = backups;
+        _world = new WorldTables(this);
     }
 
     /// <inheritdoc />
@@ -165,6 +174,9 @@ public sealed class WorldStore : IWorldStore
 
     /// <inheritdoc />
     public string Backup(string reason) => _backups.Create(_connection, reason);
+
+    /// <inheritdoc />
+    public SavedWorld? LoadWorld() => _world.Load();
 
     /// <inheritdoc />
     public void Dispose() => _connection.Dispose();
@@ -267,6 +279,8 @@ public sealed class WorldStore : IWorldStore
 
     private sealed class WorldTransaction(WorldStore store, SqliteTransaction transaction) : IWorldTransaction
     {
+        public void SaveWorld(WorldSnapshot world, IReadOnlyList<PlayerSave> players) => store._world.Save(transaction, world, players);
+
         public bool TryGetItem(ulong id, out ulong owner, out ItemRecord item) => store.ReadItem(id, transaction, out owner, out item);
 
         public IReadOnlyList<ulong> ItemsOwnedBy(ulong owner)

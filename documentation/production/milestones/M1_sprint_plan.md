@@ -95,4 +95,5 @@ M1-01 → (M1-02, M1-03, M1-04) → M1-05 → Phase B. M1-13 can start after M1-
 | M1-15c | **Done** 2026-10-20 (merged under standing approval): protocol 2, authoritative server loop, prediction + reconciliation, 2 clients over loopback, Godot hosts; M1-15 complete |
 | M1-16 | **Done** 2026-10-20 (merged under standing approval): suspend/resume sessions (2 min), 30 s avatar linger, one session per account, intent resend on resume, client auto-reconnect |
 | M1-17a | **Done** 2026-10-20 (merged under standing approval): Persistence project, SQLite world store, migrations, backups, record codec, fixture save; **spike 3 passed** |
-| M1-17b … M1-24 | Planned (M1-17b: players/creatures/reputation saved, persistence thread, world survives restart) |
+| M1-17b | **Done** 2026-10-20 (merged under standing approval): world save/load (players, creature minds and bonds, reputation), checkpoint thread, graceful shutdown; **spike 6 passed** |
+| M1-17c … M1-24 | Planned (M1-17c: intent acks after the durable commit) |
