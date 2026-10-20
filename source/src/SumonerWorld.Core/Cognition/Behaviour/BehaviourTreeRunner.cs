@@ -8,7 +8,8 @@ namespace SumonerWorld.Core.Cognition.Behaviour;
 /// <summary>
 /// <see cref="IBehaviourTreeRunner"/>. Each tree is compiled once into a flat pre-order node array shared by all creatures; each
 /// mind slot holds one int and one tick per node, so ticking does not allocate (R21). Composite nodes remember which child is
-/// running. Results are deterministic: no randomness, fixed child order (R11).
+/// running. Results are deterministic: no randomness, fixed child order (R11). For the AI Inspector it remembers the innermost
+/// node that was still running at each creature's last tick (<see cref="TryGetActiveNode"/>).
 /// </summary>
 public sealed class BehaviourTreeRunner : IBehaviourTreeRunner
 {
@@ -18,6 +19,7 @@ public sealed class BehaviourTreeRunner : IBehaviourTreeRunner
     private const byte Failed = 2;
     private const int ParallelMaskBits = 16;
     private const int ParallelMask = (1 << ParallelMaskBits) - 1;
+    private const sbyte NoNode = -1;
 
     private readonly ICreatureMindStore _store;
     private readonly InputSampler _sampler;
@@ -28,6 +30,7 @@ public sealed class BehaviourTreeRunner : IBehaviourTreeRunner
     private readonly ushort[] _activeGoals;
     private readonly int[] _owners;
     private readonly byte[] _outcomes;
+    private readonly sbyte[] _activeNodes;
     private readonly int[] _inputs = new int[InputSampler.Count];
     private bool _inputsSampled;
 
@@ -59,7 +62,9 @@ public sealed class BehaviourTreeRunner : IBehaviourTreeRunner
         _activeGoals = new ushort[store.Capacity];
         _owners = new int[store.Capacity];
         _outcomes = new byte[store.Capacity];
+        _activeNodes = new sbyte[store.Capacity];
         Array.Fill(_owners, -1);
+        Array.Fill(_activeNodes, NoNode);
     }
 
     /// <inheritdoc />
@@ -83,6 +88,7 @@ public sealed class BehaviourTreeRunner : IBehaviourTreeRunner
             }
         }
 
+        _activeNodes[slot] = NoNode;
         CompiledTree? tree = context.Goal < _treesByGoal.Length ? _treesByGoal[context.Goal] : null;
         if (tree is null)
         {
@@ -97,6 +103,18 @@ public sealed class BehaviourTreeRunner : IBehaviourTreeRunner
         }
 
         return status;
+    }
+
+    /// <summary>
+    /// The goal whose tree the creature ran at its last behaviour tick and the innermost node (pre-order index, see
+    /// <see cref="BehaviourTreeDefinition.PathTo"/>) still running then; false when the tree finished or there is none.
+    /// </summary>
+    public bool TryGetActiveNode(MindHandle mind, out ushort goal, out int node)
+    {
+        bool known = _store.IsValid(mind) && _owners[mind.Slot] == mind.Generation && _activeNodes[mind.Slot] != NoNode;
+        goal = known ? _activeGoals[mind.Slot] : Decision.Decision.Idle;
+        node = known ? _activeNodes[mind.Slot] : NoNode;
+        return known;
     }
 
     /// <inheritdoc />
@@ -129,6 +147,19 @@ public sealed class BehaviourTreeRunner : IBehaviourTreeRunner
         Array.Clear(_state, stateBase + node, tree.SubtreeSizes[node]);
 
     private TreeStatus Evaluate(CompiledTree tree, int node, MindHandle mind, int stateBase, in BehaviourContext context)
+    {
+        TreeStatus status = EvaluateNode(tree, node, mind, stateBase, context);
+
+        // Children return first, so the first running node recorded in a tick is the innermost one.
+        if (status == TreeStatus.Running && _activeNodes[mind.Slot] == NoNode)
+        {
+            _activeNodes[mind.Slot] = (sbyte)node;
+        }
+
+        return status;
+    }
+
+    private TreeStatus EvaluateNode(CompiledTree tree, int node, MindHandle mind, int stateBase, in BehaviourContext context)
     {
         BehaviourNodeDefinition definition = tree.Nodes[node];
         ref int state = ref _state[stateBase + node];
@@ -379,8 +410,7 @@ public sealed class BehaviourTreeRunner : IBehaviourTreeRunner
             sizes.Add(0);
             childLists.Add([]);
 
-            IEnumerable<BehaviourNodeDefinition> children = node.Children ?? (node.Child is null ? [] : [node.Child]);
-            foreach (BehaviourNodeDefinition child in children)
+            foreach (BehaviourNodeDefinition child in node.Nodes)
             {
                 childLists[index].Add(Add(child, nodes, sizes, childLists));
             }

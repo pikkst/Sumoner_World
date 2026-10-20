@@ -59,6 +59,14 @@ public sealed class AppraisalModel : IAppraisal
     }
 
     /// <inheritdoc />
+    public EmotionState PeekEmotions(MindHandle mind, ulong now)
+    {
+        Span<int> values = stackalloc int[EmotionCount];
+        Decayed(mind, now, values);
+        return new EmotionState(values[0], values[1], values[2], values[3], values[4]);
+    }
+
+    /// <inheritdoc />
     public void Stimulate(MindHandle mind, Emotion emotion, int amount, ulong now)
     {
         ArgumentOutOfRangeException.ThrowIfNegative(amount);
@@ -132,6 +140,16 @@ public sealed class AppraisalModel : IAppraisal
     // Brings the slot's stored emotions up to date (decay toward baseline) and returns them for in-place updates.
     private Span<int> Refresh(MindHandle mind, ulong now)
     {
+        Span<int> values = _values.AsSpan(mind.Slot * EmotionCount, EmotionCount);
+        Decayed(mind, now, values);
+        _owners[mind.Slot] = mind.Generation;
+        _lastTicks[mind.Slot] = (uint)now;
+        return values;
+    }
+
+    // Writes the decayed emotions into values (which may be the stored slot itself) without touching the stored tick.
+    private void Decayed(MindHandle mind, ulong now, Span<int> values)
+    {
         Personality personality = _store.GetPersonality(mind);
         if (now > uint.MaxValue)
         {
@@ -139,7 +157,7 @@ public sealed class AppraisalModel : IAppraisal
         }
 
         uint tick = (uint)now;
-        Span<int> values = _values.AsSpan(mind.Slot * EmotionCount, EmotionCount);
+        ReadOnlySpan<int> stored = _values.AsSpan(mind.Slot * EmotionCount, EmotionCount);
         bool fresh = _owners[mind.Slot] != mind.Generation;
         if (!fresh && tick < _lastTicks[mind.Slot])
         {
@@ -149,15 +167,11 @@ public sealed class AppraisalModel : IAppraisal
         for (int i = 0; i < EmotionCount; i++)
         {
             int baseline = Baseline(personality, i);
-            int excess = fresh ? 0 : values[i] - baseline;
+            int excess = fresh ? 0 : stored[i] - baseline;
             values[i] = excess <= 0
                 ? baseline
                 : baseline + MemoryDecay.Apply(excess, tick - _lastTicks[mind.Slot], (uint)_settings.EmotionHalfLifeTicks);
         }
-
-        _owners[mind.Slot] = mind.Generation;
-        _lastTicks[mind.Slot] = tick;
-        return values;
     }
 
     private bool HasRecentGrief(MindHandle mind, ulong now) =>

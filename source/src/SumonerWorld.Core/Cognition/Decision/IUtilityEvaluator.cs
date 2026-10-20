@@ -55,6 +55,6 @@ public interface IUtilityEvaluator
     /// </summary>
     Decision CheckInterrupt(MindHandle mind, in DecisionContext context);
 
-    /// <summary>The score of one goal (for tests and the AI Inspector).</summary>
+    /// <summary>The score of one goal (for tests and the AI Inspector); reads the mind without changing it.</summary>
     int Score(MindHandle mind, ushort goal, in DecisionContext context);
 }

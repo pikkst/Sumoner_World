@@ -34,6 +34,12 @@ public sealed class GameServerSettings
 
     /// <summary>Highest session id used before (after a restart: the highest in the saved dedupe table), so ids never repeat.</summary>
     public ulong LastSessionId { get; init; }
+
+    /// <summary>
+    /// Answer dev-tool requests (M1-22): tick metrics for the dev overlay and the AI Inspector. Dev servers only: it shows hidden
+    /// creature minds to any connected client and costs server time.
+    /// </summary>
+    public bool DevTools { get; init; }
 }
 
 /// <summary>
@@ -43,11 +49,16 @@ public sealed class GameServerSettings
 /// for <see cref="LingerTicks"/> (no escape from danger by disconnecting), then is parked; resuming within the reconnect window puts
 /// it back where it was, with the same intent dedupe window. When the session closes, the avatar leaves for good. With an
 /// <see cref="ITransactionJournal"/>, an intent's result is sent only after the journal has made it durable (TDD §4.2).
+/// With <see cref="GameServerSettings.DevTools"/>, a <see cref="DevToolsHost"/> times every tick and every
+/// <see cref="DevReportEveryTicks"/> sends each client that asked for them the tick metrics and the inspected creature's mind.
 /// </summary>
 public sealed class GameServer : IServerSessionHandler
 {
     /// <summary>30 s at 30 Hz: how long a disconnected player's avatar stays in the world.</summary>
     public const ulong LingerTicks = 900;
+
+    /// <summary>Dev reports go out twice a second.</summary>
+    public const int DevReportEveryTicks = 15;
 
     private readonly CreatureWorld _world;
     private readonly ITransport _transport;
@@ -68,6 +79,7 @@ public sealed class GameServer : IServerSessionHandler
     private readonly SnapshotSender _snapshots;
     private readonly ITransactionJournal? _journal;
     private readonly Queue<(IntentId Id, IntentResult Result)> _pendingAcks = new();
+    private readonly DevToolsHost? _dev;
 
     /// <summary>Creates the server around a world.</summary>
     public GameServer(
@@ -93,7 +105,8 @@ public sealed class GameServer : IServerSessionHandler
         Movement = new MovementModel(settings.Movement);
         Transactions = new TransactionProcessor(_dedupe);
         _snapshots = new SnapshotSender(world, transport, settings.InterestRadius);
-        _scheduler = new SimulationScheduler(world.Clock, world.Events, metrics);
+        _dev = settings.DevTools ? new DevToolsHost(world, transport, metrics) : null;
+        _scheduler = new SimulationScheduler(world.Clock, world.Events, _dev?.Metrics ?? metrics);
         _scheduler.Register(new PlayerInputSystem(this));
         world.CreateSystems().RegisterAll(_scheduler);
         _scheduler.Register(new IntentSystem(this));
@@ -122,6 +135,9 @@ public sealed class GameServer : IServerSessionHandler
 
     /// <summary>Snapshot parts sent since the start.</summary>
     public int SnapshotPartsSent => _snapshots.PartsSent;
+
+    /// <summary>The dev tools, when <see cref="GameServerSettings.DevTools"/> is on.</summary>
+    public DevToolsHost? DevTools => _dev;
 
     /// <summary>The avatar of an account in the world, if any.</summary>
     public bool TryGetAvatar(ulong accountId, out Entity avatar)
@@ -196,6 +212,7 @@ public sealed class GameServer : IServerSessionHandler
     /// <summary>One server tick: receive, simulate, replicate. The host flushes the transport afterwards.</summary>
     public void Tick()
     {
+        _dev?.Metrics.BeginServerTick();
         SendDurableAcks();
         _transport.Poll(_endpoint);
         _scheduler.RunTick();
@@ -216,6 +233,12 @@ public sealed class GameServer : IServerSessionHandler
         if (tick % IntentDeduplicator.MaxIdleTicks == 0)
         {
             _dedupe.Prune(tick);
+        }
+
+        _dev?.Metrics.EndServerTick();
+        if (tick % DevReportEveryTicks == 0)
+        {
+            _dev?.Report(tick, ConnectedCount);
         }
     }
 
@@ -239,6 +262,7 @@ public sealed class GameServer : IServerSessionHandler
         if (_bySession.TryGetValue(sessionId, out PlayerSlot? player) && player.Connection is ConnectionId connection)
         {
             _byConnection.Remove(connection);
+            _dev?.Forget(connection);
             player.Connection = null;
             player.LingerUntil = _world.Clock.Current.Index + LingerTicks;
             player.Inputs.Reset();
@@ -257,6 +281,7 @@ public sealed class GameServer : IServerSessionHandler
         if (player.Connection is ConnectionId old)
         {
             _byConnection.Remove(old);
+            _dev?.Forget(old);
         }
 
         player.Connection = connection;
@@ -280,6 +305,7 @@ public sealed class GameServer : IServerSessionHandler
         if (player.Connection is ConnectionId connection)
         {
             _byConnection.Remove(connection);
+            _dev?.Forget(connection);
         }
 
         if (player.InWorld)
@@ -317,6 +343,12 @@ public sealed class GameServer : IServerSessionHandler
                 }
 
                 player.Intents.Enqueue(_intentCodec.Read(ref reader));
+                break;
+            case MessageType.DevRequest when _dev is not null:
+                _dev.OnRequest(connection, ref reader);
+                break;
+            case MessageType.DevRequest:
+                _log.Write(LogLevel.Warning, "dev.refused", $"account {player.Account} asked for dev tools; this server runs without them");
                 break;
             default:
                 throw new MalformedMessageException($"{type} is not a client message.");

@@ -105,4 +105,5 @@ M1-01 → (M1-02, M1-03, M1-04) → M1-05 → Phase B. M1-13 can start after M1-
 | M1-20b | **Done** 2026-10-20 (merged under standing approval): Jolt enabled, `GodotPhysicsQueries`, `GodotNavigation` (mesh baked from the heightfield), server / client / bots on the shared ground; Docker self-check: 64 rays, 0 missed, largest difference to the heightfield 0.0 cm; M1-20 complete (`GodotLog` exists since M1-14) |
 | M1-21a | **Done** 2026-10-20 (merged under standing approval): protocol 4 (species in snapshots), `RemoteInterpolation` (100 ms buffer, dead-zone clock, short extrapolation), dev server with grazers and predators |
 | M1-21b | **Done** 2026-10-20 (merged under standing approval): `EntityViewSync`, `IEmotePresenter` + quadruped presenter, grazer and predator placeholder rigs with six emotes, emote showcase, client renders the region and server creatures with a follow camera; M1-21 complete |
-| M1-22 … M1-24 | Planned |
+| M1-22a | **Done** 2026-10-20 (merged under standing approval): protocol 5 dev messages, server tick and stage metrics, read-only `CreatureInspector` (traits, needs, emotions, top memories, opinions, goal scores, running tree node), dev tools only with `--dev-tools` / `SW_DEV_TOOLS` (on in the Docker dev server); inspecting every creature every tick leaves the B5 state hash unchanged |
+| M1-22b … M1-24 | Planned |

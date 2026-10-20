@@ -156,6 +156,27 @@ public sealed record BehaviourNodeDefinition
 
     /// <summary>Repeat: how many successes before succeeding (0 = until the child fails).</summary>
     public int Times { get; init; }
+
+    /// <summary>Child nodes in order (composites: <see cref="Children"/>, decorators: <see cref="Child"/>).</summary>
+    public IEnumerable<BehaviourNodeDefinition> Nodes => Children ?? (Child is null ? [] : [Child]);
+
+    /// <summary>A short human-readable label (AI Inspector), e.g. <c>MoveTo AwayFromFocus 150%</c> or <c>EmotionFear &gt; 400</c>.</summary>
+    public string Describe() => Type switch
+    {
+        BehaviourNodeType.Parallel => $"Parallel {Policy}",
+        BehaviourNodeType.Condition => $"{Input} {Op switch { ConditionOperator.Lt => "<", ConditionOperator.Lte => "<=", ConditionOperator.Gt => ">", _ => ">=" }} {Value}",
+        BehaviourNodeType.Action => Intent switch
+        {
+            IntentKind.MoveTo => $"MoveTo {Target} {Speed}%",
+            IntentKind.Emote => $"Emote {Emote}",
+            IntentKind.Interact => $"Interact {Verb}",
+            _ => $"{Intent}",
+        },
+        BehaviourNodeType.Wait => $"Wait {Ticks} ticks",
+        BehaviourNodeType.Cooldown => $"Cooldown {Ticks} ticks",
+        BehaviourNodeType.Repeat => Times == 0 ? "Repeat until failure" : $"Repeat {Times}x",
+        _ => Type.ToString(),
+    };
 }
 
 /// <summary>The behaviour tree that carries out one goal (AI Bible §7.3), loaded from <c>data/ai/bt/*.json</c>.</summary>
@@ -172,4 +193,35 @@ public sealed record BehaviourTreeDefinition
 
     /// <summary>The root node.</summary>
     public required BehaviourNodeDefinition Root { get; init; }
+
+    /// <summary>
+    /// The nodes from the root down to node <paramref name="index"/>, numbered in pre-order (root = 0, as the runner compiles the
+    /// tree); empty when the index is outside the tree.
+    /// </summary>
+    public IReadOnlyList<BehaviourNodeDefinition> PathTo(int index)
+    {
+        var path = new List<BehaviourNodeDefinition>();
+        int next = 0;
+        return index >= 0 && Find(Root, index, ref next, path) ? path : [];
+    }
+
+    private static bool Find(BehaviourNodeDefinition node, int index, ref int next, List<BehaviourNodeDefinition> path)
+    {
+        path.Add(node);
+        if (next++ == index)
+        {
+            return true;
+        }
+
+        foreach (BehaviourNodeDefinition child in node.Nodes)
+        {
+            if (Find(child, index, ref next, path))
+            {
+                return true;
+            }
+        }
+
+        path.RemoveAt(path.Count - 1);
+        return false;
+    }
 }

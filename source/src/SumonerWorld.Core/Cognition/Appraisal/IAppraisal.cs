@@ -11,6 +11,12 @@ public interface IAppraisal
     /// <summary>The creature's emotions at tick <paramref name="now"/>.</summary>
     EmotionState GetEmotions(MindHandle mind, ulong now);
 
+    /// <summary>
+    /// The same values as <see cref="GetEmotions"/> without storing the decay (debug tools such as the AI Inspector: decay rounds,
+    /// so an extra stored refresh would change later values and the simulation would no longer be deterministic).
+    /// </summary>
+    EmotionState PeekEmotions(MindHandle mind, ulong now);
+
     /// <summary>Raises one emotion by <paramref name="amount"/> (being hit, a loud noise, food appearing...).</summary>
     void Stimulate(MindHandle mind, Emotion emotion, int amount, ulong now);
 

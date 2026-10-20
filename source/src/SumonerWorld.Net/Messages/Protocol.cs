@@ -25,6 +25,15 @@ public enum MessageType : byte
 
     /// <summary>Server → client, unreliable: world state around the player (20 Hz, may come in several parts).</summary>
     Snapshot = 8,
+
+    /// <summary>Client → server, reliable: what the dev tools want to see (dev servers only, since protocol 5).</summary>
+    DevRequest = 9,
+
+    /// <summary>Server → client, unreliable: server tick metrics for the dev overlay.</summary>
+    DevMetrics = 10,
+
+    /// <summary>Server → client, unreliable: the inspected creature's mind for the AI Inspector.</summary>
+    DevInspection = 11,
 }
 
 /// <summary>Why the server refused a session.</summary>
@@ -49,7 +58,7 @@ public enum RejectReason : byte
 public static class Protocol
 {
     /// <summary>Current protocol version; bump on any wire-format change.</summary>
-    public const ushort Version = 4;
+    public const ushort Version = 5;
 
     /// <summary>Largest message, in bytes (fits one UDP datagram on common networks).</summary>
     public const int MaxMessageSize = 1200;

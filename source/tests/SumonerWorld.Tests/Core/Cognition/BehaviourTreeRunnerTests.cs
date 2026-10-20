@@ -175,6 +175,26 @@ public class BehaviourTreeRunnerTests
     }
 
     [Fact]
+    public void The_innermost_running_node_is_reported_with_its_path_for_the_inspector()
+    {
+        BehaviourNodeDefinition tree = Seq(ShowEmote(Emote.Curiosity), Sel(Condition(ConsiderationInput.NeedHunger, ConditionOperator.Gte, 500), Move(MoveTargetMode.AwayFromFocus, timeout: 100)));
+        var bt = new Bt(tree);
+        Assert.False(bt.Runner.TryGetActiveNode(bt.Mind, out _, out _));
+
+        bt.Tick(GoalA, 0);
+        Assert.True(bt.Runner.TryGetActiveNode(bt.Mind, out ushort goal, out int node));
+        Assert.Equal((GoalA, 4), (goal, node));
+        var definition = new BehaviourTreeDefinition { Goal = "Alpha", Root = tree };
+        Assert.Equal(["Sequence", "Selector", "MoveTo AwayFromFocus 100%"], definition.PathTo(node).Select(step => step.Describe()));
+        Assert.Equal("NeedHunger >= 500", definition.PathTo(3)[^1].Describe());
+        Assert.Empty(definition.PathTo(5));
+
+        bt.Runner.ReportOutcome(bt.Mind, succeeded: true);
+        Assert.Equal(TreeStatus.Success, bt.Tick(GoalA, 1));
+        Assert.False(bt.Runner.TryGetActiveNode(bt.Mind, out _, out _));
+    }
+
+    [Fact]
     public void Ticking_does_not_allocate()
     {
         var bt = new Bt(Sel(

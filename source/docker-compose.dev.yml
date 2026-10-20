@@ -18,6 +18,8 @@ services:
       SW_DEV_SECRET: ${SW_DEV_SECRET:-local-dev-secret}
       SW_MAX_PLAYERS: "16"
       SW_WORLD: /data/world.db
+      # Dev overlay + AI Inspector (M1-22): shows creature minds to every client. Never set on a public server.
+      SW_DEV_TOOLS: "1"
     volumes:
       - world-data:/data
     restart: unless-stopped

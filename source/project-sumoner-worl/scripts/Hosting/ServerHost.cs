@@ -25,7 +25,8 @@ namespace SumonerWorld.Game.Hosting;
 /// the same ground as height-map collision (checked against the heightfield once at start). A checkpoint
 /// goes to the persistence thread every 30 s, and every intent's result is sent only after the thread made it durable; on shutdown a last checkpoint is written and a backup made.
 /// With <see cref="HostOptions.BenchmarkOut"/> it runs B2 (M0-07): a <see cref="ServerBenchmark"/> measures once the bots are in and
-/// warmed up, writes <c>summary.json</c> and <c>ticks.csv</c> there and stops the server.
+/// warmed up, writes <c>summary.json</c> and <c>ticks.csv</c> there and stops the server. With <see cref="HostOptions.DevTools"/>
+/// (the Docker dev server sets <c>SW_DEV_TOOLS</c>) it answers the dev overlay and the AI Inspector (M1-22).
 /// </summary>
 public sealed partial class ServerHost : Node
 {
@@ -79,7 +80,13 @@ public sealed partial class ServerHost : Node
         var metered = new MeteredTransport(_transport);
         _benchmark = CreateBenchmark(metered);
         _writer = new PersistenceWriter(_store, _log);
-        var settings = new GameServerSettings { MaxPlayers = _options.MaxPlayers, LastSessionId = _store.MaxIntentSession(), Movement = DevWorld.Movement() };
+        var settings = new GameServerSettings
+        {
+            MaxPlayers = _options.MaxPlayers,
+            LastSessionId = _store.MaxIntentSession(),
+            Movement = DevWorld.Movement(),
+            DevTools = _options.DevTools,
+        };
         _server = new GameServer(_world, metered, new DevTokenAuthenticator(_options.DevSecret), _log, settings, _benchmark, _writer);
         if (saved is null)
         {
@@ -100,7 +107,7 @@ public sealed partial class ServerHost : Node
         // docker stop sends SIGTERM: quit through the main loop so the last checkpoint and the shutdown backup are written.
         _sigterm = PosixSignalRegistration.Create(PosixSignal.SIGTERM, RequestStop);
         _sigint = PosixSignalRegistration.Create(PosixSignal.SIGINT, RequestStop);
-        _log.Write(LogLevel.Info, "server.listening", $"UDP port {_options.Port}, up to {_options.MaxPlayers} players, {SimulationSettings.DefaultTicksPerSecond} Hz, {DevCreatures} creatures");
+        _log.Write(LogLevel.Info, "server.listening", $"UDP port {_options.Port}, up to {_options.MaxPlayers} players, {SimulationSettings.DefaultTicksPerSecond} Hz, {DevCreatures} creatures, dev tools {(_options.DevTools ? "on" : "off")}");
     }
 
     /// <inheritdoc />

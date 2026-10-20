@@ -23,6 +23,7 @@ public sealed class UtilityEvaluator : IUtilityEvaluator
     private readonly ICreatureMindStore _store;
     private readonly Dictionary<string, GoalDefinition> _goalsByKey;
     private readonly InputSampler _sampler;
+    private readonly InputSampler _peekSampler;
 
     /// <summary>Creates the evaluator over all loaded goals.</summary>
     public UtilityEvaluator(
@@ -36,6 +37,7 @@ public sealed class UtilityEvaluator : IUtilityEvaluator
 
         _store = store;
         _sampler = new InputSampler(store, appraisal, opinions, ticksPerDay);
+        _peekSampler = new InputSampler(store, appraisal, opinions, ticksPerDay, readOnly: true);
         _goalsByKey = goals.ToDictionary(goal => goal.Key, StringComparer.Ordinal);
     }
 
@@ -111,7 +113,8 @@ public sealed class UtilityEvaluator : IUtilityEvaluator
     /// <inheritdoc />
     public int Score(MindHandle mind, ushort goal, in DecisionContext context)
     {
-        ReadOnlySpan<int> inputs = Sample(mind, context);
+        ArgumentNullException.ThrowIfNull(context.Goals);
+        ReadOnlySpan<int> inputs = _peekSampler.Sample(mind, context.Now, context.Focus, context.FocusDistance, context.Health);
         Personality personality = _store.GetPersonality(mind);
         foreach (GoalDefinition definition in context.Goals.Items)
         {

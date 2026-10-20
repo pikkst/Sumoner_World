@@ -257,6 +257,7 @@ Loading is asynchronous (Godot `ResourceLoader` threaded requests, pooled scene 
 - Core defines `ILog` and `IMetrics` interfaces (no logging library in Core). The Game layer implements them with structured logs (JSON lines on the server, Godot output on the client).
 - Every rejected intent logs player, intent type and reason. Every failed transaction logs its id and rollback.
 - Metrics per tick: stage times (§2.1), entity counts per AI tier, bytes sent per client, GC allocations. Shown in a dev overlay and written to a CSV by the benchmark (M0-07).
+- Dev tools (M1-22, protocol 5): a server started with `--dev-tools` / `SW_DEV_TOOLS` sends clients that ask for them its tick metrics and the AI Inspector's view of one creature, twice a second. The inspector only reads (emotions are peeked, not refreshed), so inspecting never changes the simulation; a test checks the B5 state hash. Off by default: it shows hidden creature minds to every client, so it is never enabled on a public server.
 - Exceptions are never swallowed (CA1031 is an error). A system that throws during a tick is logged with the entity id and the tick is marked failed in metrics; the server keeps running only if the failure is contained to that entity.
 
 ---
