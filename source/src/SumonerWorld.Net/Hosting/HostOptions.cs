@@ -33,8 +33,9 @@ public enum HostMode
 /// <c>--region</c>, <c>--region-chunks=8</c>, <c>--screenshot=file.png</c> (region: save a frame after streaming settled, then quit),
 /// <c>--benchmark=B3</c> (region: fly the B3 route, write results to <c>--benchmark-out</c>, then quit),
 /// <c>--showcase=grazer|predator</c>, <c>--showcase-distance=30</c> (region: the six emotes in a row, seen from that distance),
-/// <c>--dev-tools</c> (server: answer the dev overlay and AI Inspector; client: show them), <c>--inspect=nearest|id</c>
-/// (client: open the AI Inspector on start, with <c>--screenshot</c> for a picture of it).
+/// <c>--dev-tools</c> (server: answer the dev overlay and AI Inspector; client: show them), <c>--inspect=nearest|click|tab|id</c>
+/// (client: open the AI Inspector on start; <c>click</c> and <c>tab</c> go through the real controls as input events; with
+/// <c>--screenshot</c> for a picture of it).
 /// Environment: <c>SW_SERVER_MODE</c> (any value starts the server), <c>SW_PORT</c>, <c>SW_DEV_SECRET</c>, <c>SW_MAX_PLAYERS</c>,
 /// <c>SW_LOG_LEVEL</c>, <c>SW_DEV_TOOLS</c> (any value: as <c>--dev-tools</c>).
 /// </remarks>
@@ -109,7 +110,10 @@ public sealed record HostOptions
     /// <summary>Dev tools (M1-22): the server answers dev overlay and AI Inspector requests; the client shows them.</summary>
     public bool DevTools { get; init; }
 
-    /// <summary>Client: open the AI Inspector at start on this creature (<c>nearest</c> or a stable id; empty for none).</summary>
+    /// <summary>
+    /// Client: open the AI Inspector at start: <c>nearest</c>, a stable id, or through the controls as input events (<c>click</c>:
+    /// F3 hides the overlay, then a left click on the nearest creature; <c>tab</c>: Tab twice). Empty for none.
+    /// </summary>
     public string Inspect { get; init; } = string.Empty;
 
     /// <summary>Lowest log level written.</summary>
@@ -154,7 +158,7 @@ public sealed record HostOptions
             "--max-players" => options with { MaxPlayers = ParseInt(value, argument) },
             "--exit-on-welcome" => options with { ExitOnWelcome = true },
             "--dev-tools" => options with { DevTools = true },
-            "--inspect" when value == "nearest" || ulong.TryParse(value, NumberStyles.None, CultureInfo.InvariantCulture, out _) => options with { DevTools = true, Inspect = value },
+            "--inspect" when value is "nearest" or "click" or "tab" || ulong.TryParse(value, NumberStyles.None, CultureInfo.InvariantCulture, out _) => options with { DevTools = true, Inspect = value },
             "--world" when value.Length > 0 => options with { WorldPath = value },
             "--region" => options with { Mode = HostMode.Region },
             "--benchmark" when value == "B3" => options with { Mode = HostMode.Region, Benchmark = value },

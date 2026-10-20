@@ -45,6 +45,7 @@ public class HostOptionsTests
         HostOptions byId = HostOptions.Parse(["--inspect=42"], NoEnvironment);
         Assert.Equal((true, "nearest"), (nearest.DevTools, nearest.Inspect));
         Assert.Equal("42", byId.Inspect);
+        Assert.Equal("click", HostOptions.Parse(["--inspect=click"], NoEnvironment).Inspect);
         Assert.Throws<ArgumentException>(() => HostOptions.Parse(["--inspect=closest"], NoEnvironment));
     }
 
