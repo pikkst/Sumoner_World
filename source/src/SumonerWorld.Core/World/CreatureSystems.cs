@@ -9,6 +9,8 @@ using SumonerWorld.Core.Data.Definitions;
 using SumonerWorld.Core.Ecosystem;
 using SumonerWorld.Core.Ecs;
 using SumonerWorld.Core.Events;
+using SumonerWorld.Core.Jobs;
+using SumonerWorld.Core.Navigation;
 using SumonerWorld.Core.Randomness;
 using SumonerWorld.Core.Simulation;
 using SumonerWorld.Core.Spatial;
@@ -242,12 +244,22 @@ public sealed class BehaviourSystem(IEcsWorld world, IBehaviourTreeRunner runner
 }
 
 /// <summary>
-/// Carries out creature intents from the behaviour trees (AI Bible §7.3): MoveTo goes to a wander point 10–40 m away, to the focus or
-/// away from it (staying inside the world bounds); Stop halts; Interact satisfies its need; Emote sets the shown emote. Player
+/// Carries out creature intents from the behaviour trees (AI Bible §7.3): MoveTo picks a wander point 10–40 m away, the focus or a
+/// point away from it (staying inside the world bounds) and asks the <see cref="PathPlanner"/> for a path; the creature waits until
+/// the path arrives at the next tick (TDD §2.4). Stop halts; Interact satisfies its need; Emote sets the shown emote. Player
 /// intents arrive through the authoritative intent pipeline instead (TDD §3.2).
 /// </summary>
 public sealed class CreatureIntentSystem(
-    IEcsWorld world, IEventBus events, IBehaviourTreeRunner runner, ICreatureMindStore minds, IRandom random, float walkSpeed, Vector3 boundsMin, Vector3 boundsMax)
+    IEcsWorld world,
+    IEventBus events,
+    IBehaviourTreeRunner runner,
+    ICreatureMindStore minds,
+    IRandom random,
+    PathPlanner paths,
+    IJobScheduler jobs,
+    float walkSpeed,
+    Vector3 boundsMin,
+    Vector3 boundsMax)
     : ISimulationSystem
 {
     private const int MinWanderMetres = 10;
@@ -278,9 +290,10 @@ public sealed class CreatureIntentSystem(
             switch (intent.Kind)
             {
                 case IntentKind.MoveTo:
-                    if (TryResolveTarget(intent.Actor, intent.Target, out Vector3 target))
+                    if (TryResolveTarget(intent.Actor, intent.Target, out Vector3 target)
+                        && paths.Request(intent.Actor, _positions.Get(intent.Actor).Value, target, walkSpeed * intent.Speed / Percent))
                     {
-                        _targets.Get(intent.Actor) = new MoveTarget(target, walkSpeed * intent.Speed / Percent, 1);
+                        _targets.Get(intent.Actor) = _targets.Get(intent.Actor) with { Active = 0 };
                     }
                     else
                     {
@@ -302,6 +315,8 @@ public sealed class CreatureIntentSystem(
                     break;
             }
         }
+
+        paths.Submit(jobs);
     }
 
     private static Need NeedFor(InteractVerb verb) => verb switch
@@ -337,9 +352,17 @@ public sealed class CreatureIntentSystem(
     }
 }
 
-/// <summary>Moves entities toward their targets, turns them to face the way they go, updates the spatial index and reports arrival.</summary>
-public sealed class MovementSystem(IEcsWorld world, ISpatialIndex grid, IBehaviourTreeRunner runner) : ISimulationSystem
+/// <summary>
+/// Moves entities along their paths (<see cref="IPathSink"/>: waypoint by waypoint, distances measured on the ground plane), keeps them
+/// on the terrain (<see cref="Heightfield"/>; flat at their own height without one), turns them to face the way they go, updates the
+/// spatial index and reports arrival at the last waypoint, or failure when no path was found.
+/// </summary>
+public sealed class MovementSystem(IEcsWorld world, ISpatialIndex grid, IBehaviourTreeRunner runner, Heightfield? ground, int entityCapacity)
+    : ISimulationSystem, IPathSink
 {
+    private readonly Vector3[] _paths = new Vector3[entityCapacity * PathPlanner.MaxWaypoints];
+    private readonly byte[] _pathCounts = new byte[entityCapacity];
+    private readonly byte[] _pathNext = new byte[entityCapacity];
     private readonly ComponentStore<MoveTarget> _targets = world.Store<MoveTarget>();
     private readonly ComponentStore<Position> _positions = world.Store<Position>();
     private readonly ComponentStore<Facing> _facings = world.Store<Facing>();
@@ -362,24 +385,56 @@ public sealed class MovementSystem(IEcsWorld world, ISpatialIndex grid, IBehavio
 
             ref Position position = ref _positions.Get(entities[i]);
             Vector3 toTarget = targets[i].Target - position.Value;
+            toTarget.Y = 0;
             float distance = toTarget.Length();
             if (distance <= targets[i].Speed)
             {
-                position = new Position(targets[i].Target);
-                targets[i] = targets[i] with { Active = 0 };
-                if (_minds.Has(entities[i]))
+                position = new Position(OnGround(targets[i].Target with { Y = position.Value.Y }));
+                int index = entities[i].Index;
+                if (_pathNext[index] < _pathCounts[index])
                 {
-                    runner.ReportOutcome(_minds.Get(entities[i]).Handle, succeeded: true);
+                    targets[i] = targets[i] with { Target = _paths[(index * PathPlanner.MaxWaypoints) + _pathNext[index]++] };
+                }
+                else
+                {
+                    targets[i] = targets[i] with { Active = 0 };
+                    Report(entities[i], succeeded: true);
                 }
             }
             else
             {
                 Vector3 direction = toTarget / distance;
-                position = new Position(position.Value + (direction * targets[i].Speed));
+                position = new Position(OnGround(position.Value + (direction * targets[i].Speed)));
                 _facings.Get(entities[i]) = new Facing(direction);
             }
 
             grid.Move(entities[i], position.Value);
+        }
+    }
+
+    /// <inheritdoc />
+    public void OnPath(Entity entity, PathStatus status, ReadOnlySpan<Vector3> waypoints, float speed)
+    {
+        if (status == PathStatus.NotFound || waypoints.IsEmpty || !_targets.Has(entity))
+        {
+            Report(entity, succeeded: false);
+            return;
+        }
+
+        int index = entity.Index;
+        waypoints.CopyTo(_paths.AsSpan(index * PathPlanner.MaxWaypoints, PathPlanner.MaxWaypoints));
+        _pathCounts[index] = (byte)waypoints.Length;
+        _pathNext[index] = 1;
+        _targets.Get(entity) = new MoveTarget(waypoints[0], speed, 1);
+    }
+
+    private Vector3 OnGround(Vector3 position) => ground is null ? position : position with { Y = ground.HeightAt(position.X, position.Z) };
+
+    private void Report(Entity entity, bool succeeded)
+    {
+        if (_minds.Has(entity))
+        {
+            runner.ReportOutcome(_minds.Get(entity).Handle, succeeded);
         }
     }
 }

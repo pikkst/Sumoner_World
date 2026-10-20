@@ -23,8 +23,11 @@ public sealed class MovementSettings
     /// <summary>Lowest corner of the walkable area.</summary>
     public Vector3 BoundsMin { get; init; }
 
-    /// <summary>Highest corner of the walkable area.</summary>
+    /// <summary>Highest corner of the walkable area (X and Z; height comes from <see cref="Ground"/>).</summary>
     public Vector3 BoundsMax { get; init; } = new(512, 0, 512);
+
+    /// <summary>The terrain characters stand on (TDD §5.1); null = flat at height 0. Server and client must use the same one.</summary>
+    public World.Heightfield? Ground { get; init; }
 }
 
 /// <summary>
@@ -37,12 +40,13 @@ public interface IMovementModel
     Vector3 Advance(Vector3 position, MoveInput input);
 }
 
-/// <summary>Flat movement inside the region bounds (M1-15).</summary>
+/// <summary>Movement inside the region bounds on the terrain (M1-15; heights since M1-20). Collision with props comes later.</summary>
 public sealed class MovementModel : IMovementModel
 {
     private readonly float _speed;
     private readonly Vector3 _min;
     private readonly Vector3 _max;
+    private readonly World.Heightfield? _ground;
 
     /// <summary>Creates the model.</summary>
     public MovementModel(MovementSettings settings)
@@ -50,8 +54,9 @@ public sealed class MovementModel : IMovementModel
         ArgumentNullException.ThrowIfNull(settings);
         ArgumentOutOfRangeException.ThrowIfNegativeOrZero(settings.SpeedPerTick);
         _speed = settings.SpeedPerTick;
-        _min = settings.BoundsMin;
-        _max = settings.BoundsMax;
+        _max = settings.BoundsMax with { Y = float.MaxValue };
+        _min = settings.BoundsMin with { Y = float.MinValue };
+        _ground = settings.Ground;
     }
 
     /// <summary>Unit-or-shorter direction of an input; axes outside ±1000 are clamped and diagonals never move faster.</summary>
@@ -66,5 +71,9 @@ public sealed class MovementModel : IMovementModel
     }
 
     /// <inheritdoc />
-    public Vector3 Advance(Vector3 position, MoveInput input) => Vector3.Clamp(position + (Direction(input) * _speed), _min, _max);
+    public Vector3 Advance(Vector3 position, MoveInput input)
+    {
+        Vector3 next = Vector3.Clamp(position + (Direction(input) * _speed), _min, _max);
+        return next with { Y = _ground?.HeightAt(next.X, next.Z) ?? 0f };
+    }
 }
