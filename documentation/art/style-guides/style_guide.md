@@ -81,6 +81,16 @@ Each body type must perform all six emotes, readable at **30 m** without UI:
 
 Animation priority (per species): idle → locomotion → the six emotes → combat. Emotes come **before** extra attack variations.
 
+**M1 placeholders (M1-21b):** the grazer (mossback: large and round, with a moss crest as its signature feature) and the predator (bogfox: lean and long-tailed, with ears as its signature feature) are built from low-poly primitives with the pivots real models will keep (body, head, tail, legs, signature). `QuadrupedEmotePresenter` poses them as in the table above, exaggerated so the poses read at a distance:
+- **Fear:** body very low, nose up, tail tucked, trembling.
+- **Grudge:** head low, crest standing tall (the predator's ears lie flat), tail stiff.
+- **Curiosity:** head high with a slow tilt, sniffing bob.
+- **Affection:** nuzzling bob, fast tail wag.
+- **Grief:** head almost on the ground, tail hanging, heavy steps.
+- **Trust:** head level and tail up with a slow wag. Idle keeps the head down, grazing.
+
+Screenshots at 12 m and 30 m (`--showcase=grazer|predator --showcase-distance=N`) are in `m1-21_emotes/`. At 12 m every pose is distinct. At 30 m the creatures are about 80 px wide at 1080p, and the silhouettes still separate Fear (low), Grudge (spiky), Curiosity (head up) and Grief (head down). Trust against idle, and Affection, rely on tail and head motion, which still images do not show. Whether players read them is measured in the M1-23 "Memory Grove" playtest.
+
 ## 5. Environment
 - **Modular kits** snapped to a **1 m grid** (structures) and **0.25 m** (props). Pivot at the base, +Y up, 1 unit = 1 m.
 - Trees and rocks: 3–5 variants per type plus random rotation/scale (seeded scatter, TDD §5.1).

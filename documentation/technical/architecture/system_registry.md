@@ -122,11 +122,11 @@ Rules: R02, R07, R12, R47, R49 · Related: ADR-001 (layers), TDD v0.1, AI Bible 
 | Navigation adapter | `GodotNavigation : INavigation` | Own `NavigationServer3D` map; mesh baked from the heightfield at server start; thread-safe `MapGetPath` on job workers | TDD §2.4 | **Implemented** (M1-20b) |
 | Dev world | `DevWorld` | Shared `DevRegion` ground and movement settings for the server, clients, bots and the test region | TDD §5.1 | **Implemented** (M1-20b) |
 | Logging adapter | `GodotLog : ILog` | JSON lines on stdout (collected by Docker) | TDD §6 | **Implemented** (M1-14) |
-| Entity views | `EntityViewSync` | Spawns/pools Godot nodes from snapshots; views never own state | ADR-001, R38 | Planned (M1) |
+| Entity views | `EntityViewSync` | Every frame: advances `RemoteInterpolation`, places one pooled view per remote entity (creature model by species role, capsule for players), poses creatures by emote and ground speed; views never own state | ADR-001, R38 | **Implemented** (M1-21b) |
 | Input | `IInputSource` | Maps devices to inputs and intents | TDD §3.2 | Planned (M1) |
 | Chunk streaming | `ChunkStreamer` | Client rings from `StreamingPlanner`: worker-thread MultiMesh buffers for the full / medium rings, ≤ 2 uploads per frame, pooled views | TDD §5.2 | **Implemented** (M1-19a) |
 | Terrain | `TerrainBuilder`, `TestRegion`, `RegionHost` | Terrain3D node from the seeded `Heightfield` (in-house mesh fallback without the extension); test region with sky, sun, fog and a fly camera (`--region`); B3 fly-route benchmark (`FlyRouteBenchmark`, `--benchmark=B3`) | TDD §5.1, M0-07 B3 | **Implemented** (M1-19a, M1-19b) |
-| Emotes | `IEmotePresenter` | Emote id → animation per body type | AI Bible §6.2 | Planned (M1) |
+| Emotes | `IEmotePresenter`, `QuadrupedEmotePresenter`, `CreatureRig` | Emote id → pose per body type (quadruped in M1): body drop/pitch, head pitch/tilt/bob, tail pitch/wag, signature feature raise, trot gait from speed; eased over ~0.3 s. Placeholder grazer (mossback) and predator (bogfox) rigs from primitives; `--showcase=grazer|predator` readability check | AI Bible §6.2, style guide §4 | **Implemented** (M1-21b; avian, serpentine, biped later) |
 | UI | `IUiScreen` | Data-driven screens, Bond Lens | GDD UI, R37 | Planned (M2) |
 | Localization | `ILocalizer` | Externalized strings (R39) | GDD UI | Planned (M2) |
 | Audio | `IAudioCues` | Creature mood vocals, SFX events | GDD Audio | Planned (M2) |

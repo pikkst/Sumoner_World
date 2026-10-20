@@ -1,5 +1,7 @@
 using Godot;
+using SumonerWorld.Core.Data.Definitions;
 using SumonerWorld.Core.Diagnostics;
+using SumonerWorld.Game.Creatures;
 using SumonerWorld.Game.World;
 using SumonerWorld.Net.Hosting;
 
@@ -32,6 +34,13 @@ public sealed partial class RegionHost : Node
     {
         _region = new TestRegion(_options.RegionChunks, _log);
         AddChild(_region);
+        if (_options.Showcase.Length > 0)
+        {
+            _region.FreeFly = false;
+            CreatureRole role = _options.Showcase == "predator" ? CreatureRole.Predator : CreatureRole.Grazer;
+            AddChild(new EmoteShowcase(role, _region.Field!, _region.Camera!, _options.ShowcaseDistance));
+        }
+
         if (_options.Benchmark == "B3")
         {
             string output = _options.BenchmarkOut.Length > 0 ? _options.BenchmarkOut : ProjectSettings.GlobalizePath("user://b3");
