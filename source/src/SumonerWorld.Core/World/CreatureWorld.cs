@@ -9,6 +9,7 @@ using SumonerWorld.Core.Cognition.Memory;
 using SumonerWorld.Core.Cognition.Opinions;
 using SumonerWorld.Core.Cognition.Perception;
 using SumonerWorld.Core.Data;
+using SumonerWorld.Core.Data.Definitions;
 using SumonerWorld.Core.Diagnostics;
 using SumonerWorld.Core.Ecosystem;
 using SumonerWorld.Core.Ecs;
@@ -86,7 +87,7 @@ public sealed record CreatureSystems(
     {
         ArgumentNullException.ThrowIfNull(world);
         (PerceptionSystem perception, DecisionSystem decision) = MindSystems(world);
-        var sizes = new BodySizes(world.World, world.Data.Species);
+        BodySizes sizes = world.Sizes;
         (CreatureIntentSystem intents, MovementSystem movement) = BodySystems(world, sizes);
         return new CreatureSystems(
             new JobApplySystem(world.Jobs),
@@ -145,6 +146,8 @@ public sealed class CreatureWorld : IDisposable
     private const int NeighbourEventCapacity = 256;
     private const int JobCapacity = 16;
     private const int ReputationCapacity = 256;
+    private const int InteractionEventCapacity = 256;
+    private const int ScaredFear = 60;
 
     private readonly CreatureWorldSettings _settings;
     private readonly StableIdAllocator _ids;
@@ -180,9 +183,12 @@ public sealed class CreatureWorld : IDisposable
         Events = new EventBus();
         Events.Register<NeighboursSensed>(NeighbourEventCapacity);
         Events.Register<CreatureIntent>(settings.IntentCapacity);
+        Events.Register<PlayerInteracted>(InteractionEventCapacity);
+        Events.Register<MemoryFormed>(InteractionEventCapacity);
         Clock = new SimulationClock(SimulationSettings.Default, startTick);
         Services = CreateServices();
         Paths = new PathPlanner(settings.Navigation ?? StraightLineNavigation.Instance, World, settings.EntityCapacity);
+        Sizes = new BodySizes(World, data.Species);
         _regionsPerRow = Math.Max(1, (int)MathF.Ceiling(size.X / settings.RegionCellSize));
     }
 
@@ -227,6 +233,9 @@ public sealed class CreatureWorld : IDisposable
 
     /// <summary>Asynchronous path requests (results at the next tick's job stage).</summary>
     public PathPlanner Paths { get; }
+
+    /// <summary>Body footprint sizes.</summary>
+    public BodySizes Sizes { get; }
 
     /// <summary>The settings the world was built with.</summary>
     public CreatureWorldSettings Settings => _settings;
@@ -285,6 +294,77 @@ public sealed class CreatureWorld : IDisposable
         World.Add(creature, new SpeciesRef(species));
         Reputation.SeedOpinions(Minds, mind, species, RegionOf(position));
         return creature;
+    }
+
+    /// <summary>Catches a creature in a snare: it stops, shows fear and cannot move until <see cref="Release"/> (M1-23 Memory Grove).</summary>
+    public void Snare(Entity creature, ulong now)
+    {
+        if (!World.Has<Snared>(creature))
+        {
+            World.Add(creature, new Snared(now));
+        }
+
+        World.GetComponent<MoveTarget>(creature) = World.GetComponent<MoveTarget>(creature) with { Active = 0 };
+        World.GetComponent<CurrentEmote>(creature) = new CurrentEmote(Emote.Fear);
+    }
+
+    /// <summary>Frees a snared creature; false if it was not snared.</summary>
+    public bool Release(Entity creature)
+    {
+        if (!World.Remove<Snared>(creature))
+        {
+            return false;
+        }
+
+        World.GetComponent<CurrentEmote>(creature) = new CurrentEmote(Emote.None);
+        return true;
+    }
+
+    /// <summary>
+    /// Every other creature of <paramref name="species"/> within <see cref="PlayerInteractions.WitnessRadius"/> of the victim
+    /// remembers <c>KilledKin</c> about the player; returns how many.
+    /// </summary>
+    public int WitnessKill(Entity victim, ushort species, ulong account, ulong now)
+    {
+        Span<Entity> near = stackalloc Entity[PlayerInteractions.MaxAffected];
+        int found = Grid.QueryRadius(World.GetComponent<Position>(victim).Value, PlayerInteractions.WitnessRadius, near).Count;
+        int witnesses = 0;
+        for (int i = 0; i < found; i++)
+        {
+            if (near[i] != victim && World.Has<SpeciesRef>(near[i]) && World.GetComponent<SpeciesRef>(near[i]).Index == species)
+            {
+                PlayerInteractions.Remember(this, near[i], "KilledKin", account, now);
+                witnesses++;
+            }
+        }
+
+        return witnesses;
+    }
+
+    /// <summary>
+    /// Every predator within <see cref="PlayerInteractions.ScareRadius"/> of the avatar remembers <c>AttackedBy</c> and is
+    /// frightened; returns how many and the first one's species (<see cref="ushort.MaxValue"/> when none).
+    /// </summary>
+    public (int Scared, ushort Species) ScarePredators(Entity avatar, ulong account, ulong now)
+    {
+        Span<Entity> near = stackalloc Entity[PlayerInteractions.MaxAffected];
+        int found = Grid.QueryRadius(World.GetComponent<Position>(avatar).Value, PlayerInteractions.ScareRadius, near).Count;
+        int scared = 0;
+        ushort first = ushort.MaxValue;
+        for (int i = 0; i < found; i++)
+        {
+            if (!World.Has<SpeciesRef>(near[i]) || Data.Species[World.GetComponent<SpeciesRef>(near[i]).Index].Role != CreatureRole.Predator)
+            {
+                continue;
+            }
+
+            PlayerInteractions.Remember(this, near[i], "AttackedBy", account, now);
+            Appraisal.Stimulate(World.GetComponent<MindRef>(near[i]).Handle, Emotion.Fear, ScaredFear, now);
+            first = scared == 0 ? World.GetComponent<SpeciesRef>(near[i]).Index : first;
+            scared++;
+        }
+
+        return (scared, first);
     }
 
     /// <summary>Removes a creature and frees its mind.</summary>
@@ -360,6 +440,8 @@ public sealed class CreatureWorld : IDisposable
         world.Register<GroupRef>();
         world.Register<SpeciesRef>();
         world.Register<PlayerAvatar>();
+        world.Register<Snared>();
+        world.Register<Wounds>();
         return world;
     }
 

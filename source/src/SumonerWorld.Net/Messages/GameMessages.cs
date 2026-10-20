@@ -79,6 +79,18 @@ public enum IntentKind : byte
 {
     /// <summary>Offer a Pact: target = creature stable id, argument = Pact Terms mask.</summary>
     OfferPact = 1,
+
+    /// <summary>Feed a creature: target = stable id (since protocol 6).</summary>
+    Feed = 2,
+
+    /// <summary>Hit a creature: target = stable id; detail 1 when it died.</summary>
+    Hit = 3,
+
+    /// <summary>Free a snared creature: target = stable id.</summary>
+    Help = 4,
+
+    /// <summary>Shout at nearby predators: no target; detail = predators scared.</summary>
+    Scare = 5,
 }
 
 /// <summary>Client → server, reliable: a state-changing intent (TDD §3.2, §3.4). The server pairs the sequence with the session.</summary>

@@ -486,9 +486,28 @@ public sealed class GameServer : IServerSessionHandler
                 IntentResult result = Transactions.Execute(id, ref offer, now);
                 changed = _world.TryFindCreature(target, out Entity creature) ? creature : null;
                 return result;
+            case IntentKind.Feed:
+                var feed = new FeedTransaction(_world, _cooldowns, player.Avatar, new StableId(request.Target));
+                return Changed(Transactions.Execute(id, ref feed, now), request.Target, out changed);
+            case IntentKind.Hit:
+                var hit = new HitTransaction(_world, _cooldowns, player.Avatar, new StableId(request.Target));
+                return Changed(Transactions.Execute(id, ref hit, now), request.Target, out changed);
+            case IntentKind.Help:
+                var help = new HelpTransaction(_world, _cooldowns, player.Avatar, new StableId(request.Target));
+                return Changed(Transactions.Execute(id, ref help, now), request.Target, out changed);
+            case IntentKind.Scare:
+                var scare = new ScareTransaction(_world, _cooldowns, player.Avatar);
+                return Transactions.Execute(id, ref scare, now);
             default:
                 return IntentResult.Reject(IntentRejectReason.InvalidArguments);
         }
+    }
+
+    // The journal saves the target creature right away; creatures that died, and witnesses, wait for the next checkpoint.
+    private IntentResult Changed(IntentResult result, ulong target, out Entity? changed)
+    {
+        changed = _world.TryFindCreature(new StableId(target), out Entity creature) ? creature : null;
+        return result;
     }
 
     private sealed class PlayerSlot(ulong account, ulong session)
