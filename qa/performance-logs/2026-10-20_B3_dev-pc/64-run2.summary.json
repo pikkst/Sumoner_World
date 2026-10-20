@@ -1,0 +1,19 @@
+{
+  "region_chunks": 64,
+  "frames": 113875,
+  "seconds": 300,
+  "metres": 5399.958408489823,
+  "frame_p50_ms": 2.608,
+  "frame_p95_ms": 3,
+  "frame_p99_ms": 3.554,
+  "frame_max_ms": 90.711,
+  "over16_percent": 0.04654226125137212,
+  "over33_frames": 19,
+  "streaming_hitches": 4,
+  "chunks_streamed": 1820,
+  "max_upload_ms": 0.2568,
+  "max_backlog": 12,
+  "peak_static_memory_mi_b": 352.8766508102417,
+  "b3_passed": false,
+  "spike4_passed": false
+}

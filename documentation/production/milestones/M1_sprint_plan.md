@@ -100,4 +100,5 @@ M1-01 → (M1-02, M1-03, M1-04) → M1-05 → Phase B. M1-13 can start after M1-
 | M1-18a | **Done** 2026-10-20 (merged under standing approval): `MeteredTransport` + `BandwidthMeter`, `BotFleet` with recorded inputs and the reconnect / duplicate checks; in-process B2 within budget (18.8 KiB/s per client); delta compression deferred with evidence |
 | M1-18b | **Done** 2026-10-20 (merged under standing approval): B2 in Docker (ENet bots, `tc netem` 150 ms / 2 %, server 4 CPU / 8 GB), `ServerBenchmark`, CI job `b2`; **spike 2 passed** (run 1 of 3: 18.9 KiB/s per client, tick p99 2.55 ms); ENet peer-slot fix for fast resume. Runs 2–3 to repeat (host ran low on memory); M1-18 complete |
 | M1-19a | **Done** 2026-10-20 (merged under standing approval): streaming planner, heightfield, chunk scatter (Core); Terrain3D 1.0.2 integration with fallback, chunk streamer, `--region` test region (8 × 8 and 4 km) |
-| M1-19b … M1-24 | Planned (M1-19b: B3 benchmark, spike 4) |
+| M1-19b | **Done** 2026-10-20 (merged under standing approval): B3 fly-route benchmark; 3 runs on 4 km: median p99 3.55 ms, 0 frames > 33 ms, 0 streaming hitches; **spike 4 passed on the dev PC** (indicative; one run had a non-reproducible 1 s stall burst, reported as measured); Terrain3D adopted; M1-19 complete |
+| M1-20 … M1-24 | Planned |

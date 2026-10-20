@@ -224,7 +224,8 @@ Loading is asynchronous (Godot `ResourceLoader` threaded requests, pooled scene 
 - **Streaming:** `ChunkStreamer` builds MultiMesh buffers for full and medium chunks on worker threads. The main thread uploads at most 2 chunks per frame into pooled views; the far ring is terrain only.
 - **Dev mode:** `--region [--region-chunks=N] [--screenshot=file.png]` opens the region.
 - **Load times (dev PC):** the 8 × 8 region is ready in 0.3 s and streams its 64 chunks; the 4 km region (64 × 64) is generated and imported in 5.3 s.
-- **Not yet:** the `ResourceLoader` path is for authored chunk scenes in M2; generated placeholder content needs none. B3 / spike 4 measurement is M1-19b.
+- **Not yet:** the `ResourceLoader` path is for authored chunk scenes in M2; generated placeholder content needs none.
+- **M1-19b (B3):** `--benchmark=B3` (`FlyRouteBenchmark`) flies a fixed loop at eye height: a 5 s settle while already flying (not measured), then 150 s at sprint speed (assumed 9 m/s) and 150 s at 27 m/s. It records every frame's time, the chunk uploads and the upload time, and writes `summary.json` and `frames.csv`. On the 4 km region, uploads stay under 3.3 ms per frame and at most 12 chunks wait at once. **Terrain3D is adopted.**
 
 ### 5.3 Server simulation radius
 - Chunks within **3 chunks (~192 m)** of any player are loaded and simulated; so are chunks with an online player's Sanctum or summoned creatures.
@@ -251,7 +252,7 @@ Every dependency must be: permissive licence (MIT/BSD/Apache-2.0/zlib), actively
 | BenchmarkDotNet (MIT) | benchmarks (`tests/SumonerWorld.Benchmarks`) | adopted for tooling only |
 | Microsoft.Data.Sqlite 8.0.11 (MIT) | save database | adopted (M1-17a) |
 | MessagePack-CSharp 2.5.307 (MIT) | record payloads | adopted (M1-17a); ≥ 2.5.301 required (GHSA-wfr3-xj75-pfwh, found by NuGet audit on 2.5.187) |
-| Terrain3D 1.0.2-stable (MIT) | terrain (GDExtension; supports Godot 4.4–4.7) | M1 spike: integrated in M1-19a, installed by `scripts/fetch-terrain3d.sh` (SHA-256 pinned, Windows + Linux x86_64 binaries only, not committed); adoption decided by B3 (M1-19b) |
+| Terrain3D 1.0.2-stable (MIT) | terrain (GDExtension; supports Godot 4.4–4.7) | **adopted** (M1-19b: B3 / spike 4 passed on the dev PC); installed by `scripts/fetch-terrain3d.sh` (SHA-256 pinned, Windows + Linux x86_64 binaries only, not committed); in-house mesh fallback when missing |
 | Steamworks.NET (MIT) | auth tickets, server browser | M1 spike |
 | xUnit, Microsoft.CodeAnalysis.BannedApiAnalyzers | tests, rule enforcement | adopted |
 
@@ -263,6 +264,7 @@ Every dependency must be: permissive licence (MIT/BSD/Apache-2.0/zlib), actively
    **Passed (M1-18b, 2026-10-20, run 1 of 3 on the dev PC):** 18.9 KiB/s down and 2.2 KiB/s up per client, 269 KiB/s server total on the NIC; the hard-dropped bot resumed in 12 ticks; the repeated intent was answered from the dedupe window (1,009 intents sent = 514 applied + 495 rejected). Server tick p99 2.55 ms. Report: `qa/performance-logs/2026-10-20_M1-18_b2_server16_dev-pc.md`. Runs 2–3 still to be repeated (stopped because the host ran low on memory).
 3. **Persistence:** kill the server process during 1,000 random trades, restart, and verify no item is lost or duplicated.
 4. **Terrain & streaming:** fly across the 4 km region at sprint speed with no frame above 33 ms on the recommended spec.
+   **Passed on the dev PC (M1-19b, 2026-10-20; indicative, the recommended-spec run is M1-24):** B3 `--benchmark=B3 --region-chunks=64`, 3 runs, 5.4 km at 9 and 27 m/s each. Median over the 3 runs: frame p99 3.55 ms, 0 frames over 33 ms, 0 streaming hitches. Run 2 had one second of stalls of up to 90 ms with no streaming work in it, which was not reproducible; it is reported as measured. Report: `qa/performance-logs/2026-10-20_M1-19_b3_stream_run_dev-pc.md`.
 5. **Client frame:** 60 creatures animated in view at 60 FPS on the recommended spec.
 6. **Dev server in Docker (§3.1a):** `docker compose up` starts the headless server, a Windows client connects on localhost, the world survives a container restart, and CI builds the same image.
 
