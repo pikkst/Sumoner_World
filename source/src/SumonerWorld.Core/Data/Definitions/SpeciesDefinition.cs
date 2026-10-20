@@ -129,6 +129,12 @@ public sealed record SpeciesDefinition
     /// <summary>Need growth rates.</summary>
     public required NeedRates Needs { get; init; }
 
+    /// <summary>
+    /// Body footprint radius in centimetres: creatures keep this far apart (plus the other's radius) and stop this far from what
+    /// they approach.
+    /// </summary>
+    public required int BodyRadiusCm { get; init; }
+
     /// <summary>Pact acceptance threshold (AI Bible §10.2), in [0, 1000].</summary>
     public required int PactThreshold { get; init; }
 

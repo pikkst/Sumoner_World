@@ -30,6 +30,7 @@ internal static class B5Pipeline
         scheduler.Register(probes.Pacts);
         scheduler.Register(creatures.Intents);
         scheduler.Register(creatures.Movement);
+        scheduler.Register(creatures.Separation);
         scheduler.Register(probes.Churn);
         scheduler.Register(creatures.ReputationFlush);
         return probes;

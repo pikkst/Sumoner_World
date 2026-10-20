@@ -292,6 +292,7 @@ public class CreatureMindStoreTests
             Temper = new TraitRange { Mean = 0, Spread = 100 },
             Needs = new NeedRates { Hunger = 1, Rest = 1, Safety = 1, Social = 1, Territory = 1 },
             PactThreshold = 1,
+            BodyRadiusCm = 100,
             Perception = new PerceptionDefinition { SightRange = 50, SightHalfAngle = 120, HearingRange = 30 },
             Goals = ["Eat"],
         };

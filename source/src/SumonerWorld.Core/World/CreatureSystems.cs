@@ -245,7 +245,8 @@ public sealed class BehaviourSystem(IEcsWorld world, IBehaviourTreeRunner runner
 
 /// <summary>
 /// Carries out creature intents from the behaviour trees (AI Bible §7.3): MoveTo picks a wander point 10–40 m away, the focus or a
-/// point away from it (staying inside the world bounds) and asks the <see cref="PathPlanner"/> for a path; the creature waits until
+/// point away from it (staying inside the world bounds) and asks the <see cref="PathPlanner"/> for a path (toward the focus it stops
+/// <see cref="ApproachGapMetres"/> short of touching, by both bodies' sizes); the creature waits until
 /// the path arrives at the next tick (TDD §2.4). Stop halts; Interact satisfies its need; Emote sets the shown emote. Player
 /// intents arrive through the authoritative intent pipeline instead (TDD §3.2).
 /// </summary>
@@ -257,11 +258,15 @@ public sealed class CreatureIntentSystem(
     IRandom random,
     PathPlanner paths,
     IJobScheduler jobs,
+    BodySizes sizes,
     float walkSpeed,
     Vector3 boundsMin,
     Vector3 boundsMax)
     : ISimulationSystem
 {
+    /// <summary>Space left between bodies when a creature walks up to its focus.</summary>
+    public const float ApproachGapMetres = 0.5f;
+
     private const int MinWanderMetres = 10;
     private const int MaxWanderMetres = 40;
     private const float FleeMetres = 30f;
@@ -338,7 +343,11 @@ public sealed class CreatureIntentSystem(
                 target = Vector3.Clamp(position + (new Vector3(MathF.Cos(angle), 0, MathF.Sin(angle)) * distance), boundsMin, boundsMax);
                 return true;
             case MoveTargetMode.Focus when focus.Has != 0 && _positions.Has(focus.Entity):
-                target = _positions.Get(focus.Entity).Value;
+                Vector3 toFocus = _positions.Get(focus.Entity).Value - position;
+                toFocus.Y = 0;
+                float gap = toFocus.Length();
+                float stop = sizes.RadiusOf(actor) + sizes.RadiusOf(focus.Entity) + ApproachGapMetres;
+                target = gap > stop ? position + (toFocus * ((gap - stop) / gap)) : position;
                 return true;
             case MoveTargetMode.AwayFromFocus when focus.Has != 0 && _positions.Has(focus.Entity):
                 Vector3 away = position - _positions.Get(focus.Entity).Value;

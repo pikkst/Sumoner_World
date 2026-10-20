@@ -68,6 +68,7 @@ public sealed record CreatureServices(AiLodPolicy Lod, CreatureSubjectResolver R
 /// <param name="Behaviour">Behaviour trees.</param>
 /// <param name="Intents">Creature intents.</param>
 /// <param name="Movement">Movement.</param>
+/// <param name="Separation">Keeps bodies apart after movement.</param>
 /// <param name="ReputationFlush">Reputation aggregation.</param>
 public sealed record CreatureSystems(
     JobApplySystem JobApply,
@@ -77,6 +78,7 @@ public sealed record CreatureSystems(
     BehaviourSystem Behaviour,
     CreatureIntentSystem Intents,
     MovementSystem Movement,
+    SeparationSystem Separation,
     ReputationFlushSystem ReputationFlush)
 {
     /// <summary>Builds the systems for <paramref name="world"/> (wires the path planner to the movement system).</summary>
@@ -84,7 +86,8 @@ public sealed record CreatureSystems(
     {
         ArgumentNullException.ThrowIfNull(world);
         (PerceptionSystem perception, DecisionSystem decision) = MindSystems(world);
-        (CreatureIntentSystem intents, MovementSystem movement) = BodySystems(world);
+        var sizes = new BodySizes(world.World, world.Data.Species);
+        (CreatureIntentSystem intents, MovementSystem movement) = BodySystems(world, sizes);
         return new CreatureSystems(
             new JobApplySystem(world.Jobs),
             new LodSystem(world.World, world.Services.Lod),
@@ -93,6 +96,7 @@ public sealed record CreatureSystems(
             new BehaviourSystem(world.World, world.Services.Runner, world.Services.Lod, world.Services.Resolver),
             intents,
             movement,
+            new SeparationSystem(world.World, world.Grid, sizes, world.Settings.Ground),
             new ReputationFlushSystem(world.Reputation));
     }
 
@@ -105,13 +109,13 @@ public sealed record CreatureSystems(
             new DecisionSystem(world.World, services.Evaluator, services.Lod, services.Resolver, goals, world.Random));
     }
 
-    private static (CreatureIntentSystem Intents, MovementSystem Movement) BodySystems(CreatureWorld world)
+    private static (CreatureIntentSystem Intents, MovementSystem Movement) BodySystems(CreatureWorld world, BodySizes sizes)
     {
         CreatureWorldSettings settings = world.Settings;
         var movement = new MovementSystem(world.World, world.Grid, world.Services.Runner, settings.Ground, settings.EntityCapacity);
         world.Paths.Sink = movement;
         var intents = new CreatureIntentSystem(
-            world.World, world.Events, world.Services.Runner, world.Minds, world.Random, world.Paths, world.Jobs, settings.WalkSpeed, settings.BoundsMin, settings.BoundsMax);
+            world.World, world.Events, world.Services.Runner, world.Minds, world.Random, world.Paths, world.Jobs, sizes, settings.WalkSpeed, settings.BoundsMin, settings.BoundsMax);
         return (intents, movement);
     }
 
@@ -126,6 +130,7 @@ public sealed record CreatureSystems(
         scheduler.Register(Behaviour);
         scheduler.Register(Intents);
         scheduler.Register(Movement);
+        scheduler.Register(Separation);
         scheduler.Register(ReputationFlush);
     }
 }

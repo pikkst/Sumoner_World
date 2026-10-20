@@ -31,6 +31,7 @@
         "social": 40,
         "territory": 50
       },
+      "bodyRadiusCm": 60,
       "pactThreshold": 550,
       "perception": {
         "sightRange": 60,
