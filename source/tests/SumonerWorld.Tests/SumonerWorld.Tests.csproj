@@ -24,6 +24,8 @@
     <ProjectReference Include="..\..\src\SumonerWorld.Core\SumonerWorld.Core.csproj" />
     <ProjectReference Include="..\SumonerWorld.Scenarios\SumonerWorld.Scenarios.csproj" />
     <ProjectReference Include="..\..\src\SumonerWorld.Net\SumonerWorld.Net.csproj" />
+    <ProjectReference Include="..\..\src\SumonerWorld.Persistence\SumonerWorld.Persistence.csproj" />
+    <ProjectReference Include="..\SumonerWorld.CrashHarness\SumonerWorld.CrashHarness.csproj" />
   </ItemGroup>
 
 </Project>

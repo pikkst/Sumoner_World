@@ -37,6 +37,26 @@ public class LayeringTests
     }
 
     [Fact]
+    public void Persistence_references_only_core_sqlite_messagepack_and_the_base_class_library()
+    {
+        string[] allowedPrefixes = ["System", "Microsoft.Win32", "netstandard", "mscorlib", "SumonerWorld.Core", "Microsoft.Data.Sqlite", "MessagePack"];
+
+        var offending = typeof(SumonerWorld.Persistence.IWorldStore).Assembly.GetReferencedAssemblies()
+            .Select(reference => reference.Name ?? string.Empty)
+            .Where(name => !allowedPrefixes.Any(prefix => name.StartsWith(prefix, StringComparison.Ordinal)))
+            .ToArray();
+
+        Assert.True(offending.Length == 0, $"SumonerWorld.Persistence must not depend on Godot, Net or other layers (ADR-001). Unexpected: {string.Join(", ", offending)}");
+    }
+
+    [Fact]
+    public void Net_does_not_reference_persistence()
+    {
+        Assert.DoesNotContain(
+            typeof(SumonerWorld.Net.Transport.ITransport).Assembly.GetReferencedAssemblies(), reference => reference.Name == "SumonerWorld.Persistence");
+    }
+
+    [Fact]
     public void Core_does_not_reference_higher_layers()
     {
         Assert.DoesNotContain(CoreAssembly.GetReferencedAssemblies(), reference => reference.Name == "SumonerWorld.Net");

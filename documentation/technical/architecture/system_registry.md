@@ -101,10 +101,10 @@ Rules: R02, R07, R12, R47, R49 · Related: ADR-001 (layers), TDD v0.1, AI Bible 
 ## 6. Persistence (`SumonerWorld.Persistence`, project created in M1)
 | System | Interface | Responsibility | Spec | Status |
 |---|---|---|---|---|
-| World store | `IWorldStore` | SQLite world database, atomic commits | TDD §4.1–4.2 | Planned (M1) |
-| Record codec | `IRecordCodec` | MessagePack payloads with integer keys | TDD §4.1 | Planned (M1) |
-| Migrations | `IMigration` | One schema step `From → To` (run by the store at start-up) | TDD §4.3 | Planned (M1) |
-| Backups | `IBackupService` | Timed and pre-migration backups | TDD §4.2 | Planned (M1) |
+| World store | `IWorldStore`, `IWorldTransaction` | SQLite world database (WAL, `synchronous=FULL`), atomic transactions that write the effect and the `intent_dedupe` record together (`WorldStore`); items in M1-17a, players/creatures/reputation in M1-17b | TDD §4.1–4.2, §3.4 | **Partly implemented** (M1-17a) |
+| Record codec | `IRecordCodec` | Version byte + MessagePack payload with integer keys, read with untrusted-data security (`MessagePackRecordCodec`, `ItemRecord` v1) | TDD §4.1 | **Implemented** (M1-17a) |
+| Migrations | `IMigration` | One schema step `FromVersion → ToVersion`, run by the store at start-up in one transaction after a backup; newer saves refused (`Migrations.All`: v1) | TDD §4.3 | **Implemented** (M1-17a) |
+| Backups | `IBackupService` | Consistent online copies (SQLite backup API), newest 10 kept, pre-migration backups (`WorldBackups`); timed and shutdown backups started by the host in M1-17b | TDD §4.2 | **Implemented** (M1-17a) |
 
 ## 7. Game (Godot project: presentation and adapters)
 | System | Type / interface | Responsibility | Spec | Status |
@@ -132,6 +132,7 @@ Rules: R02, R07, R12, R47, R49 · Related: ADR-001 (layers), TDD v0.1, AI Bible 
 | Scenarios | `tests/SumonerWorld.Scenarios` | Repeatable simulation scenarios shared by CI gates and benchmarks (B5 now; a thin layer on `CreatureWorld` since M1-15a) | M0-07 | **Implemented** (M1-05) |
 | Bot clients | `tools/BotClient` | 16 simulated clients for net spike | TDD §8 | Planned (M1) |
 | Save dump | `tools/SaveDump` | Record → JSON for bug reports and fixtures | TDD §4.1 | Planned (M1) |
+| Crash harness | `tests/SumonerWorld.CrashHarness` | Spike 3 trade load run as a separate process so a test can kill it; also writes the fixture save of the current schema (`fixture <db>`) | TDD §8 | **Implemented** (M1-17a) |
 | Dev server image | `source/server/Dockerfile`, `source/docker-compose.dev.yml`, CI `server-image.yml` | Local Docker headless server + smoke client | TDD §3.1a | **Implemented** (M1-14) |
 
 ---
