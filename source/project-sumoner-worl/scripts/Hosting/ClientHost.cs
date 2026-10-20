@@ -70,6 +70,9 @@ public sealed partial class ClientHost : Node
         _log = log;
     }
 
+    /// <summary>The camera the player sees through (null without a display).</summary>
+    public Camera3D? Camera => _region?.Camera;
+
     /// <inheritdoc />
     public override void _Ready()
     {

@@ -1,4 +1,7 @@
 using System.Numerics;
+using SumonerWorld.Core.Cognition.Appraisal;
+using SumonerWorld.Core.Cognition.Memory;
+using SumonerWorld.Core.Data.Definitions;
 using SumonerWorld.Core.Ecs;
 using SumonerWorld.Core.Simulation;
 using SumonerWorld.Core.World;
@@ -24,6 +27,28 @@ public class MemoryGroveTests
         Assert.Equal(2, creatures.Count(world.World.Has<Snared>));
         Assert.All(creatures, c => Assert.InRange(Vector3.Distance(world.World.GetComponent<Position>(c).Value, Start), 5f, 60f));
         Assert.Equal(3, creatures.Select(c => world.World.GetComponent<GroupRef>(c).Group).Distinct().Count());
+    }
+
+    [Theory]
+    [InlineData("SavedLifeOf", new[] { Emote.Affection, Emote.Trust })]
+    [InlineData("KilledKin", new[] { Emote.Fear, Emote.Grudge })]
+    public void A_creature_looking_at_the_player_shows_what_it_remembers(string memory, Emote[] expected)
+    {
+        using var world = new CreatureWorld(ShippedData.Current, new CreatureWorldSettings(), seed: 77);
+        var scheduler = new SimulationScheduler(world.Clock, world.Events);
+        world.CreateSystems().RegisterAll(scheduler);
+        Entity creature = world.SpawnCreature(world.SpeciesIndex("mossback"), Start, new SumonerWorld.Core.Cognition.Personality(-20, 0, 0, 0), group: 0);
+        world.SpawnPlayerAvatar(1001, Start + new Vector3(0, 0, 6));
+        world.Minds.Remember(world.World.GetComponent<MindRef>(creature).Handle, world.Rules.FindByKey(memory)!.Value, new MemorySubject(SubjectKind.Player, 1001), 0);
+
+        var shown = new HashSet<Emote>();
+        for (int tick = 0; tick < 90; tick++)
+        {
+            scheduler.RunTick();
+            shown.Add(world.World.GetComponent<CurrentEmote>(creature).Value);
+        }
+
+        Assert.True(shown.Overlaps(expected), $"showed {string.Join(", ", shown)}");
     }
 
     [Fact]

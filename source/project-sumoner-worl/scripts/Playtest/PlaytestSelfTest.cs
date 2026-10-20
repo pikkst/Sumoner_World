@@ -6,13 +6,15 @@ namespace SumonerWorld.Game.Playtest;
 /// <summary>
 /// Plays the start of a Memory Grove session through the real controls (<c>--self-test</c>, M1-23): queues key events, so input
 /// goes the same way as a tester's. Holds W until a creature is in reach (the snared calf 12 m ahead), then R (free it),
-/// E (feed it) and Q (shout), one second apart, and logs what the interaction line says. <see cref="Done"/> lets the host take
+/// E (feed it) and Q (shout), one second apart, logs what the interaction line says, and watches for <see cref="WatchSeconds"/> so
+/// the creature can react. <see cref="Done"/> lets the host take
 /// its screenshot afterwards.
 /// </summary>
 public sealed partial class PlaytestSelfTest(InteractionControls controls, Func<bool> worldShown, ILog log) : Node
 {
     private const double WalkLimitSeconds = 8;
     private const double StepSeconds = 1.2;
+    private const double WatchSeconds = 6;
     private static readonly Key[] Steps = [Key.R, Key.E, Key.Q];
 
     private double _clock;
@@ -46,7 +48,7 @@ public sealed partial class PlaytestSelfTest(InteractionControls controls, Func<
         }
 
         _clock += delta;
-        if (_clock < StepSeconds)
+        if (_clock < (_step < Steps.Length ? StepSeconds : WatchSeconds))
         {
             return;
         }

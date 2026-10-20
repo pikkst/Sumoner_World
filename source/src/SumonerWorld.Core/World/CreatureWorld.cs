@@ -308,16 +308,11 @@ public sealed class CreatureWorld : IDisposable
         World.GetComponent<CurrentEmote>(creature) = new CurrentEmote(Emote.Fear);
     }
 
-    /// <summary>Frees a snared creature; false if it was not snared.</summary>
+    /// <summary>Frees a snared creature; false if it was not snared. Its next perception sets the emote it shows.</summary>
     public bool Release(Entity creature)
     {
-        if (!World.Remove<Snared>(creature))
-        {
-            return false;
-        }
-
-        World.GetComponent<CurrentEmote>(creature) = new CurrentEmote(Emote.None);
-        return true;
+        // The fear stays on show until perception appraises its focus again (no flicker through the tree's emote).
+        return World.Remove<Snared>(creature);
     }
 
     /// <summary>
