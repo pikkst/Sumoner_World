@@ -4,14 +4,14 @@
   "entries": [
     {
       "eventType": 1,
-      "trust": 40,
+      "trust": 70,
       "fear": -10,
       "affection": 30,
       "respect": 0
     },
     {
       "eventType": 2,
-      "trust": 60,
+      "trust": 80,
       "fear": -10,
       "affection": 40,
       "respect": 0

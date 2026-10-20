@@ -59,6 +59,31 @@ public class AuthoritativeLoopTests
     }
 
     [Fact]
+    public void Memory_grove_interactions_travel_as_intents_and_the_third_hit_kills()
+    {
+        using var lan = new Lan(0);
+        StableId creature = lan.SpawnCreature(lan.Settings.SpawnPoint + new Vector3(2.5f, 0, 0));
+        Assert.True(lan.World.TryFindCreature(creature, out Entity held));
+        lan.World.Snare(held, 0); // keeps it in reach: a hit creature would run away
+        GameClient alice = lan.Join(1001);
+        lan.Run(10, _ => MoveInput.None);
+
+        uint feed = alice.SendIntent(IntentKind.Feed, creature.Value, 0);
+        uint scare = alice.SendIntent(IntentKind.Scare, 0, 0);
+        uint[] hits = new uint[3];
+        for (int i = 0; i < hits.Length; i++)
+        {
+            hits[i] = alice.SendIntent(IntentKind.Hit, creature.Value, 0);
+            lan.Run((int)HitTransaction.CooldownTicks + 1, _ => MoveInput.None);
+        }
+
+        Assert.True(alice.IntentResults[feed].IsApplied);
+        Assert.Equal(IntentResult.Applied(0), alice.IntentResults[scare]);
+        Assert.Equal([0, 0, 1], hits.Select(hit => (int)alice.IntentResults[hit].Detail));
+        Assert.False(lan.World.TryFindCreature(creature, out _));
+    }
+
+    [Fact]
     public void An_intent_over_the_network_is_applied_once_and_resending_it_returns_the_first_result()
     {
         using var lan = new Lan(0);

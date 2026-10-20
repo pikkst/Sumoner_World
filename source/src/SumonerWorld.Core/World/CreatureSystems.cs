@@ -279,6 +279,7 @@ public sealed class CreatureIntentSystem(
     private readonly ComponentStore<MindRef> _minds = world.Store<MindRef>();
     private readonly ComponentStore<CurrentEmote> _emotes = world.Store<CurrentEmote>();
     private readonly ComponentStore<FocusRef> _focus = world.Store<FocusRef>();
+    private readonly ComponentStore<Snared> _snared = world.Store<Snared>();
 
     /// <inheritdoc />
     public SimulationStage Stage => SimulationStage.Movement;
@@ -294,6 +295,9 @@ public sealed class CreatureIntentSystem(
             MindHandle mind = _minds.Get(intent.Actor).Handle;
             switch (intent.Kind)
             {
+                case IntentKind.MoveTo when _snared.Has(intent.Actor):
+                    runner.ReportOutcome(mind, succeeded: false);
+                    break;
                 case IntentKind.MoveTo:
                     if (TryResolveTarget(intent.Actor, intent.Target, out Vector3 target)
                         && paths.Request(intent.Actor, _positions.Get(intent.Actor).Value, target, walkSpeed * intent.Speed / Percent))
@@ -313,7 +317,7 @@ public sealed class CreatureIntentSystem(
                     minds.SatisfyNeed(mind, NeedFor(intent.Verb), SatisfyPerInteraction, tick.Index);
                     Interactions++;
                     break;
-                case IntentKind.Emote:
+                case IntentKind.Emote when !_snared.Has(intent.Actor):
                     _emotes.Get(intent.Actor) = new CurrentEmote(intent.Emote);
                     break;
                 default:
@@ -376,6 +380,7 @@ public sealed class MovementSystem(IEcsWorld world, ISpatialIndex grid, IBehavio
     private readonly ComponentStore<Position> _positions = world.Store<Position>();
     private readonly ComponentStore<Facing> _facings = world.Store<Facing>();
     private readonly ComponentStore<MindRef> _minds = world.Store<MindRef>();
+    private readonly ComponentStore<Snared> _snared = world.Store<Snared>();
 
     /// <inheritdoc />
     public SimulationStage Stage => SimulationStage.Movement;
@@ -387,7 +392,7 @@ public sealed class MovementSystem(IEcsWorld world, ISpatialIndex grid, IBehavio
         Span<MoveTarget> targets = _targets.Components;
         for (int i = 0; i < entities.Length; i++)
         {
-            if (targets[i].Active == 0)
+            if (targets[i].Active == 0 || _snared.Has(entities[i]))
             {
                 continue;
             }

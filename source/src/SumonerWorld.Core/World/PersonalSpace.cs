@@ -38,7 +38,7 @@ public sealed class BodySizes
 /// Keeps creatures from standing inside each other or inside players (seen in the M1-22 dev-server test). After movement, each
 /// creature that overlaps a neighbour's footprint steps away: half the overlap from another creature (the other does the same in
 /// its turn), the whole overlap from a player, whose position the server never changes outside the player's own input (client
-/// prediction). At most <see cref="MaxStepPerTick"/> per tick, so the correction looks like a shuffle, not a jump. Deterministic
+/// prediction). Snared creatures hold their place. At most <see cref="MaxStepPerTick"/> per tick, so the correction looks like a shuffle, not a jump. Deterministic
 /// (fixed order, exact ties broken by entity index) and allocation-free (R11, R21).
 /// </summary>
 public sealed class SeparationSystem(IEcsWorld world, ISpatialIndex grid, BodySizes sizes, Heightfield? ground) : ISimulationSystem
@@ -53,6 +53,7 @@ public sealed class SeparationSystem(IEcsWorld world, ISpatialIndex grid, BodySi
     private readonly ComponentStore<SpeciesRef> _creatures = world.Store<SpeciesRef>();
     private readonly ComponentStore<Position> _positions = world.Store<Position>();
     private readonly ComponentStore<PlayerAvatar> _players = world.Store<PlayerAvatar>();
+    private readonly ComponentStore<Snared> _snared = world.Store<Snared>();
 
     /// <inheritdoc />
     public SimulationStage Stage => SimulationStage.Movement;
@@ -67,6 +68,11 @@ public sealed class SeparationSystem(IEcsWorld world, ISpatialIndex grid, BodySi
         for (int i = 0; i < creatures.Length; i++)
         {
             Entity creature = creatures[i];
+            if (_snared.Has(creature))
+            {
+                continue;
+            }
+
             ref Position position = ref _positions.Get(creature);
             Vector3 step = Overlap(creature, position.Value);
             if (step == Vector3.Zero)
