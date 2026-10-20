@@ -1,6 +1,7 @@
 using SumonerWorld.Core.Diagnostics;
 using SumonerWorld.Core.Intents;
 using SumonerWorld.Core.Movement;
+using SumonerWorld.Core.World;
 using SumonerWorld.Net.Messages;
 using SumonerWorld.Net.Sessions;
 using SumonerWorld.Net.Transport;
@@ -12,7 +13,9 @@ namespace SumonerWorld.Net.Client;
 /// every tick (unreliable, redundant) and intents (reliable), and keeps the latest snapshot's entities. After a lost connection,
 /// <see cref="Reconnect"/> resumes the session (TDD §3.5): prediction restarts from the next snapshot and unanswered intents are sent
 /// again with their sequences (the server's dedupe window answers repeats with the first result). Remote entities also go into
-/// <see cref="Remote"/>, the 100 ms interpolation buffer the presentation draws from (M1-21).
+/// <see cref="Remote"/>, the 100 ms interpolation buffer the presentation draws from (M1-21). Dev tools (M1-22):
+/// <see cref="RequestDevTools"/> asks a dev server for <see cref="DevMetrics"/> and an <see cref="Inspection"/>; the request is sent
+/// again after every welcome.
 /// </summary>
 public sealed class GameClient : IClientSessionHandler
 {
@@ -25,6 +28,9 @@ public sealed class GameClient : IClientSessionHandler
     private readonly Dictionary<uint, IntentResult> _results = [];
     private readonly IntentRequestCodec _intentCodec = new();
     private readonly IntentAckCodec _ackCodec = new();
+    private readonly DevRequestCodec _devRequestCodec = new();
+    private readonly ServerMetricsCodec _metricsCodec = new();
+    private readonly DevInspectionCodec _inspectionCodec = new();
     private uint _lastIntent;
 
     /// <summary>Creates the client; <paramref name="movement"/> must match the server's.</summary>
@@ -69,6 +75,39 @@ public sealed class GameClient : IClientSessionHandler
     /// <summary>Intents dropped because the server started a new session instead of resuming (their outcome is unknown).</summary>
     public int LostIntents { get; private set; }
 
+    /// <summary>What the dev tools asked the server for.</summary>
+    public DevRequest DevRequest { get; private set; }
+
+    /// <summary>The newest server metrics (dev overlay); null until a dev server sent some.</summary>
+    public ServerMetrics? DevMetrics { get; private set; }
+
+    /// <summary>The newest inspection of <see cref="DevRequest"/>'s creature; null until one arrived or when it is gone.</summary>
+    public CreatureInspection? Inspection { get; private set; }
+
+    /// <summary>The server answered that the inspected creature does not exist (any more).</summary>
+    public bool InspectionGone { get; private set; }
+
+    /// <summary>
+    /// Asks the server for dev data: <paramref name="metrics"/> for the overlay and the creature with stable id
+    /// <paramref name="inspect"/> (0 = none). Sent now when in a session and again after every welcome. A server without dev tools
+    /// ignores it.
+    /// </summary>
+    public void RequestDevTools(bool metrics, ulong inspect)
+    {
+        if (inspect != DevRequest.Inspect)
+        {
+            Inspection = null;
+            InspectionGone = false;
+        }
+
+        DevMetrics = metrics ? DevMetrics : null;
+        DevRequest = new DevRequest(metrics, inspect);
+        if (Session.State == ClientSessionState.InSession)
+        {
+            SendDevRequest();
+        }
+    }
+
     /// <summary>Uses <paramref name="transport"/> for the next connection; connect it to the server afterwards.</summary>
     public void Reconnect(ITransport transport)
     {
@@ -84,6 +123,11 @@ public sealed class GameClient : IClientSessionHandler
         _entities.Clear();
         Remote.Clear();
         LastSnapshotTick = 0;
+        if (DevRequest != default)
+        {
+            SendDevRequest();
+        }
+
         if (!welcome.Resumed)
         {
             LostIntents += _unanswered.Count;
@@ -152,10 +196,30 @@ public sealed class GameClient : IClientSessionHandler
                 AcksReceived++;
                 _unanswered.Remove(ack.Sequence);
                 break;
+            case MessageType.DevMetrics:
+                ServerMetrics metrics = _metricsCodec.Read(ref reader);
+                DevMetrics = DevRequest.Metrics ? metrics : null;
+                break;
+            case MessageType.DevInspection:
+                DevInspection inspection = _inspectionCodec.Read(ref reader);
+                if (inspection.Requested == DevRequest.Inspect)
+                {
+                    Inspection = inspection.Inspection;
+                    InspectionGone = inspection.Inspection is null;
+                }
+
+                break;
             default:
                 _log.Write(LogLevel.Warning, "client.unexpected", $"{type} is not a server message");
                 break;
         }
+    }
+
+    private void SendDevRequest()
+    {
+        var writer = new MessageWriter(_buffer);
+        _devRequestCodec.Write(ref writer, DevRequest);
+        _transport.Send(Session.Connection, Channel.ReliableOrdered, writer.WrittenSpan);
     }
 
     private void ReadSnapshot(ref MessageReader reader)

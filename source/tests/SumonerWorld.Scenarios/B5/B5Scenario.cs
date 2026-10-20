@@ -118,6 +118,9 @@ public sealed class B5Scenario : IDisposable
     /// <summary>Simulates one tick.</summary>
     public void RunTick() => _scheduler.RunTick();
 
+    /// <summary>The simulated world (read it between ticks only).</summary>
+    public CreatureWorld World => _world;
+
     /// <summary>Hash of all deterministic state (TDD §2.3).</summary>
     public ulong ComputeStateHash()
     {

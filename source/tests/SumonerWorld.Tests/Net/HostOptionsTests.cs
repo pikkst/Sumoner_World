@@ -35,6 +35,20 @@ public class HostOptionsTests
     }
 
     [Fact]
+    public void Dev_tools_are_off_unless_asked_for_and_inspect_turns_them_on()
+    {
+        Assert.False(HostOptions.Parse([], NoEnvironment).DevTools);
+        Assert.True(HostOptions.Parse([], name => name == "SW_DEV_TOOLS" ? "1" : null).DevTools);
+        Assert.True(HostOptions.Parse(["--server", "--dev-tools"], NoEnvironment).DevTools);
+
+        HostOptions nearest = HostOptions.Parse(["--connect=127.0.0.1:7777", "--inspect=nearest"], NoEnvironment);
+        HostOptions byId = HostOptions.Parse(["--inspect=42"], NoEnvironment);
+        Assert.Equal((true, "nearest"), (nearest.DevTools, nearest.Inspect));
+        Assert.Equal("42", byId.Inspect);
+        Assert.Throws<ArgumentException>(() => HostOptions.Parse(["--inspect=closest"], NoEnvironment));
+    }
+
+    [Fact]
     public void The_world_path_comes_from_the_environment_or_an_argument()
     {
         Assert.Equal(string.Empty, HostOptions.Parse([], NoEnvironment).WorldPath);

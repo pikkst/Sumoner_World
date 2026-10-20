@@ -123,14 +123,14 @@ public class MessageCodecTests
     }
 
     [Theory]
-    [InlineData(new byte[] { 0x04, 0x00 }, "truncated")]
+    [InlineData(new byte[] { 0x05, 0x00 }, "truncated")]
     [InlineData(new byte[] { 0x01, 0x00, 0x05 }, "Protocol version 1")]
-    [InlineData(new byte[] { 0x04, 0x00, 0x63 }, "Unknown message type 99")]
-    [InlineData(new byte[] { 0x04, 0x00, 0x04 }, "Unknown message type 4")]
-    [InlineData(new byte[] { 0x04, 0x00, 0x05, 0x01, 0x01, 0xA0, 0x1F, 0x00, 0x00 }, "outside")]
-    [InlineData(new byte[] { 0x04, 0x00, 0x05, 0x01, 0x01, 0x00, 0x00, 0x00, 0xFF }, "trailing")]
-    [InlineData(new byte[] { 0x04, 0x00, 0x05, 0x01, 0x00 }, "out of range")]
-    [InlineData(new byte[] { 0x04, 0x00, 0x05, 0x01, 0x02 }, "out of range")]
+    [InlineData(new byte[] { 0x05, 0x00, 0x63 }, "Unknown message type 99")]
+    [InlineData(new byte[] { 0x05, 0x00, 0x04 }, "Unknown message type 4")]
+    [InlineData(new byte[] { 0x05, 0x00, 0x05, 0x01, 0x01, 0xA0, 0x1F, 0x00, 0x00 }, "outside")]
+    [InlineData(new byte[] { 0x05, 0x00, 0x05, 0x01, 0x01, 0x00, 0x00, 0x00, 0xFF }, "trailing")]
+    [InlineData(new byte[] { 0x05, 0x00, 0x05, 0x01, 0x00 }, "out of range")]
+    [InlineData(new byte[] { 0x05, 0x00, 0x05, 0x01, 0x02 }, "out of range")]
     public void Malformed_input_is_rejected_with_a_reason(byte[] bytes, string expected)
     {
         var error = Assert.Throws<MalformedMessageException>(() =>
@@ -161,7 +161,7 @@ public class MessageCodecTests
             {
                 buffer[0] = (byte)Protocol.Version;
                 buffer[1] = 0;
-                buffer[2] = (byte)random.NextInt(1, 9);
+                buffer[2] = (byte)random.NextInt(1, 12);
             }
 
             ReadAnything(buffer.AsSpan(0, length));
@@ -192,6 +192,15 @@ public class MessageCodecTests
                     break;
                 case MessageType.IntentAck:
                     new IntentAckCodec().Read(ref reader);
+                    break;
+                case MessageType.DevRequest:
+                    new DevRequestCodec().Read(ref reader);
+                    break;
+                case MessageType.DevMetrics:
+                    new ServerMetricsCodec().Read(ref reader);
+                    break;
+                case MessageType.DevInspection:
+                    new DevInspectionCodec().Read(ref reader);
                     break;
                 default:
                     SnapshotHeader header = Snapshot.ReadHeader(ref reader);

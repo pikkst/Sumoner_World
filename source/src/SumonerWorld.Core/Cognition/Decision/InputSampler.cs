@@ -8,6 +8,8 @@ namespace SumonerWorld.Core.Cognition.Decision;
 /// <summary>
 /// Reads every <see cref="ConsiderationInput"/> for a creature, normalised to [0, 1000] (AI Bible §7.2). Shared by utility
 /// scoring and behaviour tree conditions so both see the same values (R47). One preallocated buffer; simulation thread only.
+/// A read-only sampler (<c>readOnly: true</c>, for the AI Inspector) peeks at emotions instead of refreshing them, so sampling
+/// changes nothing.
 /// </summary>
 public sealed class InputSampler
 {
@@ -23,10 +25,11 @@ public sealed class InputSampler
     private readonly IAppraisal _appraisal;
     private readonly IOpinionModel _opinions;
     private readonly int _ticksPerDay;
+    private readonly bool _readOnly;
     private readonly int[] _inputs = new int[Count];
 
     /// <summary>Creates the sampler.</summary>
-    public InputSampler(ICreatureMindStore store, IAppraisal appraisal, IOpinionModel opinions, int ticksPerDay)
+    public InputSampler(ICreatureMindStore store, IAppraisal appraisal, IOpinionModel opinions, int ticksPerDay, bool readOnly = false)
     {
         ArgumentNullException.ThrowIfNull(store);
         ArgumentNullException.ThrowIfNull(appraisal);
@@ -37,6 +40,7 @@ public sealed class InputSampler
         _appraisal = appraisal;
         _opinions = opinions;
         _ticksPerDay = ticksPerDay;
+        _readOnly = readOnly;
     }
 
     /// <summary>
@@ -52,7 +56,7 @@ public sealed class InputSampler
         _inputs[(int)ConsiderationInput.NeedSocial] = _store.GetNeed(mind, Need.Social, now) * ToPerMille;
         _inputs[(int)ConsiderationInput.NeedTerritory] = _store.GetNeed(mind, Need.Territory, now) * ToPerMille;
 
-        EmotionState emotions = _appraisal.GetEmotions(mind, now);
+        EmotionState emotions = _readOnly ? _appraisal.PeekEmotions(mind, now) : _appraisal.GetEmotions(mind, now);
         _inputs[(int)ConsiderationInput.EmotionFear] = emotions.Fear * ToPerMille;
         _inputs[(int)ConsiderationInput.EmotionAnger] = emotions.Anger * ToPerMille;
         _inputs[(int)ConsiderationInput.EmotionJoy] = emotions.Joy * ToPerMille;
