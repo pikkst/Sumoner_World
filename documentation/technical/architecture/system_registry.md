@@ -39,6 +39,7 @@ Rules: R02, R07, R12, R47, R49 · Related: ADR-001 (layers), TDD v0.1, AI Bible 
 | Intent validation | `Core.Transactions` | `ITransaction` (`Validate`) | Authorize an intent (owner, range, cooldown, cost) without changing state; the first phase of every transaction, so validation and commit can never disagree (`CooldownTracker` in `Core.Intents`). Was planned as `IIntentValidator`; merged into `ITransaction` (rule 4) | TDD §3.2–3.3 | **Implemented** (M1-15b) |
 | Intent dedupe | `Core.Intents` | `IIntentDeduplicator` | `IntentId` window (last 1,024 per session, idle sessions pruned after 10 min); repeated ids return the first result, lower unseen ids are stale and never applied (`IntentDeduplicator`) | TDD §3.4 | **Implemented** (M1-15b) |
 | Transactions | `Core.Transactions` | `ITransactionProcessor` | **The only path** for atomic multi-entity changes: trades, crafting, pacts, ownership, rewards. Dedupe → validate → commit → record (`TransactionProcessor`; DB transaction from M1-17). First transaction: `OfferPactTransaction` (Core.World) | TDD §3.4 | **Implemented** (M1-15b) |
+| Transaction journal | `Core.Transactions` | `ITransactionJournal` | Every processed intent (result, changed creatures, dedupe record) is made durable in one database transaction before its result is sent (`PersistenceWriter`; `GameServer` holds acks until durable) | TDD §4.2 | **Implemented** (M1-17c) |
 | Movement | `Core.Movement` | `IMovementModel` | Character movement shared by server and client prediction: one `MoveInput` per tick, diagonals not faster, clamped to bounds (`MovementModel`); terrain and collision with M1-20 | TDD §3.2 | **Implemented** (M1-15b) |
 
 ## 3. Core: gameplay
@@ -103,7 +104,7 @@ Rules: R02, R07, R12, R47, R49 · Related: ADR-001 (layers), TDD v0.1, AI Bible 
 | System | Interface | Responsibility | Spec | Status |
 |---|---|---|---|---|
 | World store | `IWorldStore`, `IWorldTransaction` | SQLite world database (WAL, `synchronous=FULL`), atomic transactions that write the effect and the `intent_dedupe` record together (`WorldStore`); items, players, creatures with minds, reputation (`SaveWorld` / `LoadWorld`) | TDD §4.1–4.2, §3.4 | **Implemented** (M1-17a, M1-17b) |
-| World checkpoints | `CheckpointWriter` (class) | Persistence thread: writes the newest 30 s world snapshot in one transaction, timed backups every 30 min | TDD §4.2 | **Implemented** (M1-17b) |
+| World checkpoints | `PersistenceWriter` (class) | The persistence thread: journal entries and 30 s world checkpoints in arrival order (a waiting checkpoint is replaced by a newer one), timed backups every 30 min | TDD §4.2 | **Implemented** (M1-17b, M1-17c) |
 | Record codec | `IRecordCodec` | Version byte + MessagePack payload with integer keys, read with untrusted-data security (`MessagePackRecordCodec`, `ItemRecord` v1) | TDD §4.1 | **Implemented** (M1-17a) |
 | Migrations | `IMigration` | One schema step `FromVersion → ToVersion`, run by the store at start-up in one transaction after a backup; newer saves refused (`Migrations.All`: v1) | TDD §4.3 | **Implemented** (M1-17a) |
 | Backups | `IBackupService` | Consistent online copies (SQLite backup API), newest 10 kept, pre-migration backups (`WorldBackups`); timed and shutdown backups started by the host in M1-17b | TDD §4.2 | **Implemented** (M1-17a) |

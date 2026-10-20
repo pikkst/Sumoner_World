@@ -75,6 +75,20 @@ internal sealed class WorldTables(WorldStore store)
         WriteMeta(transaction, SavedKey, 1);
     }
 
+    public void PutCreature(SqliteTransaction transaction, CreatureSave creature)
+    {
+        using SqliteCommand upsert = store.Command("INSERT OR REPLACE INTO creatures (stable_id, payload) VALUES ($id, $payload);", transaction);
+        upsert.Parameters.AddWithValue("$id", (long)creature.Id.Value);
+        upsert.Parameters.AddWithValue("$payload", _creatures.Encode(SaveMapping.ToRecord(creature)));
+        upsert.ExecuteNonQuery();
+    }
+
+    public ulong MaxIntentSession()
+    {
+        using SqliteCommand select = store.Command("SELECT max(session) FROM intent_dedupe;", null);
+        return select.ExecuteScalar() is long session ? (ulong)session : 0;
+    }
+
     public SavedWorld? Load()
     {
         if (store.ReadMeta(SavedKey, null) == 0)
