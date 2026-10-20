@@ -30,7 +30,8 @@ public enum HostMode
 /// Arguments: <c>--server</c>, <c>--client</c>, <c>--connect=host:port</c>, <c>--port=7777</c>, <c>--account=1001</c>,
 /// <c>--max-players=16</c>, <c>--exit-on-welcome</c>, <c>--quit-after-ticks=N</c>, <c>--bots=16</c> (with <c>--connect</c>),
 /// <c>--benchmark-out=dir</c>, <c>--benchmark-players=16</c>, <c>--warmup-ticks=900</c>, <c>--measure-ticks=18000</c> (server, B2),
-/// <c>--region</c>, <c>--region-chunks=8</c>, <c>--screenshot=file.png</c> (region: save a frame after streaming settled, then quit).
+/// <c>--region</c>, <c>--region-chunks=8</c>, <c>--screenshot=file.png</c> (region: save a frame after streaming settled, then quit),
+/// <c>--benchmark=B3</c> (region: fly the B3 route, write results to <c>--benchmark-out</c>, then quit).
 /// Environment: <c>SW_SERVER_MODE</c> (any value starts the server), <c>SW_PORT</c>, <c>SW_DEV_SECRET</c>, <c>SW_MAX_PLAYERS</c>,
 /// <c>SW_LOG_LEVEL</c>.
 /// </remarks>
@@ -93,6 +94,9 @@ public sealed record HostOptions
     /// <summary>Region: save one frame here once streaming has settled, then quit (empty = keep running).</summary>
     public string Screenshot { get; init; } = string.Empty;
 
+    /// <summary>Region: client benchmark to run (<c>B3</c>), empty for none.</summary>
+    public string Benchmark { get; init; } = string.Empty;
+
     /// <summary>Lowest log level written.</summary>
     public LogLevel LogLevel { get; init; } = LogLevel.Info;
 
@@ -135,6 +139,7 @@ public sealed record HostOptions
             "--exit-on-welcome" => options with { ExitOnWelcome = true },
             "--world" when value.Length > 0 => options with { WorldPath = value },
             "--region" => options with { Mode = HostMode.Region },
+            "--benchmark" when value == "B3" => options with { Mode = HostMode.Region, Benchmark = value },
             "--region-chunks" => options with { RegionChunks = ParseInt(value, argument) },
             "--screenshot" when value.Length > 0 => options with { Screenshot = value },
             "--bots" => options with { Mode = HostMode.Bots, Bots = ParseInt(value, argument) },

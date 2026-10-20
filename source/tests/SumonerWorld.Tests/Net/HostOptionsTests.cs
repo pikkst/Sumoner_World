@@ -61,6 +61,9 @@ public class HostOptionsTests
         HostOptions region = HostOptions.Parse(["--region", "--region-chunks=64", "--screenshot=shot.png"], NoEnvironment);
         Assert.Equal((HostMode.Region, 64, "shot.png"), (region.Mode, region.RegionChunks, region.Screenshot));
         Assert.Equal(8, HostOptions.Parse(["--region"], NoEnvironment).RegionChunks);
+        HostOptions b3 = HostOptions.Parse(["--benchmark=B3", "--benchmark-out=out"], NoEnvironment);
+        Assert.Equal((HostMode.Region, "B3", "out"), (b3.Mode, b3.Benchmark, b3.BenchmarkOut));
+        Assert.Throws<ArgumentException>(() => HostOptions.Parse(["--benchmark=B9"], NoEnvironment));
     }
 
     [Fact]
