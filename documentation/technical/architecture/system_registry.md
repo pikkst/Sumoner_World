@@ -78,6 +78,8 @@ Rules: R02, R07, R12, R47, R49 · Related: ADR-001 (layers), TDD v0.1, AI Bible 
 | Rumours | `Core.Cognition.Memory` | `ICreatureMindStore.ShareRumours` (method) | Groupmates pass on their 3 strongest first-hand memories about players at half strength; never passed on again | AI Bible §4.5 | **Implemented** (M1-12) |
 | Creature world | `Core.World` | `CreatureWorld` (class) | Composition root for one region's creature simulation: ECS components, spawn/despawn of creatures and player avatars, production creature systems in tick order, state hash | TDD §2.2 | **Implemented** (M1-15a) |
 | World snapshots | `Core.World` | `WorldSnapshots` (class) | Capture a `CreatureWorld` (clock, random state, ids, creatures with `MindState` and bond, reputation) and restore it; `CreatureMindStore.Export/Import` | TDD §4.4 | **Implemented** (M1-17b) |
+| Streaming rings | `Core.World` | `IStreamingPlanner` | Client rings per 64 m chunk (`ChunkCoord`): full ≤ 128 m, medium ≤ 384 m, far ≤ 1.5 km from the chunk's nearest point; at most 4 upgrades per update, nearest first; 16 m hysteresis on downgrades (`StreamingPlanner`); seeded placeholder props per chunk (`ChunkScatter`) | TDD §5.1, §5.2 | **Implemented** (M1-19a) |
+| Heightfield | `Core.World` | `Heightfield` (class) | Seeded terrain heights (fractal value noise) on a 1 m grid; bilinear `HeightAt`, thread-safe reads | TDD §5.1 | **Implemented** (M1-19a) |
 | Chunk map | `Core.World` | `IChunkMap` | 64 m chunk states: loaded / abstract | TDD §5 | Planned (M1) |
 | World generation | `Core.World` | `IWorldGenerator` | Seeded scatter of resources and props | TDD §5.1 | Planned (M2) |
 | Weather | `Core.World` | `IWeatherModel` | Deterministic weather and world events | GDD §7 | Planned (M2) |
@@ -120,7 +122,8 @@ Rules: R02, R07, R12, R47, R49 · Related: ADR-001 (layers), TDD v0.1, AI Bible 
 | Logging adapter | `GodotLog : ILog` | JSON lines on stdout (collected by Docker) | TDD §6 | **Implemented** (M1-14) |
 | Entity views | `EntityViewSync` | Spawns/pools Godot nodes from snapshots; views never own state | ADR-001, R38 | Planned (M1) |
 | Input | `IInputSource` | Maps devices to inputs and intents | TDD §3.2 | Planned (M1) |
-| Chunk streaming | `ChunkStreamer` | Client rings: full / medium / far | TDD §5.2 | Planned (M1) |
+| Chunk streaming | `ChunkStreamer` | Client rings from `StreamingPlanner`: worker-thread MultiMesh buffers for the full / medium rings, ≤ 2 uploads per frame, pooled views | TDD §5.2 | **Implemented** (M1-19a) |
+| Terrain | `TerrainBuilder`, `TestRegion`, `RegionHost` | Terrain3D node from the seeded `Heightfield` (in-house mesh fallback without the extension); test region with sky, sun, fog and a fly camera (`--region`) | TDD §5.1 | **Implemented** (M1-19a) |
 | Emotes | `IEmotePresenter` | Emote id → animation per body type | AI Bible §6.2 | Planned (M1) |
 | UI | `IUiScreen` | Data-driven screens, Bond Lens | GDD UI, R37 | Planned (M2) |
 | Localization | `ILocalizer` | Externalized strings (R39) | GDD UI | Planned (M2) |

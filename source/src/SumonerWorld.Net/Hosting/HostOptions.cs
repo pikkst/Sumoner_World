@@ -17,6 +17,9 @@ public enum HostMode
 
     /// <summary>A fleet of bot clients (B2, spike 2).</summary>
     Bots,
+
+    /// <summary>The M1 test region with terrain and streaming, free-fly camera (M1-19).</summary>
+    Region,
 }
 
 /// <summary>
@@ -26,7 +29,8 @@ public enum HostMode
 /// <remarks>
 /// Arguments: <c>--server</c>, <c>--client</c>, <c>--connect=host:port</c>, <c>--port=7777</c>, <c>--account=1001</c>,
 /// <c>--max-players=16</c>, <c>--exit-on-welcome</c>, <c>--quit-after-ticks=N</c>, <c>--bots=16</c> (with <c>--connect</c>),
-/// <c>--benchmark-out=dir</c>, <c>--benchmark-players=16</c>, <c>--warmup-ticks=900</c>, <c>--measure-ticks=18000</c> (server, B2).
+/// <c>--benchmark-out=dir</c>, <c>--benchmark-players=16</c>, <c>--warmup-ticks=900</c>, <c>--measure-ticks=18000</c> (server, B2),
+/// <c>--region</c>, <c>--region-chunks=8</c>, <c>--screenshot=file.png</c> (region: save a frame after streaming settled, then quit).
 /// Environment: <c>SW_SERVER_MODE</c> (any value starts the server), <c>SW_PORT</c>, <c>SW_DEV_SECRET</c>, <c>SW_MAX_PLAYERS</c>,
 /// <c>SW_LOG_LEVEL</c>.
 /// </remarks>
@@ -83,6 +87,12 @@ public sealed record HostOptions
     /// <summary>Server benchmark: ticks measured.</summary>
     public int MeasureTicks { get; init; } = 18_000;
 
+    /// <summary>Region: chunks per side (8 = the 512 m test region, 64 = 4 km).</summary>
+    public int RegionChunks { get; init; } = 8;
+
+    /// <summary>Region: save one frame here once streaming has settled, then quit (empty = keep running).</summary>
+    public string Screenshot { get; init; } = string.Empty;
+
     /// <summary>Lowest log level written.</summary>
     public LogLevel LogLevel { get; init; } = LogLevel.Info;
 
@@ -124,6 +134,9 @@ public sealed record HostOptions
             "--max-players" => options with { MaxPlayers = ParseInt(value, argument) },
             "--exit-on-welcome" => options with { ExitOnWelcome = true },
             "--world" when value.Length > 0 => options with { WorldPath = value },
+            "--region" => options with { Mode = HostMode.Region },
+            "--region-chunks" => options with { RegionChunks = ParseInt(value, argument) },
+            "--screenshot" when value.Length > 0 => options with { Screenshot = value },
             "--bots" => options with { Mode = HostMode.Bots, Bots = ParseInt(value, argument) },
             "--benchmark-out" when value.Length > 0 => options with { BenchmarkOut = value },
             "--benchmark-players" => options with { BenchmarkPlayers = ParseInt(value, argument) },
