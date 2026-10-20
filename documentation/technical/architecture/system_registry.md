@@ -113,7 +113,7 @@ Rules: R02, R07, R12, R47, R49 · Related: ADR-001 (layers), TDD v0.1, AI Bible 
 ## 7. Game (Godot project: presentation and adapters)
 | System | Type / interface | Responsibility | Spec | Status |
 |---|---|---|---|---|
-| Hosts | `Bootstrap`, `ServerHost`, `ClientHost` | `Main.tscn` entry; headless server runs ENet + session handshake + 30 Hz Core tick; client smoke mode (`--exit-on-welcome`) | TDD §2.5 | **Implemented** (M1-14) |
+| Hosts | `Bootstrap`, `ServerHost`, `ClientHost`, `BotHost` | `Main.tscn` entry; headless server runs ENet + session handshake + 30 Hz Core tick; client smoke mode (`--exit-on-welcome`); bot fleet over ENet (`--bots=N`, M1-18b) | TDD §2.5 | **Implemented** (M1-14, M1-18b) |
 | ENet adapter | `GodotENetTransport : ITransport` | Godot `ENetConnection` at packet level (channel 0 unreliable, 1 reliable) | TDD §3.1 | **Implemented** (M1-14) |
 | Physics adapter | `GodotPhysicsQueries : IPhysicsQueries` | Jolt queries for Core | TDD §2.4 | Planned (M1) |
 | Navigation adapter | `GodotNavigation : INavigation` | `NavigationServer3D` paths | TDD §2.4 | Planned (M1) |
@@ -134,10 +134,11 @@ Rules: R02, R07, R12, R47, R49 · Related: ADR-001 (layers), TDD v0.1, AI Bible 
 | Architecture tests | `tests/.../Architecture` | Layering, namespaces, this registry | ADR-001 | **Implemented** |
 | Benchmark harness | `tests/SumonerWorld.Benchmarks` | BenchmarkDotNet micro-benchmarks; `b5` mode writes per-tick/per-stage CSV | M0-07, ADR-002 | **Implemented** (M1-02, M1-05) |
 | Scenarios | `tests/SumonerWorld.Scenarios` | Repeatable simulation scenarios shared by CI gates and benchmarks (B5 now; a thin layer on `CreatureWorld` since M1-15a) | M0-07 | **Implemented** (M1-05) |
-| Bot clients | `BotFleet`, `BotScript` (classes, Net.Bots) | B2 / spike 2 bots: real `GameClient`s replaying seeded recorded inputs (leashed walks), Pact offers to the nearest creature, a drop-and-resume check and a repeated-intent check | TDD §8, M0-07 B2 | **Implemented** (M1-18a; Docker host with M1-18b) |
+| Server benchmark | `ServerBenchmark` (class, Net.Server) | B2 measurement: waits for N players, warm-up, then tick / AI time, allocations, GC, memory, per-client bandwidth, NIC counters; `summary.json` + `ticks.csv`; network and timing thresholds kept apart | M0-07 A2/A3 | **Implemented** (M1-18b) |
+| Bot clients | `BotFleet`, `BotScript` (classes, Net.Bots) | B2 / spike 2 bots: real `GameClient`s replaying seeded recorded inputs (leashed walks), Pact offers to the nearest creature, a drop-and-resume check and a repeated-intent check | TDD §8, M0-07 B2 | **Implemented** (M1-18a, M1-18b) |
 | Save dump | `tools/SaveDump` | Record → JSON for bug reports and fixtures | TDD §4.1 | Planned (M1) |
 | Crash harness | `tests/SumonerWorld.CrashHarness` | Spike 3 trade load run as a separate process so a test can kill it; also writes the fixture save of the current schema (`fixture <db>`) | TDD §8 | **Implemented** (M1-17a) |
-| Dev server image | `source/server/Dockerfile`, `source/docker-compose.dev.yml`, CI `server-image.yml` | Local Docker headless server + smoke client | TDD §3.1a | **Implemented** (M1-14) |
+| Dev server image | `source/server/Dockerfile`, `source/docker-compose.dev.yml`, CI `server-image.yml` | Local Docker headless server + smoke client; B2 setup (`docker-compose.b2.yml`, netem entrypoint, `scripts/run-b2.sh`, CI job `b2`) | TDD §3.1a | **Implemented** (M1-14, M1-18b) |
 
 ---
 
