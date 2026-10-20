@@ -21,16 +21,18 @@ public class PersonalSpaceTests
         Entity fox = Spawn(world, "bogfox", new Vector3(100.5f, 0, 100.2f));
 
         Vector3 last = Position(world, a);
-        for (int tick = 0; tick < 120; tick++)
+        for (int tick = 0; tick < 150; tick++)
         {
             scheduler.RunTick();
             Assert.True(Vector3.Distance(last, Position(world, a)) <= SeparationSystem.MaxStepPerTick + 1e-5f, "One small step per tick.");
             last = Position(world, a);
         }
 
-        Assert.True(Ground(Position(world, a), Position(world, b)) >= 2.4f - 0.01f, $"mossbacks {Ground(Position(world, a), Position(world, b))} m apart");
-        Assert.True(Ground(Position(world, a), Position(world, fox)) >= 1.8f - 0.01f);
-        Assert.True(Ground(Position(world, b), Position(world, fox)) >= 1.8f - 0.01f);
+        float mossback = Radius(world, "mossback");
+        float bogfox = Radius(world, "bogfox");
+        Assert.True(Ground(Position(world, a), Position(world, b)) >= (2 * mossback) - 0.01f, $"mossbacks {Ground(Position(world, a), Position(world, b))} m apart");
+        Assert.True(Ground(Position(world, a), Position(world, fox)) >= mossback + bogfox - 0.01f);
+        Assert.True(Ground(Position(world, b), Position(world, fox)) >= mossback + bogfox - 0.01f);
         Assert.True(systems.Separation.Corrections > 0);
     }
 
@@ -48,7 +50,7 @@ public class PersonalSpaceTests
         }
 
         Assert.Equal(new Vector3(200, 0, 200), Position(world, player));
-        Assert.True(Ground(Position(world, player), Position(world, creature)) >= 1.2f + BodySizes.PlayerRadius - 0.01f);
+        Assert.True(Ground(Position(world, player), Position(world, creature)) >= Radius(world, "mossback") + BodySizes.PlayerRadius - 0.01f);
     }
 
     [Fact]
@@ -66,7 +68,7 @@ public class PersonalSpaceTests
             scheduler.RunTick();
         }
 
-        float expected = 1.2f + BodySizes.PlayerRadius + CreatureIntentSystem.ApproachGapMetres;
+        float expected = Radius(world, "mossback") + BodySizes.PlayerRadius + CreatureIntentSystem.ApproachGapMetres;
         Assert.Equal(expected, Ground(Position(world, player), Position(world, creature)), 2);
         Assert.Equal(0, world.World.GetComponent<MoveTarget>(creature).Active);
     }
@@ -84,6 +86,8 @@ public class PersonalSpaceTests
 
     private static Entity Spawn(CreatureWorld world, string species, Vector3 at) =>
         world.SpawnCreature(world.SpeciesIndex(species), at, new Personality(0, 0, 0, 0), group: 0);
+
+    private static float Radius(CreatureWorld world, string species) => world.Data.GetSpecies(species).BodyRadiusCm / 100f;
 
     private static Vector3 Position(CreatureWorld world, Entity entity) => world.World.GetComponent<Position>(entity).Value;
 
