@@ -13,6 +13,8 @@ See `documentation/technical/architecture/ADR-001-engine-language-architecture.m
 1. Install **Godot 4.7.2-stable .NET** and .NET SDK 8+ (SDK 9.0.313 is pinned in `global.json`)
 2. Open `project-sumoner-worl/project.godot` in Godot
 3. From `source/`, run `sh scripts/verify.sh` (format, analyzers, tests)
+4. For the terrain: from `source/`, run `bash scripts/fetch-terrain3d.sh` (installs the pinned Terrain3D addon, not committed), then open the project once in the editor. Without it, the test region uses a simple fallback terrain.
+5. Test region: `Godot --path project-sumoner-worl -- --region` (right mouse to look, WASD/Q/E to fly, Shift = faster; `--region-chunks=64` for 4 km)
 
 ## Development rules
 Every change must pass the Definition of Done in `documentation/production/development_rules_enforcement.md`.

@@ -32,3 +32,6 @@ logs/
 
 # Benchmark output (copied to qa/performance-logs when reported)
 source/b2-results/
+
+# Terrain3D addon, installed by source/scripts/fetch-terrain3d.sh (not committed)
+source/project-sumoner-worl/addons/terrain_3d/

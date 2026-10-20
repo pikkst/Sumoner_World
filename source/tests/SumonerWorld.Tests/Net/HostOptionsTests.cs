@@ -57,6 +57,10 @@ public class HostOptionsTests
         Assert.Equal(("/results", 8, 30, 60), (server.BenchmarkOut, server.BenchmarkPlayers, server.WarmupTicks, server.MeasureTicks));
         Assert.Equal((string.Empty, 900, 18_000), (bots.BenchmarkOut, bots.WarmupTicks, bots.MeasureTicks));
         Assert.Throws<ArgumentException>(() => HostOptions.Parse(["--bots=0"], NoEnvironment));
+
+        HostOptions region = HostOptions.Parse(["--region", "--region-chunks=64", "--screenshot=shot.png"], NoEnvironment);
+        Assert.Equal((HostMode.Region, 64, "shot.png"), (region.Mode, region.RegionChunks, region.Screenshot));
+        Assert.Equal(8, HostOptions.Parse(["--region"], NoEnvironment).RegionChunks);
     }
 
     [Fact]

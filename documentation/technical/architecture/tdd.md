@@ -216,6 +216,16 @@ intent {IntentId, type, args} ─► authorize (owner, range, cooldown, cost)
 
 Loading is asynchronous (Godot `ResourceLoader` threaded requests, pooled scene instances, R20).
 
+**Implemented in M1-19a:**
+- **Rings:** `Core.World.StreamingPlanner` (`IStreamingPlanner`) sets each chunk's ring from the distance between the viewer and the chunk's nearest point: full ≤ 128 m, medium ≤ 384 m, far ≤ 1,536 m. Each update returns every downgrade and at most 4 upgrades, nearest first. A downgrade only happens 16 m past the ring edge.
+- **Ground:** `Core.World.Heightfield` generates seeded heights (fractal value noise, 40 m amplitude, 1 m spacing). It can be sampled from any thread, so the client terrain and, from M1-20, server movement share the same ground.
+- **Props:** `ChunkScatter` places seeded props per chunk: 24 trees, 16 rocks and 60 bushes. The medium ring uses the first 40 of them.
+- **Game layer:** `TerrainBuilder` creates a **Terrain3D 1.0.2** node from the heightfield. It is pinned by SHA-256 and installed by `scripts/fetch-terrain3d.sh`; it is not committed. Because the extension has no C# bindings, it is driven with `Call`/`Set`. If the extension is missing, an in-house mesh per chunk is built instead.
+- **Streaming:** `ChunkStreamer` builds MultiMesh buffers for full and medium chunks on worker threads. The main thread uploads at most 2 chunks per frame into pooled views; the far ring is terrain only.
+- **Dev mode:** `--region [--region-chunks=N] [--screenshot=file.png]` opens the region.
+- **Load times (dev PC):** the 8 × 8 region is ready in 0.3 s and streams its 64 chunks; the 4 km region (64 × 64) is generated and imported in 5.3 s.
+- **Not yet:** the `ResourceLoader` path is for authored chunk scenes in M2; generated placeholder content needs none. B3 / spike 4 measurement is M1-19b.
+
 ### 5.3 Server simulation radius
 - Chunks within **3 chunks (~192 m)** of any player are loaded and simulated; so are chunks with an online player's Sanctum or summoned creatures.
 - Other chunks are **abstract** (AI Bible §9.4, tier T3). Loading a chunk instantiates creatures from the population model.
@@ -241,7 +251,7 @@ Every dependency must be: permissive licence (MIT/BSD/Apache-2.0/zlib), actively
 | BenchmarkDotNet (MIT) | benchmarks (`tests/SumonerWorld.Benchmarks`) | adopted for tooling only |
 | Microsoft.Data.Sqlite 8.0.11 (MIT) | save database | adopted (M1-17a) |
 | MessagePack-CSharp 2.5.307 (MIT) | record payloads | adopted (M1-17a); ≥ 2.5.301 required (GHSA-wfr3-xj75-pfwh, found by NuGet audit on 2.5.187) |
-| Terrain3D (MIT) | terrain | M1 spike |
+| Terrain3D 1.0.2-stable (MIT) | terrain (GDExtension; supports Godot 4.4–4.7) | M1 spike: integrated in M1-19a, installed by `scripts/fetch-terrain3d.sh` (SHA-256 pinned, Windows + Linux x86_64 binaries only, not committed); adoption decided by B3 (M1-19b) |
 | Steamworks.NET (MIT) | auth tickets, server browser | M1 spike |
 | xUnit, Microsoft.CodeAnalysis.BannedApiAnalyzers | tests, rule enforcement | adopted |
 
