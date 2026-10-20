@@ -48,7 +48,8 @@ public readonly record struct PlayerInteracted(ulong Account, InteractionKind Ki
 /// <param name="EventType">Memory event type id.</param>
 /// <param name="Account">The player it is about.</param>
 /// <param name="Outcome">Created, reinforced, or a new core memory.</param>
-public readonly record struct MemoryFormed(StableId Creature, ushort EventType, ulong Account, MemoryOutcome Outcome);
+/// <param name="Salience">The memory's strength right after, 0–1000.</param>
+public readonly record struct MemoryFormed(StableId Creature, ushort EventType, ulong Account, MemoryOutcome Outcome, int Salience);
 
 /// <summary>
 /// Shared rules of the Memory Grove interactions (QA plan B2): ranges, cooldowns and what each one does to a creature's mind.
@@ -120,7 +121,21 @@ public static class PlayerInteractions
         RememberResult result = world.Minds.Remember(mind, eventType, new MemorySubject(SubjectKind.Player, account), now);
         Vector3 where = world.World.GetComponent<Position>(creature).Value;
         world.Reputation.Record(eventType, new ReputationKey(world.World.GetComponent<SpeciesRef>(creature).Index, world.RegionOf(where), account));
-        world.Events.Publish(new MemoryFormed(world.World.GetComponent<StableId>(creature), eventType, account, result.Outcome));
+        PublishMemory(world, creature, eventType, account, result.Outcome, now);
+    }
+
+    /// <summary>Publishes <see cref="MemoryFormed"/> for a memory about a player that was just written, with its strength now.</summary>
+    internal static void PublishMemory(CreatureWorld world, Entity creature, ushort eventType, ulong account, MemoryOutcome outcome, ulong now)
+    {
+        Span<RecalledMemory> recalled = stackalloc RecalledMemory[ICreatureMindStore.CoreCapacity + ICreatureMindStore.EpisodicCapacity];
+        int count = world.Minds.RecallAbout(world.World.GetComponent<MindRef>(creature).Handle, new MemorySubject(SubjectKind.Player, account), now, recalled);
+        int salience = 0;
+        for (int i = 0; i < count; i++)
+        {
+            salience = recalled[i].Record.EventType == eventType ? Math.Max(salience, recalled[i].EffectiveSalience) : salience;
+        }
+
+        world.Events.Publish(new MemoryFormed(world.World.GetComponent<StableId>(creature), eventType, account, outcome, salience));
     }
 
     /// <summary>Raises fear in timid creatures and anger in bold ones (AI Bible §6.1).</summary>

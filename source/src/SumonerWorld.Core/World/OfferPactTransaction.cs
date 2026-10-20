@@ -88,6 +88,24 @@ public record struct OfferPactTransaction(CreatureWorld Creatures, CooldownTrack
             now,
             out _);
         Cooldowns.Start(account, Kind, now, CooldownTicks);
+        PublishMemories(creature, account, outcome, now);
+        Creatures.Events.Publish(new PlayerInteracted(account, InteractionKind.Pact, species, 1));
         return IntentResult.Applied((byte)outcome);
+    }
+
+    // Telemetry: the Bonding Contract wrote PactOffered and, on an answer, PactSealed (core) or PactRefused.
+    private readonly void PublishMemories(Entity creature, ulong account, BondingOutcome outcome, ulong now)
+    {
+        PlayerInteractions.PublishMemory(Creatures, creature, Creatures.Rules.FindByKey("PactOffered")!.Value, account, MemoryOutcome.Created, now);
+        string? answer = outcome switch
+        {
+            BondingOutcome.Accepted => "PactSealed",
+            BondingOutcome.Refused => "PactRefused",
+            _ => null,
+        };
+        if (answer is not null && Creatures.Rules.FindByKey(answer) is ushort eventType)
+        {
+            PlayerInteractions.PublishMemory(Creatures, creature, eventType, account, outcome == BondingOutcome.Accepted ? MemoryOutcome.CoreFormed : MemoryOutcome.Created, now);
+        }
     }
 }

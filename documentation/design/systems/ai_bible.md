@@ -414,6 +414,7 @@ Every file has a `schemaVersion` and is validated at load (unknown ids, ranges, 
 5. Breeding (GDD open question 3) depends on this contract; it would be Bonding Contract v1.1.
 
 ## Changelog
+- **0.1.2 (2026-10-21, M1-23c fix):** Emotes now follow §6.2. Perception shows the appraisal's emote toward the focus; before, the result was thrown away and only behaviour-tree actions set emotes, so Trust, Affection and Grief could never appear. A tree's emote now shows only when the appraisal has none (for example, no focus). Found by the playtest telemetry.
 - **0.1.1 (2026-10-21, M1-23a tuning):** FedBy trust weight +40 → +70 (HealedBy +60 → +80 to stay above it). With +40, trust from feeding peaked at 40 and never passed the Trust-emote threshold (50), so the playtest moment "a fed creature shows Trust" (QA plan B2) could not happen. Now about eight meals in a short time bring trust to about 54. The pilot checks the pacing.
 - **0.1 (2026-10-19):** First version. Memory model, opinions, emotions/emotes, utility + BT decision architecture, AI LOD budgets, Bonding Contract v1.0.0, generative-AI policy.
 - **0.1 approved (2026-10-19):** Stakeholder approved via PR #2 merge, including the ±25 trait drift cap, deterministic Pact acceptance and the leave rule (3 broken terms or long-term negative trust).

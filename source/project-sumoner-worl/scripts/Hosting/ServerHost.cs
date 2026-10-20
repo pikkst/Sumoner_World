@@ -61,6 +61,9 @@ public sealed partial class ServerHost : Node
         _log = log;
     }
 
+    /// <summary>The running server (after <see cref="_Ready"/>).</summary>
+    public GameServer? Server => _server;
+
     /// <inheritdoc />
     public override void _Ready()
     {

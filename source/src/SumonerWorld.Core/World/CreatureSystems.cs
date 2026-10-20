@@ -87,7 +87,9 @@ public sealed class LodSystem(IEcsWorld world, IAiLodPolicy policy) : ISimulatio
 
 /// <summary>
 /// Perception (AI Bible §2) at each creature's tier rate with its species' senses: picks a focus (players first) and appraises it,
-/// tells the first herd-mate it senses its rumours (AI Bible §4.5) and publishes how many creatures it senses.
+/// and shows the appraisal's emote toward it (AI Bible §6.2: Grief, Grudge/Fear from a core memory, Fear, Affection, Trust,
+/// Curiosity; none without a focus, and then a behaviour tree may show one). Snared creatures keep showing fear. It also tells
+/// the first herd-mate it senses its rumours (AI Bible §4.5) and publishes how many creatures it senses.
 /// </summary>
 public sealed class PerceptionSystem(
     IEcsWorld world,
@@ -112,6 +114,8 @@ public sealed class PerceptionSystem(
     private readonly ComponentStore<PlayerAvatar> _players = world.Store<PlayerAvatar>();
     private readonly ComponentStore<GroupRef> _groups = world.Store<GroupRef>();
     private readonly ComponentStore<SpeciesRef> _species = world.Store<SpeciesRef>();
+    private readonly ComponentStore<CurrentEmote> _emotes = world.Store<CurrentEmote>();
+    private readonly ComponentStore<Snared> _snared = world.Store<Snared>();
 
     /// <inheritdoc />
     public SimulationStage Stage => SimulationStage.Perception;
@@ -143,15 +147,21 @@ public sealed class PerceptionSystem(
         int count = perception.Perceive(creature, _positions.Get(creature).Value, _facings.Get(creature).Value, senses, _percepts);
         MindHandle mind = _minds.Get(creature).Handle;
         ReadOnlySpan<Percept> percepts = _percepts.AsSpan(0, count);
+        Emote emote = Emote.None;
         if (perception.SelectFocus(mind, percepts, senses, resolver, now, out FocusChoice focus))
         {
             _focus.Get(creature) = new FocusRef(focus.Entity, focus.Distance, 1);
-            appraisal.Appraise(mind, focus.Subject, now);
+            emote = appraisal.Appraise(mind, focus.Subject, now);
             PlayerFocusEvents += _players.Has(focus.Entity) ? 1 : 0;
         }
         else
         {
             _focus.Get(creature) = default;
+        }
+
+        if (!_snared.Has(creature))
+        {
+            _emotes.Get(creature) = new CurrentEmote(emote);
         }
 
         int creaturesSensed = 0;
@@ -247,7 +257,8 @@ public sealed class BehaviourSystem(IEcsWorld world, IBehaviourTreeRunner runner
 /// Carries out creature intents from the behaviour trees (AI Bible §7.3): MoveTo picks a wander point 10–40 m away, the focus or a
 /// point away from it (staying inside the world bounds) and asks the <see cref="PathPlanner"/> for a path (toward the focus it stops
 /// <see cref="ApproachGapMetres"/> short of touching, by both bodies' sizes); the creature waits until
-/// the path arrives at the next tick (TDD §2.4). Stop halts; Interact satisfies its need; Emote sets the shown emote. Player
+/// the path arrives at the next tick (TDD §2.4). Stop halts; Interact satisfies its need; Emote shows the tree's emote when the
+/// appraisal of the focus has none (perception sets that first, AI Bible §6.2). Player
 /// intents arrive through the authoritative intent pipeline instead (TDD §3.2).
 /// </summary>
 public sealed class CreatureIntentSystem(
@@ -317,7 +328,7 @@ public sealed class CreatureIntentSystem(
                     minds.SatisfyNeed(mind, NeedFor(intent.Verb), SatisfyPerInteraction, tick.Index);
                     Interactions++;
                     break;
-                case IntentKind.Emote when !_snared.Has(intent.Actor):
+                case IntentKind.Emote when !_snared.Has(intent.Actor) && _emotes.Get(intent.Actor).Value == Emote.None:
                     _emotes.Get(intent.Actor) = new CurrentEmote(intent.Emote);
                     break;
                 default:

@@ -40,7 +40,30 @@ only what the player did and saw ("You feed the mossback."), never what the crea
 It logs each line and saves a frame. Last run on the dev PC (2026-10-21): calf in reach after 1.2 s; "You free the mossback from
 the snare." / "You feed the mossback." / "You shout. Nothing answers."
 
+## Telemetry (QA plan B6, M1-23c)
+Every session writes one anonymous JSON-lines file to `user://telemetry/session-<UTC time>-<id>.jsonl`. On Windows that is
+`%APPDATA%\Godot\app_userdata\Sumoner World\telemetry`. The file holds no account, name or machine data, only a random
+session id. Each line has `t` (seconds since the start) and `type`:
+
+| type | fields |
+|---|---|
+| `session_start` | `session`, `build`, `creatures` |
+| `player_action` | `action` (feed, attack, help, pact, scare), `target_species`, `affected` |
+| `memory_formed` | `event_type`, `salience`, `core`, `species` |
+| `emote_shown` | `emote`, `in_view` (inside the tester's camera view), `distance`, `species` |
+| `memory_behaviour_shown` | the same plus `memory_type` and `rumour`, when the creature remembers the player and is looking at them |
+| `session_end` | `duration` and a count of each line type |
+
+Self-test session from the dev PC (2026-10-21), excerpt:
+```
+{"t":10.37,"type":"player_action","action":"help","target_species":"mossback","affected":1}
+{"t":10.37,"type":"memory_formed","event_type":"SavedLifeOf","salience":900,"core":true,"species":"mossback"}
+{"t":10.43,"type":"memory_behaviour_shown","emote":"affection","in_view":true,"distance":5.2,"species":"mossback","memory_type":"SavedLifeOf","rumour":false}
+{"t":12.6,"type":"memory_behaviour_shown","emote":"curiosity","in_view":true,"distance":6.2,"species":"mossback","memory_type":"SavedLifeOf","rumour":true}
+```
+The rescued calf showed Affection 0.06 s after it was freed. Two seconds later a herd-mate that had only heard about the rescue
+(a rumour, at half strength) came closer, curious.
+
 ## Not in this build yet
-- Telemetry (QA plan B6), coming in M1-23c.
 - A packaged export for remote testers.
 - Avian and real creature models.

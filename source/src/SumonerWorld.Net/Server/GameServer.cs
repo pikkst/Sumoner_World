@@ -139,6 +139,9 @@ public sealed class GameServer : IServerSessionHandler
     /// <summary>The dev tools, when <see cref="GameServerSettings.DevTools"/> is on.</summary>
     public DevToolsHost? DevTools => _dev;
 
+    /// <summary>Adds a system to the tick after the standard ones in its stage (the playtest's telemetry, M1-23).</summary>
+    public void AddSystem(ISimulationSystem system) => _scheduler.Register(system);
+
     /// <summary>The avatar of an account in the world, if any.</summary>
     public bool TryGetAvatar(ulong accountId, out Entity avatar)
     {
