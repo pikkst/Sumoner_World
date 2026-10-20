@@ -27,10 +27,10 @@ public sealed class GodotENetTransport : ITransport, IDisposable
     public int MaxPayload => SumonerWorld.Net.Messages.Protocol.MaxMessageSize;
 
     /// <summary>Starts a server listening on all interfaces at <paramref name="port"/>.</summary>
-    public static GodotENetTransport Listen(int port, int maxPeers)
+    public static GodotENetTransport Listen(int port, int maxPeers, string bindAddress = "*")
     {
         var connection = new ENetConnection();
-        Error error = connection.CreateHostBound("*", port, maxPeers, ChannelCount);
+        Error error = connection.CreateHostBound(bindAddress, port, maxPeers, ChannelCount);
         if (error != Error.Ok)
         {
             throw new InvalidOperationException($"Could not listen on UDP port {port}: {error}.");

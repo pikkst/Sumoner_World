@@ -44,6 +44,11 @@ public sealed partial class Bootstrap : Node
             case HostMode.Region:
                 AddChild(new RegionHost(options, log));
                 break;
+            case HostMode.Playtest:
+                // Memory Grove (M1-23): the server first, so it listens before the client connects to it over localhost.
+                AddChild(new ServerHost(options, log));
+                AddChild(new ClientHost(options, log));
+                break;
             default:
                 GetTree().CallDeferred(SceneTree.MethodName.ChangeSceneToFile, GameScene);
                 break;

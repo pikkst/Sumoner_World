@@ -6,6 +6,7 @@ using SumonerWorld.Game.Creatures;
 using SumonerWorld.Game.Data;
 using SumonerWorld.Game.DevTools;
 using SumonerWorld.Game.Net;
+using SumonerWorld.Game.Playtest;
 using SumonerWorld.Game.World;
 using SumonerWorld.Net.Client;
 using SumonerWorld.Net.Hosting;
@@ -19,7 +20,8 @@ namespace SumonerWorld.Game.Hosting;
 /// Connects to a server with a dev ticket and runs the <see cref="GameClient"/> at 30 Hz: WASD moves the own character with
 /// prediction. With a display it shows the dev region, every creature and player the server sends (<see cref="EntityViewSync"/>,
 /// interpolated, posed by their emotes) and a camera behind the own character; <see cref="HostOptions.Screenshot"/> saves a frame
-/// once creatures are on screen and quits. In dev builds and with <see cref="HostOptions.DevTools"/> the <see cref="DevToolsLayer"/>
+/// once creatures are on screen and quits. <see cref="InteractionControls"/> give the Memory Grove keys (M1-23); with
+/// <see cref="HostOptions.SelfTest"/> a <see cref="PlaytestSelfTest"/> uses them first. In dev builds and with <see cref="HostOptions.DevTools"/> the <see cref="DevToolsLayer"/>
 /// adds the dev overlay (F3; shown at start with <c>--dev-tools</c>) and the AI Inspector (F4, click, Tab;
 /// <see cref="HostOptions.Inspect"/> opens it at start, and a screenshot then waits for the first inspection). A lost connection is retried every
 /// <see cref="ReconnectEverySeconds"/> for <see cref="ReconnectForSeconds"/> with the session token, so the session resumes (TDD §3.5).
@@ -57,6 +59,7 @@ public sealed partial class ClientHost : Node
     private EntityViewSync? _views;
     private Node3D? _avatar;
     private DevToolsLayer? _devTools;
+    private PlaytestSelfTest? _selfTest;
     private bool _inspectRequested;
     private double _devToolsStarted;
 
@@ -134,6 +137,14 @@ public sealed partial class ClientHost : Node
         Core.Data.DataRegistry data = GameData.Load();
         _views = new EntityViewSync(_client!, data, new QuadrupedEmotePresenter());
         AddChild(_views);
+        var controls = new InteractionControls(_client!, _views, data, () => _avatar?.GlobalPosition ?? Vector3.Zero);
+        AddChild(controls);
+        if (_options.SelfTest)
+        {
+            _selfTest = new PlaytestSelfTest(controls, () => _views.Shown > 0 && _elapsed > ScreenshotAfterSeconds, _log);
+            AddChild(_selfTest);
+        }
+
         if (_options.DevTools || OS.IsDebugBuild())
         {
             _devTools = new DevToolsLayer(_client!, _views, data, () => _avatar?.GlobalPosition ?? Vector3.Zero);
@@ -161,7 +172,7 @@ public sealed partial class ClientHost : Node
         camera.Position = position + new Vector3(0, 5, -10);
         camera.LookAt(position + new Vector3(0, 1, 0), Vector3.Up);
         StartDevTools();
-        if (_options.Screenshot.Length > 0 && _views!.Shown > 0 && _elapsed > ScreenshotAfterSeconds && DevToolsReady())
+        if (_options.Screenshot.Length > 0 && _views!.Shown > 0 && _elapsed > ScreenshotAfterSeconds && DevToolsReady() && (_selfTest?.Done ?? true))
         {
             Error error = GetViewport().GetTexture().GetImage().SavePng(_options.Screenshot);
             _log.Write(LogLevel.Info, "client.screenshot", $"{_options.Screenshot}: {error}, {_views.Shown} entities shown; overlay {_devTools?.OverlayVisible}, inspecting {_devTools?.Inspected}");
