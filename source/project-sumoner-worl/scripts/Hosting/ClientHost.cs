@@ -110,11 +110,21 @@ public sealed partial class ClientHost : Node
     /// <inheritdoc />
     public override void _ExitTree() => _transport?.Dispose();
 
-    private static MoveInput ReadMovement()
+    // WASD relative to the camera (W = away from it, D = to its right), turned into world-axis input for the server.
+    private MoveInput ReadMovement()
     {
-        int x = (Input.IsKeyPressed(Key.D) ? MoveInput.MaxAxis : 0) - (Input.IsKeyPressed(Key.A) ? MoveInput.MaxAxis : 0);
-        int z = (Input.IsKeyPressed(Key.S) ? MoveInput.MaxAxis : 0) - (Input.IsKeyPressed(Key.W) ? MoveInput.MaxAxis : 0);
-        return new MoveInput((short)x, (short)z);
+        int right = (Input.IsKeyPressed(Key.D) ? 1 : 0) - (Input.IsKeyPressed(Key.A) ? 1 : 0);
+        int forward = (Input.IsKeyPressed(Key.W) ? 1 : 0) - (Input.IsKeyPressed(Key.S) ? 1 : 0);
+        if (right == 0 && forward == 0)
+        {
+            return MoveInput.None;
+        }
+
+        Basis basis = _region?.Camera?.GlobalBasis ?? Basis.Identity;
+        Vector3 ahead = new Vector3(-basis.Z.X, 0, -basis.Z.Z).Normalized();
+        Vector3 side = new Vector3(basis.X.X, 0, basis.X.Z).Normalized();
+        Vector3 direction = ((ahead * forward) + (side * right)).Normalized();
+        return new MoveInput((short)Mathf.RoundToInt(direction.X * MoveInput.MaxAxis), (short)Mathf.RoundToInt(direction.Z * MoveInput.MaxAxis));
     }
 
     private void ShowWorld()

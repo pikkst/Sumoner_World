@@ -1,5 +1,10 @@
 ; Engine configuration file.
-; Pinned engine: Godot 4.7.2-stable .NET (ADR-001).
+; It's best edited using the editor UI and not directly,
+; since the parameters that go here are not all obvious.
+;
+; Format:
+;   [section] ; section goes between []
+;   param=value ; assign values to parameters
 
 config_version=5
 
@@ -9,23 +14,21 @@ config/name="Sumoner World"
 run/main_scene="res://scenes/Main.tscn"
 config/features=PackedStringArray("4.7", "C#", "Forward Plus")
 
+[debug]
+
+gdscript/warnings/untyped_declaration=2
+gdscript/warnings/unsafe_property_access=2
+gdscript/warnings/unsafe_method_access=2
+gdscript/warnings/unsafe_call_argument=2
+
 [dotnet]
 
 project/assembly_name="SumonerWorld.Game"
 project/solution_directory="../"
 
-[debug]
-
-gdscript/warnings/untyped_declaration=2
-gdscript/warnings/inferred_declaration=0
-gdscript/warnings/unsafe_property_access=2
-gdscript/warnings/unsafe_method_access=2
-gdscript/warnings/unsafe_call_argument=2
-
 [physics]
 
 3d/physics_engine="Jolt Physics"
-common/physics_ticks_per_second=60
 
 [rendering]
 
