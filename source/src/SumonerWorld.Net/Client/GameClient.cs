@@ -57,6 +57,12 @@ public sealed class GameClient : IClientSessionHandler
     /// <summary>Intents sent but not answered yet.</summary>
     public int UnansweredIntents => _unanswered.Count;
 
+    /// <summary>Intent results received, repeats included.</summary>
+    public int AcksReceived { get; private set; }
+
+    /// <summary>Snapshot parts received.</summary>
+    public int SnapshotPartsReceived { get; private set; }
+
     /// <summary>Intents dropped because the server started a new session instead of resuming (their outcome is unknown).</summary>
     public int LostIntents { get; private set; }
 
@@ -139,6 +145,7 @@ public sealed class GameClient : IClientSessionHandler
             case MessageType.IntentAck:
                 IntentAck ack = _ackCodec.Read(ref reader);
                 _results[ack.Sequence] = ack.Result;
+                AcksReceived++;
                 _unanswered.Remove(ack.Sequence);
                 break;
             default:
@@ -150,6 +157,7 @@ public sealed class GameClient : IClientSessionHandler
     private void ReadSnapshot(ref MessageReader reader)
     {
         SnapshotHeader header = Snapshot.ReadHeader(ref reader);
+        SnapshotPartsReceived++;
         if (header.ServerTick < LastSnapshotTick)
         {
             return;

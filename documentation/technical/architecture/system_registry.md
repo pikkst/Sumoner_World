@@ -85,6 +85,7 @@ Rules: R02, R07, R12, R47, R49 · Related: ADR-001 (layers), TDD v0.1, AI Bible 
 ## 5. Net (`SumonerWorld.Net`, project created in M1)
 | System | Interface | Responsibility | Spec | Status |
 |---|---|---|---|---|
+| Traffic metering | `MeteredTransport`, `BandwidthMeter` (classes, Net.Transport) | Payload bytes and messages per connection and in total (decorator on any `ITransport`); per-second per-client KiB/s with an estimated 44 B per-message header; checked against `BandwidthBudget` (TDD §3.2) | TDD §3.2, M0-07 A2 | **Implemented** (M1-18a) |
 | Transport | `ITransport` | Channels (unreliable / reliable ordered), connect, poll, disconnect; `LoopbackTransport` in-process (tests, bots, listen server); Godot ENet adapter in the Game project (M1-14); Steam sockets later | TDD §3.1 | **Implemented** (M1-13): interface + loopback |
 | Transport events | `ITransportHandler` | Receives connected / disconnected / data from `ITransport.Poll` on the sim thread | TDD §3.1 | **Implemented** (M1-13) |
 | Message codec | `IMessageCodec` | Versioned (header: protocol version + type; **protocol 2** since M1-15c), size-limited (1,200 B) encoding with `MessageWriter`/`MessageReader`; every read error is a `MalformedMessageException`; fuzz-tested. Hello/Welcome/Rejected, `InputBatch` (newest ≤ 8 inputs, redundant), `IntentRequest`/`IntentAck`, `Snapshot` parts | TDD §3.3 | **Implemented** (M1-13, M1-15c) |
@@ -95,8 +96,8 @@ Rules: R02, R07, R12, R47, R49 · Related: ADR-001 (layers), TDD v0.1, AI Bible 
 | Authentication | `IAuthenticator` | `DevTokenAuthenticator` (constant-time secret check) on the dev server; Steam tickets later | TDD §3.1a, §3.3 | **Implemented** (M1-14, dev) |
 | Host options | `HostOptions` (Net.Hosting) | Server/client/game mode from arguments and `SW_*` environment variables; unknown arguments are errors | TDD §3.1a | **Implemented** (M1-14) |
 | Rate limiting | `IRateLimiter` | Token buckets per message type | TDD §3.3 | Planned (M1) |
-| Interest | `IInterestManager` | Relevance radius and priority per client | TDD §3.2 | **Partly implemented** (M1-15c: 150 m radius in `SnapshotSender`; priority accumulator with M1-18) |
-| Replication | `ISnapshotBuilder` | 20 Hz snapshots (own avatar exact, others quantized to 1 cm, split into parts) | TDD §3.2 | **Partly implemented** (M1-15c: full snapshots; delta compression with M1-18) |
+| Interest | `IInterestManager` | Relevance radius and priority per client | TDD §3.2 | **Partly implemented** (M1-15c: 150 m radius in `SnapshotSender`; priority accumulator deferred until needed, M1-18a measurement) |
+| Replication | `ISnapshotBuilder` | 20 Hz snapshots (own avatar exact, others quantized to 1 cm, split into parts) | TDD §3.2 | **Partly implemented** (M1-15c: full snapshots; delta compression deferred until needed: B2 in-process uses under 1/3 of the budget, M1-18a) |
 | Prediction | `IClientPrediction` | Own-character prediction and reconciliation: replay unacked inputs from the server position; ≤ 0.5 m corrected at once, 0.5–3 m smoothed over 100 ms, > 3 m teleport (`ClientPrediction`) | TDD §3.2 | **Implemented** (M1-15c) |
 | Lag compensation | `ILagCompensation` | Hitbox rewind up to 200 ms | TDD §3.2 | Planned (M2) |
 
@@ -133,7 +134,7 @@ Rules: R02, R07, R12, R47, R49 · Related: ADR-001 (layers), TDD v0.1, AI Bible 
 | Architecture tests | `tests/.../Architecture` | Layering, namespaces, this registry | ADR-001 | **Implemented** |
 | Benchmark harness | `tests/SumonerWorld.Benchmarks` | BenchmarkDotNet micro-benchmarks; `b5` mode writes per-tick/per-stage CSV | M0-07, ADR-002 | **Implemented** (M1-02, M1-05) |
 | Scenarios | `tests/SumonerWorld.Scenarios` | Repeatable simulation scenarios shared by CI gates and benchmarks (B5 now; a thin layer on `CreatureWorld` since M1-15a) | M0-07 | **Implemented** (M1-05) |
-| Bot clients | `tools/BotClient` | 16 simulated clients for net spike | TDD §8 | Planned (M1) |
+| Bot clients | `BotFleet`, `BotScript` (classes, Net.Bots) | B2 / spike 2 bots: real `GameClient`s replaying seeded recorded inputs (leashed walks), Pact offers to the nearest creature, a drop-and-resume check and a repeated-intent check | TDD §8, M0-07 B2 | **Implemented** (M1-18a; Docker host with M1-18b) |
 | Save dump | `tools/SaveDump` | Record → JSON for bug reports and fixtures | TDD §4.1 | Planned (M1) |
 | Crash harness | `tests/SumonerWorld.CrashHarness` | Spike 3 trade load run as a separate process so a test can kill it; also writes the fixture save of the current schema (`fixture <db>`) | TDD §8 | **Implemented** (M1-17a) |
 | Dev server image | `source/server/Dockerfile`, `source/docker-compose.dev.yml`, CI `server-image.yml` | Local Docker headless server + smoke client | TDD §3.1a | **Implemented** (M1-14) |

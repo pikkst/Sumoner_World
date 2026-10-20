@@ -95,6 +95,7 @@ M1-01 → (M1-02, M1-03, M1-04) → M1-05 → Phase B. M1-13 can start after M1-
 | M1-15c | **Done** 2026-10-20 (merged under standing approval): protocol 2, authoritative server loop, prediction + reconciliation, 2 clients over loopback, Godot hosts; M1-15 complete |
 | M1-16 | **Done** 2026-10-20 (merged under standing approval): suspend/resume sessions (2 min), 30 s avatar linger, one session per account, intent resend on resume, client auto-reconnect |
 | M1-17a | **Done** 2026-10-20 (merged under standing approval): Persistence project, SQLite world store, migrations, backups, record codec, fixture save; **spike 3 passed** |
-| M1-17b | **Done** 2026-10-20 (merged under standing approval): world save/load (players, creature minds and bonds, reputation), checkpoint thread, graceful shutdown; **spike 6 passed** |
+| M1-17b | **Done** 2026-10-20 (commit 32da085, **pushed to `main` without a PR by mistake**; CI and the server-image workflow passed on the push; reported to the stakeholder): world save/load (players, creature minds and bonds, reputation), checkpoint thread, graceful shutdown; **spike 6 passed** |
 | M1-17c | **Done** 2026-10-20 (merged under standing approval): transaction journal, acks after the durable commit, session ids unique across restarts; M1-17 complete |
-| M1-18 … M1-24 | Planned |
+| M1-18a | **Done** 2026-10-20 (merged under standing approval): `MeteredTransport` + `BandwidthMeter`, `BotFleet` with recorded inputs and the reconnect / duplicate checks; in-process B2 within budget (18.8 KiB/s per client); delta compression deferred with evidence |
+| M1-18b … M1-24 | Planned (M1-18b: B2 in Docker with ENet and `tc netem` 150 ms / 2 %, spike 2) |
