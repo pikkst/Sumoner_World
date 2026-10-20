@@ -3,12 +3,14 @@ using Godot;
 using SumonerWorld.Core.Data;
 using SumonerWorld.Core.Diagnostics;
 using SumonerWorld.Core.Simulation;
+using SumonerWorld.Core.Transactions;
 using SumonerWorld.Core.World;
 using SumonerWorld.Game.Data;
 using SumonerWorld.Game.Net;
 using SumonerWorld.Net.Hosting;
 using SumonerWorld.Net.Server;
 using SumonerWorld.Net.Sessions;
+using SumonerWorld.Net.Transport;
 using SumonerWorld.Persistence;
 using SumonerWorld.Persistence.Backups;
 
@@ -19,6 +21,8 @@ namespace SumonerWorld.Game.Hosting;
 /// 30 Hz from a fixed-step accumulator. The world lives in <see cref="HostOptions.WorldPath"/>: a saved world is loaded, otherwise a
 /// new one is made (until the M2 ecosystem exists: the 512 m test region with 200 seeded mossbacks) and saved at once. A checkpoint
 /// goes to the persistence thread every 30 s, and every intent's result is sent only after the thread made it durable; on shutdown a last checkpoint is written and a backup made.
+/// With <see cref="HostOptions.BenchmarkOut"/> it runs B2 (M0-07): a <see cref="ServerBenchmark"/> measures once the bots are in and
+/// warmed up, writes <c>summary.json</c> and <c>ticks.csv</c> there and stops the server.
 /// </summary>
 public sealed partial class ServerHost : Node
 {
@@ -27,12 +31,15 @@ public sealed partial class ServerHost : Node
     private const string DevSpecies = "mossback";
     private const int DevCreatures = 200;
     private const int DevHerds = 10;
+    private const int MaxFps = 120;
+    private const string WireStatistics = "/sys/class/net/eth0/statistics/";
 
     private readonly HostOptions _options;
     private readonly ILog _log;
     private GodotENetTransport? _transport;
     private CreatureWorld? _world;
     private GameServer? _server;
+    private ServerBenchmark? _benchmark;
     private FixedStepAccumulator? _accumulator;
     private WorldStore? _store;
     private PersistenceWriter? _writer;
@@ -52,16 +59,18 @@ public sealed partial class ServerHost : Node
     public override void _Ready()
     {
         string path = WorldPath();
-        _store = WorldStore.Open(path, new WorldBackups(Path.Combine(Path.GetDirectoryName(path)!, "backups")));
-        SavedWorld? saved = _store.LoadWorld();
-        DataRegistry data = GameData.Load();
-        _world = saved is null
-            ? new CreatureWorld(data, new CreatureWorldSettings(), DevWorldSeed)
-            : WorldSnapshots.Restore(data, new CreatureWorldSettings(), saved.World);
-        _transport = GodotENetTransport.Listen(_options.Port, _options.MaxPlayers);
+        SavedWorld? saved = OpenWorld(path);
+
+        // Headless Godot would otherwise spin a core between ticks; 120 frames/s keeps the 30 Hz accumulator smooth.
+        Engine.MaxFps = MaxFps;
+        // Twice the player limit in ENet peers: a client that lost its connection reconnects before ENet times the old peer out
+        // (up to 30 s), so everyone can resume at once. The session endpoint enforces the player limit itself.
+        _transport = GodotENetTransport.Listen(_options.Port, _options.MaxPlayers * 2);
+        var metered = new MeteredTransport(_transport);
+        _benchmark = CreateBenchmark(metered);
         _writer = new PersistenceWriter(_store, _log);
         var settings = new GameServerSettings { MaxPlayers = _options.MaxPlayers, LastSessionId = _store.MaxIntentSession() };
-        _server = new GameServer(_world, _transport, new DevTokenAuthenticator(_options.DevSecret), _log, settings, journal: _writer);
+        _server = new GameServer(_world, metered, new DevTokenAuthenticator(_options.DevSecret), _log, settings, _benchmark, _writer);
         if (saved is null)
         {
             _server.Populate(DevSpecies, DevCreatures, DevHerds);
@@ -89,7 +98,15 @@ public sealed partial class ServerHost : Node
         int ticks = _accumulator!.Accumulate((long)(delta * NanosecondsPerSecond));
         for (int i = 0; i < ticks; i++)
         {
+            _benchmark?.BeginTick();
             _server!.Tick();
+            _benchmark?.EndTick(_server.ConnectedCount);
+        }
+
+        if (_benchmark?.Phase == ServerBenchmarkPhase.Done)
+        {
+            FinishBenchmark();
+            return;
         }
 
         _transport!.Flush();
@@ -119,6 +136,7 @@ public sealed partial class ServerHost : Node
     {
         _sigterm?.Dispose();
         _sigint?.Dispose();
+        _transport?.DisconnectAll();
         if (_writer is not null)
         {
             Checkpoint();
@@ -141,6 +159,63 @@ public sealed partial class ServerHost : Node
     {
         context.Cancel = true;
         _stopRequested = true;
+    }
+
+    [System.Diagnostics.CodeAnalysis.MemberNotNull(nameof(_store), nameof(_world))]
+    private SavedWorld? OpenWorld(string path)
+    {
+        _store = WorldStore.Open(path, new WorldBackups(Path.Combine(Path.GetDirectoryName(path)!, "backups")));
+        SavedWorld? saved = _store.LoadWorld();
+        DataRegistry data = GameData.Load();
+        _world = saved is null
+            ? new CreatureWorld(data, new CreatureWorldSettings(), DevWorldSeed)
+            : WorldSnapshots.Restore(data, new CreatureWorldSettings(), saved.World);
+        return saved;
+    }
+
+    private ServerBenchmark? CreateBenchmark(MeteredTransport metered)
+    {
+        if (_options.BenchmarkOut.Length == 0)
+        {
+            return null;
+        }
+
+        var settings = new ServerBenchmarkSettings
+        {
+            Players = _options.BenchmarkPlayers,
+            WarmupTicks = _options.WarmupTicks,
+            MeasureTicks = _options.MeasureTicks,
+        };
+        _log.Write(LogLevel.Info, "b2.waiting", $"benchmark: waiting for {settings.Players} players, then {settings.WarmupTicks} warm-up and {settings.MeasureTicks} measured ticks");
+        return new ServerBenchmark(settings, metered) { WireCounters = ReadWireCounters };
+    }
+
+    private static (long Received, long Sent)? ReadWireCounters()
+    {
+        try
+        {
+            return (long.Parse(File.ReadAllText(WireStatistics + "rx_bytes"), System.Globalization.CultureInfo.InvariantCulture),
+                long.Parse(File.ReadAllText(WireStatistics + "tx_bytes"), System.Globalization.CultureInfo.InvariantCulture));
+        }
+        catch (IOException)
+        {
+            return null;
+        }
+        catch (UnauthorizedAccessException)
+        {
+            return null;
+        }
+    }
+
+    private void FinishBenchmark()
+    {
+        TransactionProcessor transactions = _server!.Transactions;
+        ServerBenchmarkResult result = _benchmark!.Result(new TransactionCounts(transactions.Applied, transactions.Rejected, transactions.Duplicates));
+        _benchmark.Write(_options.BenchmarkOut, result);
+        string verdict = result.Passed ? "passed" : $"failed: {string.Join("; ", result.NetworkFailures.Concat(result.TimingFailures))}";
+        _log.Write(result.Passed ? LogLevel.Info : LogLevel.Warning, "b2.finished", $"{result.MeasuredTicks} ticks, tick p99 {result.TickP99Ms:F2} ms, down {result.Bandwidth!.DownMean:F1} KiB/s per client; {verdict}");
+        _benchmark = null;
+        GetTree().Quit();
     }
 
     private void Checkpoint()

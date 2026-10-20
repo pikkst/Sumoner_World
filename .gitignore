@@ -29,3 +29,6 @@ Build/
 # Logs
 *.log
 logs/
+
+# Benchmark output (copied to qa/performance-logs when reported)
+source/b2-results/

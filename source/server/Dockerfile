@@ -7,7 +7,7 @@ ARG GODOT_VERSION=4.7.2
 ARG GODOT_SHA256=129f82db7bafd54ae14bb5bb284041c73860e8c7a009a3a026ca5e946cbff247
 
 RUN apt-get update \
- && apt-get install -y --no-install-recommends unzip \
+ && apt-get install -y --no-install-recommends unzip iproute2 \
  && rm -rf /var/lib/apt/lists/*
 
 # The Godot project targets net8.0: add the .NET 8 runtime next to the pinned SDK 9.
@@ -26,7 +26,10 @@ COPY . .
 RUN dotnet build project-sumoner-worl/SumonerWorld.Game.csproj -c Debug -v q \
  && godot --headless --path project-sumoner-worl --import
 
+RUN sed -i 's/\r$//' server/entrypoint.sh && chmod +x server/entrypoint.sh
+
 EXPOSE 7777/udp
 ENV SW_SERVER_MODE=dev
-ENTRYPOINT ["godot", "--headless", "--path", "/src/project-sumoner-worl", "--"]
+# Runs godot --headless with the arguments; applies SW_NETEM (tc netem) first when set (B2).
+ENTRYPOINT ["/src/server/entrypoint.sh"]
 CMD ["--server"]

@@ -115,6 +115,19 @@ public sealed class GodotENetTransport : ITransport, IDisposable
         }
     }
 
+    /// <summary>Tells every connected peer goodbye at once (server shutdown), so clients do not wait for a timeout.</summary>
+    public void DisconnectAll()
+    {
+        foreach (ENetPacketPeer? peer in _peers)
+        {
+            peer?.PeerDisconnectNow();
+        }
+
+        _peers.Clear();
+        _ids.Clear();
+        _connection.Flush();
+    }
+
     /// <summary>Sends everything queued now instead of on the next poll.</summary>
     public void Flush() => _connection.Flush();
 

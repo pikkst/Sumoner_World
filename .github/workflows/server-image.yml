@@ -1,4 +1,5 @@
 # Dev server image (TDD §3.1a, M1 spike 6): build the Docker image, start the headless server and connect a client to it.
+# Job b2 runs the short B2 benchmark with bots and netem (spike 2).
 name: server-image
 
 on:
@@ -39,3 +40,23 @@ jobs:
       - name: Stop
         if: always()
         run: docker compose -f docker-compose.dev.yml down -v
+
+  # Benchmark B2 short run (M0-07, TDD §8 spike 2): 16 bots at 150 ms RTT / 2% loss (tc netem) against the server image, 30 s
+  # warm-up + 60 s measured. Gates the network checks (bandwidth budget, all bots in session, reconnect, duplicate intent);
+  # tick timings on CI hardware are trend only (M0-07 A6).
+  b2:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    defaults:
+      run:
+        working-directory: source
+    steps:
+      - uses: actions/checkout@v4
+      - name: Run B2 (short)
+        run: B2_MEASURE_TICKS=1800 bash scripts/run-b2.sh
+      - name: Keep the results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: b2-results
+          path: source/b2-results
