@@ -34,7 +34,8 @@ public sealed class ServerEndpoint : ITransportHandler
     private ulong _lastSessionId;
 
     /// <summary>Creates the endpoint.</summary>
-    public ServerEndpoint(ITransport transport, IAuthenticator authenticator, ILog log, int maxPlayers, IServerSessionHandler? sessions = null)
+    public ServerEndpoint(
+        ITransport transport, IAuthenticator authenticator, ILog log, int maxPlayers, IServerSessionHandler? sessions = null, ulong lastSessionId = 0)
     {
         ArgumentNullException.ThrowIfNull(transport);
         ArgumentNullException.ThrowIfNull(authenticator);
@@ -46,6 +47,7 @@ public sealed class ServerEndpoint : ITransportHandler
         _log = log;
         _maxPlayers = maxPlayers;
         _sessions = sessions;
+        _lastSessionId = lastSessionId;
     }
 
     /// <summary>The current server tick, sent in <see cref="Welcome"/> (set by <see cref="Update"/>).</summary>

@@ -31,6 +31,9 @@ public sealed class GameServerSettings
 
     /// <summary>Player movement; clients must use the same settings for prediction.</summary>
     public MovementSettings Movement { get; init; } = new();
+
+    /// <summary>Highest session id used before (after a restart: the highest in the saved dedupe table), so ids never repeat.</summary>
+    public ulong LastSessionId { get; init; }
 }
 
 /// <summary>
@@ -38,7 +41,8 @@ public sealed class GameServerSettings
 /// systems, intents through the <see cref="ITransactionProcessor"/> at stage 9) → send snapshots. Clients send inputs and intents,
 /// never state (R31). Sessions (TDD §3.5): an avatar appears when a session opens. When the connection is lost it stays in the world
 /// for <see cref="LingerTicks"/> (no escape from danger by disconnecting), then is parked; resuming within the reconnect window puts
-/// it back where it was, with the same intent dedupe window. When the session closes, the avatar leaves for good.
+/// it back where it was, with the same intent dedupe window. When the session closes, the avatar leaves for good. With an
+/// <see cref="ITransactionJournal"/>, an intent's result is sent only after the journal has made it durable (TDD §4.2).
 /// </summary>
 public sealed class GameServer : IServerSessionHandler
 {
@@ -62,9 +66,18 @@ public sealed class GameServer : IServerSessionHandler
     private readonly IntentRequestCodec _intentCodec = new();
     private readonly IntentAckCodec _ackCodec = new();
     private readonly SnapshotSender _snapshots;
+    private readonly ITransactionJournal? _journal;
+    private readonly Queue<(IntentId Id, IntentResult Result)> _pendingAcks = new();
 
     /// <summary>Creates the server around a world.</summary>
-    public GameServer(CreatureWorld world, ITransport transport, IAuthenticator authenticator, ILog log, GameServerSettings settings, IMetrics? metrics = null)
+    public GameServer(
+        CreatureWorld world,
+        ITransport transport,
+        IAuthenticator authenticator,
+        ILog log,
+        GameServerSettings settings,
+        IMetrics? metrics = null,
+        ITransactionJournal? journal = null)
     {
         ArgumentNullException.ThrowIfNull(world);
         ArgumentNullException.ThrowIfNull(transport);
@@ -75,7 +88,8 @@ public sealed class GameServer : IServerSessionHandler
         _transport = transport;
         _log = log;
         _settings = settings;
-        _endpoint = new ServerEndpoint(transport, authenticator, log, settings.MaxPlayers, this);
+        _journal = journal;
+        _endpoint = new ServerEndpoint(transport, authenticator, log, settings.MaxPlayers, this, settings.LastSessionId);
         Movement = new MovementModel(settings.Movement);
         Transactions = new TransactionProcessor(_dedupe);
         _snapshots = new SnapshotSender(world, transport, settings.InterestRadius);
@@ -102,6 +116,9 @@ public sealed class GameServer : IServerSessionHandler
 
     /// <summary>Players currently connected.</summary>
     public int ConnectedCount => _byConnection.Count;
+
+    /// <summary>Intent results waiting for the journal.</summary>
+    public int PendingAcks => _pendingAcks.Count;
 
     /// <summary>Snapshot parts sent since the start.</summary>
     public int SnapshotPartsSent => _snapshots.PartsSent;
@@ -176,6 +193,7 @@ public sealed class GameServer : IServerSessionHandler
     /// <summary>One server tick: receive, simulate, replicate. The host flushes the transport afterwards.</summary>
     public void Tick()
     {
+        SendDurableAcks();
         _transport.Poll(_endpoint);
         _scheduler.RunTick();
         ulong tick = _world.Clock.Current.Index;
@@ -373,10 +391,23 @@ public sealed class GameServer : IServerSessionHandler
 
             while (player.Intents.TryDequeue(out IntentRequest request))
             {
-                IntentResult result = Execute(player, request, now);
-                var writer = new MessageWriter(_buffer);
-                _ackCodec.Write(ref writer, new IntentAck(request.Sequence, result));
-                _transport.Send(connection, Channel.ReliableOrdered, writer.WrittenSpan);
+                var id = new IntentId(player.Session, request.Sequence);
+                int duplicatesBefore = Transactions.Duplicates;
+                IntentResult result = Execute(id, player, request, now, out Entity? changed);
+                if (_journal is null)
+                {
+                    SendAck(connection, request.Sequence, result);
+                }
+                else
+                {
+                    bool isNew = Transactions.Duplicates == duplicatesBefore && result.Reason != IntentRejectReason.Stale;
+                    IReadOnlyList<CreatureSave> changes = isNew && result.IsApplied && changed is Entity creature
+                        ? [WorldSnapshots.CaptureCreature(_world, creature)]
+                        : [];
+                    _journal.Append(new JournalEntry(id, result, now, isNew, changes));
+                    _pendingAcks.Enqueue((id, result));
+                }
+
                 if (!result.IsApplied && _log.IsEnabled(LogLevel.Debug))
                 {
                     _log.Write(LogLevel.Debug, "intent.rejected", $"account {player.Account} intent {request.Sequence} {request.Kind}: {result.Reason}");
@@ -385,14 +416,41 @@ public sealed class GameServer : IServerSessionHandler
         }
     }
 
-    private IntentResult Execute(PlayerSlot player, IntentRequest request, ulong now)
+    private void SendDurableAcks()
     {
-        var id = new IntentId(player.Session, request.Sequence);
+        while (_journal is not null && _journal.TryTakeDurable(out IntentId durable))
+        {
+            (IntentId id, IntentResult result) = _pendingAcks.Dequeue();
+            if (id != durable)
+            {
+                throw new InvalidOperationException($"The journal returned {durable} but {id} was appended first.");
+            }
+
+            if (_bySession.TryGetValue(id.Session, out PlayerSlot? player) && player.Connection is ConnectionId connection)
+            {
+                SendAck(connection, id.Sequence, result);
+            }
+        }
+    }
+
+    private void SendAck(ConnectionId connection, uint sequence, IntentResult result)
+    {
+        var writer = new MessageWriter(_buffer);
+        _ackCodec.Write(ref writer, new IntentAck(sequence, result));
+        _transport.Send(connection, Channel.ReliableOrdered, writer.WrittenSpan);
+    }
+
+    private IntentResult Execute(IntentId id, PlayerSlot player, IntentRequest request, ulong now, out Entity? changed)
+    {
+        changed = null;
         switch (request.Kind)
         {
             case IntentKind.OfferPact:
-                var offer = new OfferPactTransaction(_world, _cooldowns, player.Avatar, new StableId(request.Target), new PactTerms(request.Argument));
-                return Transactions.Execute(id, ref offer, now);
+                var target = new StableId(request.Target);
+                var offer = new OfferPactTransaction(_world, _cooldowns, player.Avatar, target, new PactTerms(request.Argument));
+                IntentResult result = Transactions.Execute(id, ref offer, now);
+                changed = _world.TryFindCreature(target, out Entity creature) ? creature : null;
+                return result;
             default:
                 return IntentResult.Reject(IntentRejectReason.InvalidArguments);
         }

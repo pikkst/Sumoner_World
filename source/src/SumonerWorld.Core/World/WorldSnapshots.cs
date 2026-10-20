@@ -20,16 +20,7 @@ public static class WorldSnapshots
         var creatures = new List<CreatureSave>(entities.Length);
         for (int i = 0; i < entities.Length; i++)
         {
-            Entity entity = entities[i];
-            MindHandle mind = minds.Components[i].Handle;
-            creatures.Add(new CreatureSave(
-                world.World.GetComponent<StableId>(entity),
-                world.Data.Species[world.World.GetComponent<SpeciesRef>(entity).Index].Id,
-                world.World.GetComponent<Position>(entity).Value,
-                world.World.GetComponent<Facing>(entity).Value,
-                world.World.GetComponent<GroupRef>(entity).Group,
-                world.Minds.Export(mind),
-                world.Services.Bonding.GetBond(mind)));
+            creatures.Add(CaptureCreature(world, entities[i]));
         }
 
         creatures.Sort((a, b) => a.Id.Value.CompareTo(b.Id.Value));
@@ -37,6 +28,21 @@ public static class WorldSnapshots
             .Select(entry => new ReputationSave(world.Data.Species[entry.Key.Species].Id, entry.Key.Region, entry.Key.Player, entry.Value))
             .ToList();
         return new WorldSnapshot(world.Clock.Current.Index, world.Random.State, world.LastStableId, creatures, reputation);
+    }
+
+    /// <summary>Copies one creature as it is now (for the transaction journal).</summary>
+    public static CreatureSave CaptureCreature(CreatureWorld world, Entity creature)
+    {
+        ArgumentNullException.ThrowIfNull(world);
+        MindHandle mind = world.World.GetComponent<MindRef>(creature).Handle;
+        return new CreatureSave(
+            world.World.GetComponent<StableId>(creature),
+            world.Data.Species[world.World.GetComponent<SpeciesRef>(creature).Index].Id,
+            world.World.GetComponent<Position>(creature).Value,
+            world.World.GetComponent<Facing>(creature).Value,
+            world.World.GetComponent<GroupRef>(creature).Group,
+            world.Minds.Export(mind),
+            world.Services.Bonding.GetBond(mind));
     }
 
     /// <summary>

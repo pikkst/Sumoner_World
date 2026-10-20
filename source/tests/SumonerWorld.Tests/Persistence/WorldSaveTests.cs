@@ -6,7 +6,9 @@ using SumonerWorld.Core.Data.Definitions;
 using SumonerWorld.Core.Diagnostics;
 using SumonerWorld.Core.Ecosystem;
 using SumonerWorld.Core.Ecs;
+using SumonerWorld.Core.Intents;
 using SumonerWorld.Core.Simulation;
+using SumonerWorld.Core.Transactions;
 using SumonerWorld.Core.World;
 using SumonerWorld.Persistence;
 using SumonerWorld.Persistence.Backups;
@@ -109,7 +111,7 @@ public sealed class WorldSaveTests : IDisposable
     {
         using CreatureWorld world = LivedInWorld();
         using WorldStore store = Open();
-        using (var writer = new CheckpointWriter(store, new SilentLog()))
+        using (var writer = new PersistenceWriter(store, new SilentLog()))
         {
             for (int i = 0; i < 5; i++)
             {
@@ -123,6 +125,39 @@ public sealed class WorldSaveTests : IDisposable
         }
 
         Assert.Equal(world.Clock.Current.Index, store.LoadWorld()!.World.Tick);
+    }
+
+    [Fact]
+    public void Journal_entries_are_durable_in_order_with_their_dedupe_records_and_a_newer_checkpoint_replaces_a_waiting_one()
+    {
+        using CreatureWorld world = LivedInWorld();
+        CreatureSave changed = WorldSnapshots.Capture(world).Creatures[0];
+        using WorldStore store = Open();
+        var durable = new List<IntentId>();
+        using (var writer = new PersistenceWriter(store, new SilentLog()))
+        {
+            writer.Append(new JournalEntry(new IntentId(5, 1), IntentResult.Applied(1), 10, true, [changed]));
+            writer.Submit(WorldSnapshots.Capture(world), []);
+            world.Clock.Advance();
+            writer.Submit(WorldSnapshots.Capture(world), []);
+            writer.Append(new JournalEntry(new IntentId(5, 2), IntentResult.Reject(IntentRejectReason.OutOfRange), 11, true, []));
+            writer.Append(new JournalEntry(new IntentId(5, 2), IntentResult.Reject(IntentRejectReason.OutOfRange), 12, false, []));
+            Assert.True(writer.Flush(TimeSpan.FromSeconds(10)));
+            while (writer.TryTakeDurable(out IntentId id))
+            {
+                durable.Add(id);
+            }
+
+            Assert.Null(writer.LastError);
+            Assert.Equal((long)world.Clock.Current.Index, writer.LastSavedTick);
+            Assert.Equal(3, writer.Journaled);
+        }
+
+        Assert.Equal([new IntentId(5, 1), new IntentId(5, 2), new IntentId(5, 2)], durable);
+        Assert.True(store.TryGetIntent(new IntentId(5, 2), out IntentResult rejected));
+        Assert.Equal(IntentRejectReason.OutOfRange, rejected.Reason);
+        Assert.Equal(5UL, store.MaxIntentSession());
+        Assert.Contains(store.LoadWorld()!.World.Creatures, creature => creature.Id == changed.Id);
     }
 
     private static CreatureWorld LivedInWorld()

@@ -18,7 +18,7 @@ namespace SumonerWorld.Game.Hosting;
 /// The headless dedicated server (TDD §2.4, §3.1a, §4.2): listens on UDP and runs the authoritative <see cref="GameServer"/> loop at
 /// 30 Hz from a fixed-step accumulator. The world lives in <see cref="HostOptions.WorldPath"/>: a saved world is loaded, otherwise a
 /// new one is made (until the M2 ecosystem exists: the 512 m test region with 200 seeded mossbacks) and saved at once. A checkpoint
-/// goes to the persistence thread every 30 s; on shutdown a last checkpoint is written and a backup made.
+/// goes to the persistence thread every 30 s, and every intent's result is sent only after the thread made it durable; on shutdown a last checkpoint is written and a backup made.
 /// </summary>
 public sealed partial class ServerHost : Node
 {
@@ -35,7 +35,7 @@ public sealed partial class ServerHost : Node
     private GameServer? _server;
     private FixedStepAccumulator? _accumulator;
     private WorldStore? _store;
-    private CheckpointWriter? _writer;
+    private PersistenceWriter? _writer;
     private ulong _lastCheckpoint;
     private PosixSignalRegistration? _sigterm;
     private PosixSignalRegistration? _sigint;
@@ -59,9 +59,9 @@ public sealed partial class ServerHost : Node
             ? new CreatureWorld(data, new CreatureWorldSettings(), DevWorldSeed)
             : WorldSnapshots.Restore(data, new CreatureWorldSettings(), saved.World);
         _transport = GodotENetTransport.Listen(_options.Port, _options.MaxPlayers);
-        _server = new GameServer(
-            _world, _transport, new DevTokenAuthenticator(_options.DevSecret), _log, new GameServerSettings { MaxPlayers = _options.MaxPlayers });
-        _writer = new CheckpointWriter(_store, _log);
+        _writer = new PersistenceWriter(_store, _log);
+        var settings = new GameServerSettings { MaxPlayers = _options.MaxPlayers, LastSessionId = _store.MaxIntentSession() };
+        _server = new GameServer(_world, _transport, new DevTokenAuthenticator(_options.DevSecret), _log, settings, journal: _writer);
         if (saved is null)
         {
             _server.Populate(DevSpecies, DevCreatures, DevHerds);
@@ -102,7 +102,7 @@ public sealed partial class ServerHost : Node
             GetTree().Quit();
         }
 
-        if (tick - _lastCheckpoint >= CheckpointWriter.DefaultIntervalTicks)
+        if (tick - _lastCheckpoint >= PersistenceWriter.DefaultIntervalTicks)
         {
             Checkpoint();
         }

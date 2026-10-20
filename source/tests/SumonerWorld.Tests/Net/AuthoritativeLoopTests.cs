@@ -5,6 +5,7 @@ using SumonerWorld.Core.Ecs;
 using SumonerWorld.Core.Intents;
 using SumonerWorld.Core.Movement;
 using SumonerWorld.Core.Randomness;
+using SumonerWorld.Core.Transactions;
 using SumonerWorld.Core.World;
 using SumonerWorld.Net.Client;
 using SumonerWorld.Net.Messages;
@@ -77,6 +78,34 @@ public class AuthoritativeLoopTests
         Assert.Equal(IntentRejectReason.InvalidTarget, alice.IntentResults[unknown].Reason);
         Assert.Equal(1, lan.Server.Transactions.Applied);
         Assert.Equal(1, lan.Server.Transactions.Duplicates);
+    }
+
+    [Fact]
+    public void With_a_journal_results_wait_until_durable_and_repeats_are_not_recorded_again()
+    {
+        var journal = new HeldJournal();
+        using var lan = new Lan(0, journal, new GameServerSettings { LastSessionId = 41 });
+        StableId creature = lan.SpawnCreature(lan.Settings.SpawnPoint + new Vector3(3, 0, 0));
+        GameClient alice = lan.Join(1001);
+        lan.Run(10, _ => MoveInput.None);
+
+        uint offer = alice.SendIntent(IntentKind.OfferPact, creature.Value, 0b1);
+        lan.Run(10, _ => MoveInput.None);
+        Assert.False(alice.IntentResults.ContainsKey(offer), "No result before the journal made it durable.");
+        JournalEntry entry = Assert.Single(journal.Entries);
+        Assert.Equal(new IntentId(42, offer), entry.Id);
+        Assert.True(entry.IsNew);
+        Assert.Equal(creature, Assert.Single(entry.Changed).Id);
+
+        journal.ReleaseAll();
+        lan.Run(5, _ => MoveInput.None);
+        Assert.True(alice.IntentResults[offer].IsApplied);
+
+        alice.Resend(new IntentRequest(offer, IntentKind.OfferPact, creature.Value, 0b1));
+        lan.Run(10, _ => MoveInput.None);
+        Assert.False(journal.Entries[1].IsNew);
+        Assert.Empty(journal.Entries[1].Changed);
+        Assert.Equal(1, lan.Server.PendingAcks);
     }
 
     [Fact]
@@ -209,12 +238,13 @@ public class AuthoritativeLoopTests
         private readonly LoopbackTransport _serverTransport;
         private readonly List<(GameClient Client, LoopbackTransport Transport)> _clients = [];
 
-        public Lan(int lossPercent)
+        public Lan(int lossPercent, ITransactionJournal? journal = null, GameServerSettings? settings = null)
         {
+            Settings = settings ?? new GameServerSettings();
             Network = new LoopbackNetwork(new SeededRandom(0x10AD), latencySteps: 3, lossPercent, bufferCount: 8192);
             _serverTransport = Network.CreateEndpoint(2048);
             World = new CreatureWorld(ShippedData.Current, new CreatureWorldSettings(), seed: 11);
-            Server = new GameServer(World, _serverTransport, new DevTokenAuthenticator(Secret), NullLog.Instance, Settings);
+            Server = new GameServer(World, _serverTransport, new DevTokenAuthenticator(Secret), NullLog.Instance, Settings, journal: journal);
         }
 
         public LoopbackNetwork Network { get; }
@@ -223,7 +253,7 @@ public class AuthoritativeLoopTests
 
         public GameServer Server { get; }
 
-        public GameServerSettings Settings { get; } = new();
+        public GameServerSettings Settings { get; }
 
         public int Tick { get; private set; }
 
@@ -274,6 +304,26 @@ public class AuthoritativeLoopTests
         }
 
         public void Dispose() => World.Dispose();
+    }
+
+    private sealed class HeldJournal : ITransactionJournal
+    {
+        private readonly Queue<IntentId> _durable = new();
+        private int _released;
+
+        public List<JournalEntry> Entries { get; } = [];
+
+        public void Append(JournalEntry entry) => Entries.Add(entry);
+
+        public bool TryTakeDurable(out IntentId id) => _durable.TryDequeue(out id);
+
+        public void ReleaseAll()
+        {
+            for (; _released < Entries.Count; _released++)
+            {
+                _durable.Enqueue(Entries[_released].Id);
+            }
+        }
     }
 
     private sealed class NullLog : ILog

@@ -58,6 +58,9 @@ public interface IWorldStore : IDisposable
 
     /// <summary>The last saved world, or null for a world that was never saved.</summary>
     SavedWorld? LoadWorld();
+
+    /// <summary>Highest session id in the dedupe table (0 when empty): new sessions after a restart start above it.</summary>
+    ulong MaxIntentSession();
 }
 
 /// <summary>One atomic unit of change. Reads see the transaction's own writes.</summary>
@@ -86,6 +89,9 @@ public interface IWorldTransaction : IDisposable
 
     /// <summary>Sets a meta value.</summary>
     void SetMeta(string key, long value);
+
+    /// <summary>Inserts or replaces one creature (a transaction's change between checkpoints).</summary>
+    void PutCreature(CreatureSave creature);
 
     /// <summary>Replaces the saved world (creatures, players, reputation, clock, random state, id counter) with this one.</summary>
     void SaveWorld(WorldSnapshot world, IReadOnlyList<PlayerSave> players);
@@ -177,6 +183,9 @@ public sealed class WorldStore : IWorldStore
 
     /// <inheritdoc />
     public SavedWorld? LoadWorld() => _world.Load();
+
+    /// <inheritdoc />
+    public ulong MaxIntentSession() => _world.MaxIntentSession();
 
     /// <inheritdoc />
     public void Dispose() => _connection.Dispose();
@@ -280,6 +289,8 @@ public sealed class WorldStore : IWorldStore
     private sealed class WorldTransaction(WorldStore store, SqliteTransaction transaction) : IWorldTransaction
     {
         public void SaveWorld(WorldSnapshot world, IReadOnlyList<PlayerSave> players) => store._world.Save(transaction, world, players);
+
+        public void PutCreature(CreatureSave creature) => store._world.PutCreature(transaction, creature);
 
         public bool TryGetItem(ulong id, out ulong owner, out ItemRecord item) => store.ReadItem(id, transaction, out owner, out item);
 
