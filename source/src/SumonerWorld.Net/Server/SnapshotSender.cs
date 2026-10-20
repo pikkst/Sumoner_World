@@ -8,7 +8,7 @@ namespace SumonerWorld.Net.Server;
 
 /// <summary>
 /// Builds and sends one player's snapshot (TDD §3.2): their own avatar exactly, then every creature and other player within the
-/// interest radius, split into parts that fit one datagram. Priority ordering and delta compression come with M1-18.
+/// interest radius, split into parts that fit one datagram. Priority ordering and delta compression are deferred until a measurement needs them (M1-18a: full snapshots use under a third of the budget).
 /// </summary>
 internal sealed class SnapshotSender(CreatureWorld world, ITransport transport, float interestRadius)
 {
