@@ -117,8 +117,9 @@ Rules: R02, R07, R12, R47, R49 · Related: ADR-001 (layers), TDD v0.1, AI Bible 
 |---|---|---|---|---|
 | Hosts | `Bootstrap`, `ServerHost`, `ClientHost`, `BotHost` | `Main.tscn` entry; headless server runs ENet + session handshake + 30 Hz Core tick; client smoke mode (`--exit-on-welcome`); bot fleet over ENet (`--bots=N`, M1-18b) | TDD §2.5 | **Implemented** (M1-14, M1-18b) |
 | ENet adapter | `GodotENetTransport : ITransport` | Godot `ENetConnection` at packet level (channel 0 unreliable, 1 reliable) | TDD §3.1 | **Implemented** (M1-14) |
-| Physics adapter | `GodotPhysicsQueries : IPhysicsQueries` | Jolt queries for Core | TDD §2.4 | Planned (M1) |
-| Navigation adapter | `GodotNavigation : INavigation` | `NavigationServer3D` paths | TDD §2.4 | Planned (M1) |
+| Physics adapter | `GodotPhysicsQueries : IPhysicsQueries` | Jolt ray casts on the direct space state; server terrain collision as a `HeightMapShape3D` of the heightfield; start-up check against the heightfield | TDD §2.4 | **Implemented** (M1-20b) |
+| Navigation adapter | `GodotNavigation : INavigation` | Own `NavigationServer3D` map; mesh baked from the heightfield at server start; thread-safe `MapGetPath` on job workers | TDD §2.4 | **Implemented** (M1-20b) |
+| Dev world | `DevWorld` | Shared `DevRegion` ground and movement settings for the server, clients, bots and the test region | TDD §5.1 | **Implemented** (M1-20b) |
 | Logging adapter | `GodotLog : ILog` | JSON lines on stdout (collected by Docker) | TDD §6 | **Implemented** (M1-14) |
 | Entity views | `EntityViewSync` | Spawns/pools Godot nodes from snapshots; views never own state | ADR-001, R38 | Planned (M1) |
 | Input | `IInputSource` | Maps devices to inputs and intents | TDD §3.2 | Planned (M1) |

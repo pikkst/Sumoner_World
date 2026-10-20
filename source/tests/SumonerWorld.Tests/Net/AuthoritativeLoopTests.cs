@@ -81,6 +81,23 @@ public class AuthoritativeLoopTests
     }
 
     [Fact]
+    public void On_terrain_prediction_ends_exactly_where_the_server_has_the_player_and_on_the_ground()
+    {
+        Heightfield ground = Heightfield.Generate(9, new HeightfieldSettings { Samples = 513 });
+        using var lan = new Lan(20, settings: new GameServerSettings { Movement = new MovementSettings { Ground = ground } });
+        GameClient alice = lan.Join(1001);
+        lan.Run(30, _ => MoveInput.None);
+
+        lan.Run(300, _ => new MoveInput(800, (short)(lan.Tick % 90 < 45 ? 600 : -600)));
+        lan.Run(30, _ => MoveInput.None);
+
+        Vector3 server = lan.ServerPosition(1001);
+        Assert.Equal(server, alice.Prediction.Position);
+        Assert.Equal(ground.HeightAt(server.X, server.Z), server.Y);
+        Assert.True(Vector3.Distance(server, new Vector3(256, 0, 256) with { Y = server.Y }) > 30, "the player moved");
+    }
+
+    [Fact]
     public void With_a_journal_results_wait_until_durable_and_repeats_are_not_recorded_again()
     {
         var journal = new HeldJournal();

@@ -1,0 +1,41 @@
+{
+  "phase": 3,
+  "players": 16,
+  "measured_ticks": 18000,
+  "wall_seconds": 601.6696041,
+  "min_connected": 16,
+  "tick_mean_ms": 1.2864028444444444,
+  "tick_p50_ms": 1.2748,
+  "tick_p99_ms": 2.9655,
+  "tick_max_ms": 22.935,
+  "tick_load_p99_percent": 8.8965,
+  "ai_p99_ms": 1.1192999999999997,
+  "allocated_bytes_per_tick": 14067.136,
+  "gen0_collections": 43,
+  "gen1_collections": 40,
+  "gen2_collections": 2,
+  "process_cpu_percent": 5.249171602617777,
+  "peak_working_set_mi_b": 200.36328125,
+  "bandwidth": {
+    "seconds": 600,
+    "client_seconds": 9600,
+    "down_mean": 18.849482421875,
+    "down_p99": 20.734375,
+    "down_max": 21.1201171875,
+    "up_mean": 2.1589969889322917,
+    "up_max": 2.7744140625,
+    "server_sent_mean": 301.59171875,
+    "server_sent_max": 313.13671875,
+    "payload_down_mean": 17.135575358072916
+  },
+  "wire_sent_ki_bps": 256.6136931757419,
+  "wire_received_ki_bps": 40.00944477307193,
+  "transactions": {
+    "applied": 505,
+    "rejected": 506,
+    "duplicates": 1
+  },
+  "network_failures": [],
+  "timing_failures": [],
+  "passed": true
+}

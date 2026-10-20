@@ -102,7 +102,13 @@ Two levels, chosen so a solo team can keep them:
   - **Navigation port:** `INavigation.FindPath` must be thread-safe and returns at most 8 waypoints. `PathPlanner` gathers a tick's path requests into one job and delivers the results to the `IPathSink` at the next tick's job stage, in request order. Results therefore never depend on thread timing.
   - **Creatures:** a `MoveTo` now asks for a path and the creature waits one tick for it. The `MovementSystem` follows the waypoints and reports failure when there is no path.
   - **Ground height:** walking takes its height from the shared `Heightfield`, not from physics queries. The server's movement and the client's prediction then compute bit-identical positions. `DevRegion.CreateGround()` is the M1 region every host builds. Without a heightfield, everything stays flat as before; B5 runs flat with straight-line paths.
-  - **Next (M1-20b):** the Jolt and NavigationServer3D adapters and the hosts on terrain.
+- **Implemented in M1-20b (Godot adapters):**
+  - **Jolt:** Jolt is set as the 3D physics engine in the project settings.
+  - **`GodotPhysicsQueries`:** ray casts on the direct space state. On the server, the ground is a `HeightMapShape3D` built from the same heightfield; the headless server does not load Terrain3D.
+  - **`GodotNavigation`:** its own `NavigationServer3D` map, with a navigation mesh baked at start-up from the heightfield (2 m source triangles, 0.5 m cells, 0.5 m radius / 1.75 m tall agent, 40° slope). `MapGetPath` runs on the job workers.
+  - **Hosts on terrain:** the server, the client and the bots all use `DevWorld` (the shared `DevRegion` ground). Creatures path over the terrain, and player prediction stands on the same heights as the server.
+  - **Start-up self-check:** the server compares 64 Jolt rays with the heightfield and checks that navigation is ready. Docker result: 64 rays, 0 missed, largest difference to the heightfield 0.0 cm; navigation bake 2.1 s, 176 polygons; in a 60 s B2 run 5,026 creature paths were delivered, 12 not found (before the first map sync or off the mesh), 0 refused; bots on terrain 20.4 KiB/s down per client.
+  - **Not yet:** collision with props, and line of sight in perception. Both come with real props and art.
 
 ### 2.5 Threads
 | Thread | Work |
@@ -267,7 +273,7 @@ Every dependency must be: permissive licence (MIT/BSD/Apache-2.0/zlib), actively
 ## 8. M1 technical spikes (all must pass before the M1 gate)
 1. **ECS:** 200 creatures + 16 simulated players run the full schedule at ≤ 19 ms/tick on the server spec; 0 steady-state allocations/tick.
 2. **Net:** 16 bot clients at 150 ms / 2% loss stay within bandwidth budget; reconnect test passes; duplicate intent test applies once.
-   **Passed (M1-18b, 2026-10-20, run 1 of 3 on the dev PC):** 18.9 KiB/s down and 2.2 KiB/s up per client, 269 KiB/s server total on the NIC; the hard-dropped bot resumed in 12 ticks; the repeated intent was answered from the dedupe window (1,009 intents sent = 514 applied + 495 rejected). Server tick p99 2.55 ms. Report: `qa/performance-logs/2026-10-20_M1-18_b2_server16_dev-pc.md`. Runs 2–3 still to be repeated (stopped because the host ran low on memory).
+   **Passed (M1-18b, 2026-10-20, run 1 of 3 on the dev PC):** 18.9 KiB/s down and 2.2 KiB/s up per client, 269 KiB/s server total on the NIC; the hard-dropped bot resumed in 12 ticks; the repeated intent was answered from the dedupe window (1,009 intents sent = 514 applied + 495 rejected). Server tick p99 2.55 ms. A valid 3-run set (runs 2–4, build `0b1e1fa`) gives these medians: tick p99 2.92 ms, 18.9 KiB/s down per client, 257 KiB/s server total on the NIC. Every check passed. Report: `qa/performance-logs/2026-10-20_M1-18_b2_server16_dev-pc.md`.
 3. **Persistence:** kill the server process during 1,000 random trades, restart, and verify no item is lost or duplicated.
 4. **Terrain & streaming:** fly across the 4 km region at sprint speed with no frame above 33 ms on the recommended spec.
    **Passed on the dev PC (M1-19b, 2026-10-20; indicative, the recommended-spec run is M1-24):** B3 `--benchmark=B3 --region-chunks=64`, 3 runs, 5.4 km at 9 and 27 m/s each. Median over the 3 runs: frame p99 3.55 ms, 0 frames over 33 ms, 0 streaming hitches. Run 2 had one second of stalls of up to 90 ms with no streaming work in it, which was not reproducible; it is reported as measured. Report: `qa/performance-logs/2026-10-20_M1-19_b3_stream_run_dev-pc.md`.

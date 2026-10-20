@@ -54,6 +54,9 @@ public sealed class PathPlanner : IJob
     /// <summary>Paths delivered since the start.</summary>
     public long Delivered { get; private set; }
 
+    /// <summary>Delivered paths with <see cref="PathStatus.NotFound"/>.</summary>
+    public long NotFound { get; private set; }
+
     /// <summary>Requests refused because the planner was full.</summary>
     public long Refused { get; private set; }
 
@@ -103,6 +106,7 @@ public sealed class PathPlanner : IJob
             {
                 Sink?.OnPath(request.Entity, _statuses[i], _waypoints.AsSpan(i * MaxWaypoints, _counts[i]), request.Speed);
                 Delivered++;
+                NotFound += _statuses[i] == PathStatus.NotFound ? 1 : 0;
             }
         }
 

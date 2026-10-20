@@ -11,8 +11,6 @@ namespace SumonerWorld.Game.World;
 /// </summary>
 public sealed partial class TestRegion : Node3D
 {
-    /// <summary>World seed of the test region (the dev server's).</summary>
-    public const ulong Seed = 0x53570001;
 
     private readonly int _chunks;
     private readonly ILog _log;
@@ -42,14 +40,14 @@ public sealed partial class TestRegion : Node3D
     public override void _Ready()
     {
         long start = System.Diagnostics.Stopwatch.GetTimestamp();
-        Field = Heightfield.Generate(Seed, new HeightfieldSettings { Samples = (_chunks * (int)ChunkCoord.Size) + 1 });
+        Field = _chunks == DevRegion.Chunks ? DevWorld.Ground : DevRegion.CreateGround(_chunks);
         AddEnvironment();
         Camera = new FlyCamera { Name = "Camera", Far = 2000, Fov = 70, Region = this };
         AddChild(Camera);
         float centre = Field.Size / 2;
         Camera.Position = new Vector3(centre, Field.HeightAt(centre, centre) + 2, centre);
         TerrainBuilder.Build(this, Field, Camera, _log);
-        Streamer = new ChunkStreamer(new StreamingSettings { RegionChunks = _chunks }, Field, Seed) { Viewer = Camera };
+        Streamer = new ChunkStreamer(new StreamingSettings { RegionChunks = _chunks }, Field, DevRegion.Seed) { Viewer = Camera };
         AddChild(Streamer);
         _log.Write(LogLevel.Info, "region.ready", $"{_chunks}×{_chunks} chunks in {System.Diagnostics.Stopwatch.GetElapsedTime(start).TotalSeconds:F1} s");
     }

@@ -135,6 +135,7 @@ public class PhysicsAndNavigationTests
         Assert.Equal(new Vector3(50, 0, 50), world.World.GetComponent<Position>(creature).Value);
         Assert.Equal(0, world.World.GetComponent<MoveTarget>(creature).Active);
         Assert.Equal(1, world.Paths.Delivered);
+        Assert.Equal(1, world.Paths.NotFound);
     }
 
     [Fact]
