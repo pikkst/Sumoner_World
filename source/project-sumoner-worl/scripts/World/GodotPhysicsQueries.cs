@@ -51,6 +51,33 @@ public sealed class GodotPhysicsQueries(Node3D node) : IPhysicsQueries, IDisposa
     }
 
     /// <summary>
+    /// Casts 64 rays straight down on an 8 × 8 grid over the field and compares the hits with its heights (server start-up check):
+    /// rays that missed and the largest height difference in metres.
+    /// </summary>
+    public (int Misses, float Worst) CompareWith(Heightfield field)
+    {
+        ArgumentNullException.ThrowIfNull(field);
+        float worst = 0;
+        int misses = 0;
+        float step = (field.Size - 16) / 7f;
+        for (int i = 0; i < 64; i++)
+        {
+            float x = 8 + (i % 8 * step);
+            float z = 8 + (i / 8 * step);
+            if (Raycast(new NumericsVector3(x, 200, z), -NumericsVector3.UnitY, 400, out RayHit hit))
+            {
+                worst = Math.Max(worst, Math.Abs(hit.Point.Y - field.HeightAt(x, z)));
+            }
+            else
+            {
+                misses++;
+            }
+        }
+
+        return (misses, worst);
+    }
+
+    /// <summary>
     /// Server-side terrain collision: one static body with a <see cref="HeightMapShape3D"/> of the heightfield (the headless server
     /// does not load Terrain3D, whose collision follows a camera).
     /// </summary>

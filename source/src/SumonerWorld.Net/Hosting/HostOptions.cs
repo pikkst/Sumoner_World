@@ -20,6 +20,9 @@ public enum HostMode
 
     /// <summary>The M1 test region with terrain and streaming, free-fly camera (M1-19).</summary>
     Region,
+
+    /// <summary>The "Memory Grove" playtest build (M1-23): server and client in one process, a fresh grove every session.</summary>
+    Playtest,
 }
 
 /// <summary>
@@ -36,6 +39,8 @@ public enum HostMode
 /// <c>--dev-tools</c> (server: answer the dev overlay and AI Inspector; client: show them), <c>--inspect=nearest|click|tab|id</c>
 /// (client: open the AI Inspector on start; <c>click</c> and <c>tab</c> go through the real controls as input events; with
 /// <c>--screenshot</c> for a picture of it).
+/// <c>--self-test</c> (client: walk to the nearest creature and use the interaction keys as input events),
+/// <c>--playtest</c> (the Memory Grove playtest: a local server on <see cref="PlaytestPort"/> plus the client, fresh world).
 /// Environment: <c>SW_SERVER_MODE</c> (any value starts the server), <c>SW_PORT</c>, <c>SW_DEV_SECRET</c>, <c>SW_MAX_PLAYERS</c>,
 /// <c>SW_LOG_LEVEL</c>, <c>SW_DEV_TOOLS</c> (any value: as <c>--dev-tools</c>).
 /// </remarks>
@@ -46,6 +51,9 @@ public sealed record HostOptions
 
     /// <summary>Default player limit (GDD §8: 16 at EA).</summary>
     public const int DefaultMaxPlayers = 16;
+
+    /// <summary>Port of the playtest's in-process server (localhost only).</summary>
+    public const int PlaytestPort = 7790;
 
     /// <summary>Secret used by the dev server when none is configured. Dev and tests only.</summary>
     public const string DefaultDevSecret = "local-dev-secret";
@@ -116,6 +124,9 @@ public sealed record HostOptions
     /// </summary>
     public string Inspect { get; init; } = string.Empty;
 
+    /// <summary>Client: play the start of a Memory Grove session through the real controls, then take the screenshot (M1-23).</summary>
+    public bool SelfTest { get; init; }
+
     /// <summary>Lowest log level written.</summary>
     public LogLevel LogLevel { get; init; } = LogLevel.Info;
 
@@ -158,9 +169,11 @@ public sealed record HostOptions
             "--max-players" => options with { MaxPlayers = ParseInt(value, argument) },
             "--exit-on-welcome" => options with { ExitOnWelcome = true },
             "--dev-tools" => options with { DevTools = true },
+            "--self-test" => options with { SelfTest = true },
             "--inspect" when value is "nearest" or "click" or "tab" || ulong.TryParse(value, NumberStyles.None, CultureInfo.InvariantCulture, out _) => options with { DevTools = true, Inspect = value },
             "--world" when value.Length > 0 => options with { WorldPath = value },
             "--region" => options with { Mode = HostMode.Region },
+            "--playtest" => options with { Mode = HostMode.Playtest, Port = PlaytestPort, Address = "127.0.0.1" },
             "--benchmark" when value == "B3" => options with { Mode = HostMode.Region, Benchmark = value },
             "--showcase" when value is "grazer" or "predator" => options with { Mode = HostMode.Region, Showcase = value },
             "--showcase-distance" => options with { ShowcaseDistance = ParseInt(value, argument) },

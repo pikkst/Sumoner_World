@@ -20,25 +20,20 @@ namespace SumonerWorld.Game.Hosting;
 /// <summary>
 /// The headless dedicated server (TDD §2.4, §3.1a, §4.2): listens on UDP and runs the authoritative <see cref="GameServer"/> loop at
 /// 30 Hz from a fixed-step accumulator. The world lives in <see cref="HostOptions.WorldPath"/>: a saved world is loaded, otherwise a
-/// new one is made (until the M2 ecosystem exists: the 512 m test region with 170 seeded mossbacks in 10 herds and 30 bogfoxes in 5 packs) and saved at once. Everything
+/// new one is made (until the M2 ecosystem exists: <see cref="DevWorld.Populate"/>) and saved at once. Everything
 /// walks on the <see cref="DevWorld"/> ground; creatures find paths on a navigation mesh baked from it at start-up, and Jolt gets
 /// the same ground as height-map collision (checked against the heightfield once at start). A checkpoint
 /// goes to the persistence thread every 30 s, and every intent's result is sent only after the thread made it durable; on shutdown a last checkpoint is written and a backup made.
 /// With <see cref="HostOptions.BenchmarkOut"/> it runs B2 (M0-07): a <see cref="ServerBenchmark"/> measures once the bots are in and
 /// warmed up, writes <c>summary.json</c> and <c>ticks.csv</c> there and stops the server. With <see cref="HostOptions.DevTools"/>
-/// (the Docker dev server sets <c>SW_DEV_TOOLS</c>) it answers the dev overlay and the AI Inspector (M1-22).
+/// (the Docker dev server sets <c>SW_DEV_TOOLS</c>) it answers the dev overlay and the AI Inspector (M1-22). In the playtest
+/// (<see cref="HostMode.Playtest"/>) it listens on localhost only, starts a fresh world every session in <c>user://playtest/</c> and
+/// spawns the Memory Grove around the player's start instead of the dev population.
 /// </summary>
 public sealed partial class ServerHost : Node
 {
     private const long NanosecondsPerSecond = 1_000_000_000L;
     private const ulong DevWorldSeed = 0x53570001;
-    private const string DevGrazer = "mossback";
-    private const string DevPredator = "bogfox";
-    private const int DevGrazers = 170;
-    private const int DevGrazerHerds = 10;
-    private const int DevPredators = 30;
-    private const int DevPredatorPacks = 5;
-    private const int DevCreatures = DevGrazers + DevPredators;
     private const int MaxFps = 120;
     private const string WireStatistics = "/sys/class/net/eth0/statistics/";
 
@@ -70,13 +65,25 @@ public sealed partial class ServerHost : Node
     public override void _Ready()
     {
         string path = WorldPath();
+        if (Playtest)
+        {
+            // A fresh grove for every tester: never continue the last session's world.
+            string folder = Path.GetDirectoryName(path)!;
+            if (Directory.Exists(folder))
+            {
+                Directory.Delete(folder, recursive: true);
+            }
+
+            Directory.CreateDirectory(folder);
+        }
+
         SavedWorld? saved = OpenWorld(path);
 
         // Headless Godot would otherwise spin a core between ticks; 120 frames/s keeps the 30 Hz accumulator smooth.
         Engine.MaxFps = MaxFps;
         // Twice the player limit in ENet peers: a client that lost its connection reconnects before ENet times the old peer out
         // (up to 30 s), so everyone can resume at once. The session endpoint enforces the player limit itself.
-        _transport = GodotENetTransport.Listen(_options.Port, _options.MaxPlayers * 2);
+        _transport = GodotENetTransport.Listen(_options.Port, _options.MaxPlayers * 2, Playtest ? "127.0.0.1" : "*");
         var metered = new MeteredTransport(_transport);
         _benchmark = CreateBenchmark(metered);
         _writer = new PersistenceWriter(_store, _log);
@@ -90,10 +97,9 @@ public sealed partial class ServerHost : Node
         _server = new GameServer(_world, metered, new DevTokenAuthenticator(_options.DevSecret), _log, settings, _benchmark, _writer);
         if (saved is null)
         {
-            _server.Populate(DevGrazer, DevGrazers, DevGrazerHerds);
-            _server.Populate(DevPredator, DevPredators, DevPredatorPacks, firstGroup: DevGrazerHerds);
+            string population = DevWorld.Populate(_server, Playtest);
             Checkpoint();
-            _log.Write(LogLevel.Info, "world.created", $"{path}: new world with {DevCreatures} creatures");
+            _log.Write(LogLevel.Info, "world.created", $"{path}: new world, {population}");
         }
         else
         {
@@ -107,7 +113,7 @@ public sealed partial class ServerHost : Node
         // docker stop sends SIGTERM: quit through the main loop so the last checkpoint and the shutdown backup are written.
         _sigterm = PosixSignalRegistration.Create(PosixSignal.SIGTERM, RequestStop);
         _sigint = PosixSignalRegistration.Create(PosixSignal.SIGINT, RequestStop);
-        _log.Write(LogLevel.Info, "server.listening", $"UDP port {_options.Port}, up to {_options.MaxPlayers} players, {SimulationSettings.DefaultTicksPerSecond} Hz, {DevCreatures} creatures, dev tools {(_options.DevTools ? "on" : "off")}");
+        _log.Write(LogLevel.Info, "server.listening", $"UDP port {_options.Port}, up to {_options.MaxPlayers} players, {SimulationSettings.DefaultTicksPerSecond} Hz, {_world.World.Store<MindRef>().Count} creatures, dev tools {(_options.DevTools ? "on" : "off")}");
     }
 
     /// <inheritdoc />
@@ -216,22 +222,7 @@ public sealed partial class ServerHost : Node
         }
 
         _physicsChecked = true;
-        float worst = 0;
-        int misses = 0;
-        for (int i = 0; i < 64; i++)
-        {
-            float x = 8 + (i % 8 * 62);
-            float z = 8 + (i / 8 * 62);
-            if (_physics.Raycast(new System.Numerics.Vector3(x, 200, z), -System.Numerics.Vector3.UnitY, 400, out Core.Physics.RayHit hit))
-            {
-                worst = Math.Max(worst, Math.Abs(hit.Point.Y - DevWorld.Ground.HeightAt(x, z)));
-            }
-            else
-            {
-                misses++;
-            }
-        }
-
+        (int misses, float worst) = _physics.CompareWith(DevWorld.Ground);
         bool ok = misses == 0 && worst < 0.05f && _navigation!.IsReady;
         _log.Write(ok ? LogLevel.Info : LogLevel.Error, "world.physics_check", $"64 rays: {misses} missed, largest difference to the heightfield {worst * 100:F1} cm; navigation ready {_navigation!.IsReady}");
     }
@@ -287,9 +278,12 @@ public sealed partial class ServerHost : Node
         _lastCheckpoint = _world!.Clock.Current.Index;
     }
 
+    private bool Playtest => _options.Mode == HostMode.Playtest;
+
     private string WorldPath()
     {
-        string path = _options.WorldPath.Length > 0 ? _options.WorldPath : ProjectSettings.GlobalizePath("user://world/world.db");
+        string path = Playtest ? ProjectSettings.GlobalizePath("user://playtest/world.db")
+            : _options.WorldPath.Length > 0 ? _options.WorldPath : ProjectSettings.GlobalizePath("user://world/world.db");
         Directory.CreateDirectory(Path.GetDirectoryName(Path.GetFullPath(path))!);
         return Path.GetFullPath(path);
     }
