@@ -187,9 +187,13 @@ intent {IntentId, type, args} ─► authorize (owner, range, cooldown, cost)
 
 ### 4.3 Versioning and migration
 - `meta.schema_version` (integer) for the database layout; `SchemaVersion` per record type for payloads (e.g. `CreatureMind v1`, AI Bible §4.6).
-- Migrations are ordered `IMigration { From, To, Apply }` classes, run at server start inside one transaction after a backup. **Never downgrade:** a newer save on an older server is refused with a clear message.
+- Migrations are ordered `IMigration { FromVersion, ToVersion, Apply }` classes, run at server start inside one transaction after a backup. **Never downgrade:** a newer save on an older server is refused with a clear message.
 - Every version keeps a **fixture save** in `tests/fixtures/saves/`; CI loads every fixture and migrates it to the latest version (R26, R43).
 - Content ids (species, items, event types) are stable strings or ids that are never reused. Removed content is migrated to a replacement, never left dangling.
+
+### 4.4 Implementation status
+- **M1-17a:** `SumonerWorld.Persistence` (references Core, Microsoft.Data.Sqlite and MessagePack only; layering-tested). `WorldStore` opens `world.db` with WAL and `synchronous=FULL` (an acknowledged trade must survive power loss, not just a process kill), runs `Migrations.All` in one transaction after a backup, and refuses newer saves. Schema v1: `meta`, `items` (id, owner, payload), `intent_dedupe` (last 1,024 ids per session, written in the same transaction as the effect). Payloads: one version byte + MessagePack with integer keys, read with untrusted-data security. Fixture save `tests/fixtures/saves/world-v1.db` (written by `CrashHarness fixture`); CI loads every fixture. **Spike 3 passes:** the harness process is killed three times during 1,000 random swaps/crafts and restarted with the last trades resent; the database then equals a single replay of every trade (no item lost or duplicated, every resend answered from the dedupe table). A mutation check (dedupe disabled) makes it fail.
+- **M1-17b (next):** schema v2 with players, creatures (mind blob) and reputation; persistence thread with 30 s dirty flush; transactions committed before the ack; timed and shutdown backups; world loaded on server start (spike 6 "world survives a container restart").
 
 ---
 
@@ -233,8 +237,8 @@ Every dependency must be: permissive licence (MIT/BSD/Apache-2.0/zlib), actively
 | Godot 4.7.2 .NET (MIT) | engine, physics (Jolt), navigation, ENet | adopted (ADR-001) |
 | Arch (Apache-2.0) | ECS spike comparison | **Not adopted** (ADR-002). Referenced only by the benchmark project |
 | BenchmarkDotNet (MIT) | benchmarks (`tests/SumonerWorld.Benchmarks`) | adopted for tooling only |
-| Microsoft.Data.Sqlite (MIT) | save database | M1 spike |
-| MessagePack-CSharp (MIT) | record payloads | M1 spike |
+| Microsoft.Data.Sqlite 8.0.11 (MIT) | save database | adopted (M1-17a) |
+| MessagePack-CSharp 2.5.307 (MIT) | record payloads | adopted (M1-17a); ≥ 2.5.301 required (GHSA-wfr3-xj75-pfwh, found by NuGet audit on 2.5.187) |
 | Terrain3D (MIT) | terrain | M1 spike |
 | Steamworks.NET (MIT) | auth tickets, server browser | M1 spike |
 | xUnit, Microsoft.CodeAnalysis.BannedApiAnalyzers | tests, rule enforcement | adopted |
