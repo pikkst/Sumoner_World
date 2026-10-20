@@ -64,6 +64,9 @@ public class HostOptionsTests
         HostOptions b3 = HostOptions.Parse(["--benchmark=B3", "--benchmark-out=out"], NoEnvironment);
         Assert.Equal((HostMode.Region, "B3", "out"), (b3.Mode, b3.Benchmark, b3.BenchmarkOut));
         Assert.Throws<ArgumentException>(() => HostOptions.Parse(["--benchmark=B9"], NoEnvironment));
+        HostOptions showcase = HostOptions.Parse(["--showcase=predator", "--showcase-distance=12"], NoEnvironment);
+        Assert.Equal((HostMode.Region, "predator", 12), (showcase.Mode, showcase.Showcase, showcase.ShowcaseDistance));
+        Assert.Throws<ArgumentException>(() => HostOptions.Parse(["--showcase=dragon"], NoEnvironment));
     }
 
     [Fact]
