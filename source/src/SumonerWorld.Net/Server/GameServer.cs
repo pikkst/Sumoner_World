@@ -177,8 +177,11 @@ public sealed class GameServer : IServerSessionHandler
         }
     }
 
-    /// <summary>Adds <paramref name="count"/> wild creatures of a species at seeded random spots (dev servers before M2 ecosystem).</summary>
-    public void Populate(string speciesId, int count, int herds)
+    /// <summary>
+    /// Adds <paramref name="count"/> wild creatures of a species at seeded random spots, in groups <paramref name="firstGroup"/> …
+    /// <paramref name="firstGroup"/> + <paramref name="herds"/> − 1 (dev servers before the M2 ecosystem).
+    /// </summary>
+    public void Populate(string speciesId, int count, int herds, int firstGroup = 0)
     {
         ushort species = _world.SpeciesIndex(speciesId);
         Vector3 size = _world.BoundsMax - _world.BoundsMin;
@@ -186,7 +189,7 @@ public sealed class GameServer : IServerSessionHandler
         {
             var position = _world.BoundsMin + new Vector3(
                 (float)(_world.Random.NextDouble() * size.X), 0, (float)(_world.Random.NextDouble() * size.Z));
-            _world.SpawnCreature(species, position, Personality.Roll(_world.Data.Species[species], _world.Random), _world.Random.NextInt(0, herds));
+            _world.SpawnCreature(species, position, Personality.Roll(_world.Data.Species[species], _world.Random), firstGroup + _world.Random.NextInt(0, herds));
         }
     }
 

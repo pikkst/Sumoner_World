@@ -180,8 +180,9 @@ public readonly record struct SnapshotHeader(ulong ServerTick, uint AckedInput, 
 /// <param name="Id">Stable id or account id.</param>
 /// <param name="Position">Position (rounded to 1 cm).</param>
 /// <param name="Facing">Heading in 1/256 turns (0 = +Z).</param>
-/// <param name="Emote">Emote id shown above it (0 = none).</param>
-public readonly record struct SnapshotEntity(SnapshotEntityKind Kind, ulong Id, Vector3 Position, byte Facing, byte Emote);
+/// <param name="Emote">Emote it shows (0 = none; AI Bible §6.2).</param>
+/// <param name="Species">Creatures: index in the species data both sides load (picks the model); players: 0. Since protocol 4.</param>
+public readonly record struct SnapshotEntity(SnapshotEntityKind Kind, ulong Id, Vector3 Position, byte Facing, byte Emote, byte Species = 0);
 
 /// <summary>
 /// Server → client, unreliable, 20 Hz (TDD §3.2): entities within the interest radius. A tick's state can span several parts, each
@@ -190,7 +191,7 @@ public readonly record struct SnapshotEntity(SnapshotEntityKind Kind, ulong Id, 
 public static class Snapshot
 {
     /// <summary>Largest encoded entity, in bytes.</summary>
-    public const int MaxEntityBytes = 1 + 10 + (3 * 5) + 1 + 1;
+    public const int MaxEntityBytes = 1 + 10 + (3 * 5) + 1 + 1 + 1;
 
     /// <summary>Most entities per part.</summary>
     public const int MaxEntitiesPerPart = 64;
@@ -227,6 +228,7 @@ public static class Snapshot
         writer.WriteVarInt(Quantize(entity.Position.Z));
         writer.WriteByte(entity.Facing);
         writer.WriteByte(entity.Emote);
+        writer.WriteByte(entity.Species);
     }
 
     /// <summary>Reads the header (after the message header); <see cref="ReadEntity"/> must then be called EntityCount times.</summary>
@@ -257,7 +259,7 @@ public static class Snapshot
 
         ulong id = reader.ReadVarUInt();
         var position = new Vector3(Dequantize(ref reader), Dequantize(ref reader), Dequantize(ref reader));
-        return new SnapshotEntity(kind, id, position, reader.ReadByte(), reader.ReadByte());
+        return new SnapshotEntity(kind, id, position, reader.ReadByte(), reader.ReadByte(), reader.ReadByte());
     }
 
     /// <summary>Heading of a direction in 1/256 turns (0 = +Z, clockwise seen from above).</summary>

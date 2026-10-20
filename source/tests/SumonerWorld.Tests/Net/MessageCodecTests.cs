@@ -73,7 +73,7 @@ public class MessageCodecTests
         var buffer = new byte[Protocol.MaxMessageSize];
         var writer = new MessageWriter(buffer);
         int countOffset = Snapshot.WriteHeader(ref writer, 300, 41, new Vector3(1.2345678f, 0, 99.000001f));
-        Snapshot.WriteEntity(ref writer, new SnapshotEntity(SnapshotEntityKind.Creature, 77, new Vector3(10.004f, 0, -3.456f), 64, 3));
+        Snapshot.WriteEntity(ref writer, new SnapshotEntity(SnapshotEntityKind.Creature, 77, new Vector3(10.004f, 0, -3.456f), 64, 3, 2));
         Snapshot.WriteEntity(ref writer, new SnapshotEntity(SnapshotEntityKind.Player, 9_000_001, new Vector3(511.99f, 0, 0), 0, 0));
         Snapshot.SetEntityCount(buffer, countOffset, 2);
 
@@ -85,7 +85,7 @@ public class MessageCodecTests
         reader.EnsureEnd();
 
         Assert.Equal(new SnapshotHeader(300, 41, new Vector3(1.2345678f, 0, 99.000001f), 2), header);
-        Assert.Equal(new SnapshotEntity(SnapshotEntityKind.Creature, 77, new Vector3(10f, 0, -3.46f), 64, 3), creature);
+        Assert.Equal(new SnapshotEntity(SnapshotEntityKind.Creature, 77, new Vector3(10f, 0, -3.46f), 64, 3, 2), creature);
         Assert.Equal(9_000_001UL, player.Id);
         Assert.Equal(64, Snapshot.EncodeFacing(Vector3.UnitX));
         Assert.Equal(0, Snapshot.EncodeFacing(Vector3.UnitZ));
@@ -123,14 +123,14 @@ public class MessageCodecTests
     }
 
     [Theory]
-    [InlineData(new byte[] { 0x03, 0x00 }, "truncated")]
+    [InlineData(new byte[] { 0x04, 0x00 }, "truncated")]
     [InlineData(new byte[] { 0x01, 0x00, 0x05 }, "Protocol version 1")]
-    [InlineData(new byte[] { 0x03, 0x00, 0x63 }, "Unknown message type 99")]
-    [InlineData(new byte[] { 0x03, 0x00, 0x04 }, "Unknown message type 4")]
-    [InlineData(new byte[] { 0x03, 0x00, 0x05, 0x01, 0x01, 0xA0, 0x1F, 0x00, 0x00 }, "outside")]
-    [InlineData(new byte[] { 0x03, 0x00, 0x05, 0x01, 0x01, 0x00, 0x00, 0x00, 0xFF }, "trailing")]
-    [InlineData(new byte[] { 0x03, 0x00, 0x05, 0x01, 0x00 }, "out of range")]
-    [InlineData(new byte[] { 0x03, 0x00, 0x05, 0x01, 0x02 }, "out of range")]
+    [InlineData(new byte[] { 0x04, 0x00, 0x63 }, "Unknown message type 99")]
+    [InlineData(new byte[] { 0x04, 0x00, 0x04 }, "Unknown message type 4")]
+    [InlineData(new byte[] { 0x04, 0x00, 0x05, 0x01, 0x01, 0xA0, 0x1F, 0x00, 0x00 }, "outside")]
+    [InlineData(new byte[] { 0x04, 0x00, 0x05, 0x01, 0x01, 0x00, 0x00, 0x00, 0xFF }, "trailing")]
+    [InlineData(new byte[] { 0x04, 0x00, 0x05, 0x01, 0x00 }, "out of range")]
+    [InlineData(new byte[] { 0x04, 0x00, 0x05, 0x01, 0x02 }, "out of range")]
     public void Malformed_input_is_rejected_with_a_reason(byte[] bytes, string expected)
     {
         var error = Assert.Throws<MalformedMessageException>(() =>
