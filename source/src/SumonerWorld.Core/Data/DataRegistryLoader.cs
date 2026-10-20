@@ -47,6 +47,8 @@ public static class DataRegistryLoader
     private const int MaxTraitSpread = 100;
     private const int MaxNeedRatePerDay = 500;
     private const int MaxPactThreshold = 1000;
+    private const int MinBodyRadiusCm = 10;
+    private const int MaxBodyRadiusCm = 500;
 
     private static readonly JsonSerializerOptions JsonOptions = new()
     {
@@ -673,6 +675,7 @@ public static class DataRegistryLoader
         }
 
         CheckRange(entry.PactThreshold, 0, MaxPactThreshold, "pactThreshold", where, errors);
+        CheckRange(entry.BodyRadiusCm, MinBodyRadiusCm, MaxBodyRadiusCm, "bodyRadiusCm", where, errors);
 
         if (entry.Perception is null)
         {
