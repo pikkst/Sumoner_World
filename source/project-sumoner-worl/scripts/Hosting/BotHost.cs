@@ -2,9 +2,9 @@ using Godot;
 using SumonerWorld.Core.Diagnostics;
 using SumonerWorld.Core.Simulation;
 using SumonerWorld.Game.Net;
+using SumonerWorld.Game.World;
 using SumonerWorld.Net.Bots;
 using SumonerWorld.Net.Hosting;
-using SumonerWorld.Net.Server;
 using SumonerWorld.Net.Transport;
 
 namespace SumonerWorld.Game.Hosting;
@@ -45,7 +45,7 @@ public sealed partial class BotHost : Node
             Count = _options.Bots,
             FirstAccount = _options.Account,
             DevSecret = _options.DevSecret,
-            Movement = new GameServerSettings().Movement,
+            Movement = DevWorld.Movement(),
         };
         _fleet = new BotFleet(settings, () => GodotENetTransport.Connect(_options.Address, _options.Port, out ConnectionId _), _log);
         _accumulator = new FixedStepAccumulator(SimulationSettings.Default);

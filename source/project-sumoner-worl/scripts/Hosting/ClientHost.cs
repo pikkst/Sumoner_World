@@ -3,10 +3,10 @@ using SumonerWorld.Core.Diagnostics;
 using SumonerWorld.Core.Movement;
 using SumonerWorld.Core.Simulation;
 using SumonerWorld.Game.Net;
+using SumonerWorld.Game.World;
 using SumonerWorld.Net.Client;
 using SumonerWorld.Net.Hosting;
 using SumonerWorld.Net.Messages;
-using SumonerWorld.Net.Server;
 using SumonerWorld.Net.Sessions;
 using SumonerWorld.Net.Transport;
 
@@ -58,7 +58,7 @@ public sealed partial class ClientHost : Node
     {
         _transport = GodotENetTransport.Connect(_options.Address, _options.Port, out ConnectionId _);
         string ticket = DevTokenAuthenticator.Ticket(_options.Account, _options.DevSecret);
-        _client = new GameClient(_transport, _log, new Hello(0, ticket), new GameServerSettings().Movement);
+        _client = new GameClient(_transport, _log, new Hello(0, ticket), DevWorld.Movement());
         _accumulator = new FixedStepAccumulator(SimulationSettings.Default);
         _log.Write(LogLevel.Info, "client.connecting", $"{_options.Address}:{_options.Port} as account {_options.Account}");
     }

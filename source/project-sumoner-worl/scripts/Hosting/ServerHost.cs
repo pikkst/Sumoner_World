@@ -7,6 +7,7 @@ using SumonerWorld.Core.Transactions;
 using SumonerWorld.Core.World;
 using SumonerWorld.Game.Data;
 using SumonerWorld.Game.Net;
+using SumonerWorld.Game.World;
 using SumonerWorld.Net.Hosting;
 using SumonerWorld.Net.Server;
 using SumonerWorld.Net.Sessions;
@@ -19,7 +20,9 @@ namespace SumonerWorld.Game.Hosting;
 /// <summary>
 /// The headless dedicated server (TDD §2.4, §3.1a, §4.2): listens on UDP and runs the authoritative <see cref="GameServer"/> loop at
 /// 30 Hz from a fixed-step accumulator. The world lives in <see cref="HostOptions.WorldPath"/>: a saved world is loaded, otherwise a
-/// new one is made (until the M2 ecosystem exists: the 512 m test region with 200 seeded mossbacks) and saved at once. A checkpoint
+/// new one is made (until the M2 ecosystem exists: the 512 m test region with 200 seeded mossbacks) and saved at once. Everything
+/// walks on the <see cref="DevWorld"/> ground; creatures find paths on a navigation mesh baked from it at start-up, and Jolt gets
+/// the same ground as height-map collision (checked against the heightfield once at start). A checkpoint
 /// goes to the persistence thread every 30 s, and every intent's result is sent only after the thread made it durable; on shutdown a last checkpoint is written and a backup made.
 /// With <see cref="HostOptions.BenchmarkOut"/> it runs B2 (M0-07): a <see cref="ServerBenchmark"/> measures once the bots are in and
 /// warmed up, writes <c>summary.json</c> and <c>ticks.csv</c> there and stops the server.
@@ -44,6 +47,9 @@ public sealed partial class ServerHost : Node
     private WorldStore? _store;
     private PersistenceWriter? _writer;
     private ulong _lastCheckpoint;
+    private GodotNavigation? _navigation;
+    private GodotPhysicsQueries? _physics;
+    private bool _physicsChecked;
     private PosixSignalRegistration? _sigterm;
     private PosixSignalRegistration? _sigint;
     private volatile bool _stopRequested;
@@ -69,7 +75,7 @@ public sealed partial class ServerHost : Node
         var metered = new MeteredTransport(_transport);
         _benchmark = CreateBenchmark(metered);
         _writer = new PersistenceWriter(_store, _log);
-        var settings = new GameServerSettings { MaxPlayers = _options.MaxPlayers, LastSessionId = _store.MaxIntentSession() };
+        var settings = new GameServerSettings { MaxPlayers = _options.MaxPlayers, LastSessionId = _store.MaxIntentSession(), Movement = DevWorld.Movement() };
         _server = new GameServer(_world, metered, new DevTokenAuthenticator(_options.DevSecret), _log, settings, _benchmark, _writer);
         if (saved is null)
         {
@@ -110,6 +116,7 @@ public sealed partial class ServerHost : Node
         }
 
         _transport!.Flush();
+        CheckPhysicsOnce();
 
         ulong tick = _world!.Clock.Current.Index;
         if (_stopRequested)
@@ -147,11 +154,13 @@ public sealed partial class ServerHost : Node
 
             _writer.Dispose();
             _store!.Backup("shutdown");
-            _log.Write(LogLevel.Info, "world.shutdown", $"saved at tick {_writer.LastSavedTick} and backed up");
+            _log.Write(LogLevel.Info, "world.shutdown", $"saved at tick {_writer.LastSavedTick} and backed up; paths delivered {_world!.Paths.Delivered}, not found {_world.Paths.NotFound}, refused {_world.Paths.Refused}");
         }
 
         _store?.Dispose();
         _transport?.Dispose();
+        _physics?.Dispose();
+        _navigation?.Dispose();
         _world?.Dispose();
     }
 
@@ -167,10 +176,52 @@ public sealed partial class ServerHost : Node
         _store = WorldStore.Open(path, new WorldBackups(Path.Combine(Path.GetDirectoryName(path)!, "backups")));
         SavedWorld? saved = _store.LoadWorld();
         DataRegistry data = GameData.Load();
+        CreatureWorldSettings settings = DevWorld.Creatures(OpenGround());
         _world = saved is null
-            ? new CreatureWorld(data, new CreatureWorldSettings(), DevWorldSeed)
-            : WorldSnapshots.Restore(data, new CreatureWorldSettings(), saved.World);
+            ? new CreatureWorld(data, settings, DevWorldSeed)
+            : WorldSnapshots.Restore(data, settings, saved.World);
         return saved;
+    }
+
+    private GodotNavigation OpenGround()
+    {
+        long start = System.Diagnostics.Stopwatch.GetTimestamp();
+        var root = new Node3D { Name = "Ground" };
+        AddChild(root);
+        GodotPhysicsQueries.AddTerrainCollision(root, DevWorld.Ground);
+        _physics = new GodotPhysicsQueries(root);
+        _navigation = GodotNavigation.Bake(DevWorld.Ground);
+        _log.Write(LogLevel.Info, "world.ground", $"{DevWorld.Ground.Size} m terrain: collision added, navigation mesh baked ({_navigation.Polygons} polygons) in {System.Diagnostics.Stopwatch.GetElapsedTime(start).TotalSeconds:F1} s");
+        return _navigation;
+    }
+
+    private void CheckPhysicsOnce()
+    {
+        // Jolt sees new bodies after a physics step: compare its ground with the heightfield a second after start.
+        if (_physicsChecked || _physics is null || _world!.Clock.Current.Index < SimulationSettings.DefaultTicksPerSecond)
+        {
+            return;
+        }
+
+        _physicsChecked = true;
+        float worst = 0;
+        int misses = 0;
+        for (int i = 0; i < 64; i++)
+        {
+            float x = 8 + (i % 8 * 62);
+            float z = 8 + (i / 8 * 62);
+            if (_physics.Raycast(new System.Numerics.Vector3(x, 200, z), -System.Numerics.Vector3.UnitY, 400, out Core.Physics.RayHit hit))
+            {
+                worst = Math.Max(worst, Math.Abs(hit.Point.Y - DevWorld.Ground.HeightAt(x, z)));
+            }
+            else
+            {
+                misses++;
+            }
+        }
+
+        bool ok = misses == 0 && worst < 0.05f && _navigation!.IsReady;
+        _log.Write(ok ? LogLevel.Info : LogLevel.Error, "world.physics_check", $"64 rays: {misses} missed, largest difference to the heightfield {worst * 100:F1} cm; navigation ready {_navigation!.IsReady}");
     }
 
     private ServerBenchmark? CreateBenchmark(MeteredTransport metered)
