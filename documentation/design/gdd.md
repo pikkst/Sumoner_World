@@ -1,5 +1,5 @@
 # Sumoner World - Game Design Document
-Version: **0.1** (M0-03) · Date: 2026-10-19 · Owner: Sr Game Designer · Status: **Approved by stakeholder 2026-10-19** (PvE default, permanent creature death on Hardcore, 16-player target confirmed)
+Version: **0.2** · Date: 2026-10-21 · Owner: Sr Game Designer · Status: **Approved by stakeholder** (0.1 on 2026-10-19: PvE default, permanent creature death on Hardcore, 16-player target; 0.2 on 2026-10-21: summoned companions, §10)
 Rules: R28, R29, R50, R53, R57 · Related: `DEC-002` (monetization/art), `ADR-001` (tech), AI Bible v0.1 (`systems/ai_bible.md`), TDD v0.1 (`../technical/architecture/tdd.md`)
 
 > All numbers in this document are **design targets or starting values**. Real tuning values live in versioned data files (R08, R48), not in code or here.
@@ -111,6 +111,48 @@ Creatures are **never captured**. The player proposes a **Pact**, a magical cont
 - **Creature death:** **permanent by default** on Hardcore servers (other creatures remember the loss and grieve). Normal servers allow revival at a cost.
 - **Server presets:** *Normal / Hardcore (default) / Custom.* All values are data-driven (R08).
 
+### 10. Summoned Companions (stakeholder direction, v0.2)
+The end goal: **a Summoner's creatures are intelligent companions that can do everything the player can**: fight, explore, take
+part in quests and dungeons, gather and craft. They are upgradable, have tiers, can fuse, and each grows its own skill tree and
+its own evolving personality. Creatures are partners, not tools. They help because of the bond, and what they do still depends on
+their personality and memory (§2), never only on stats.
+
+- **What companions can do (all four, stakeholder 2026-10-21):**
+  1. **Combat and magic:** attack, defend, cast their species' spells and combo with the player (§3, §4).
+  2. **Exploration and quests:** scout ahead on their own, find things, carry out parts of quests (fetch, guard, escort) and go
+     into dungeons with the player.
+  3. **Gathering and crafting:** collect resources and work in the Sanctum, *if they want to* (§6).
+  4. **Equipment:** wear gear suited to their body (weapons, armour, charms), like the player. Gear power keeps its ceiling
+     (Pillar 3), and gear is never sold for money (DEC-002).
+- **Tiers, both kinds (stakeholder 2026-10-21):**
+  - **Rarity class per species** (some species are rarer and stronger by nature). Rarity comes from the world (where and when a
+    species lives), never from paid or random-reward items (DEC-002), and acceptance chances are never shown (M0-08).
+  - **Growth stages per creature:** each creature grows stage by stage (working target: 3 stages) through experience and bond
+    level, and its look changes with each stage. Stages are earned, never bought.
+- **Skill trees per creature:** every species has a tree. Each creature's path through it is shaped by what it has lived:
+  personality traits, the roles it has done most (combat, work, travel, AI Bible §10.5), the combos it has learned with the player
+  (§3), and bond level (which already gates abilities). Two creatures of the same species should end up different.
+- **Fusion (stakeholder 2026-10-21): both creatures must agree, and their memories merge.**
+  - Fusion is offered like a Pact (§1): **both creatures must trust the player and accept**. A creature can refuse, and being
+    pushed into it is remembered.
+  - The fused creature **keeps the most important memories of both** (core memories, and memories about the player and others),
+    and its personality is a blend of the two. It remembers being two, and can show it (grief, recognising the other's friends).
+  - Fusion is permanent. Its rules are part of the versioned Bonding contract (R29) and validated by the server like any
+    transaction (R27).
+- **Delivery:** these systems come **after M1** (M1 proves the technology). Their detailed specs go into the AI Bible (§10
+  Bonding contract) and new `systems/` documents before they are built.
+
+### Open questions for §10 (decide before building)
+1. **Fusion legal check.** Creature fusion exists in other monster games. Like mounts (M0-08), the design needs an IP/patent review
+   before it is detailed.
+2. **Fusion inputs and result:** same species only, or any two? What decides the resulting species and stage? Can a fused creature
+   fuse again?
+3. **Memory merge limits:** the mind store has fixed capacity (AI Bible §5). Rule needed for which memories survive when both are
+   full (proposal: all core memories, then the most salient episodic ones).
+4. **Rarity classes:** how many and their names, and how rarity shows in the world without a "capture chance" display.
+5. **Stage count and caps** per species, and how equipment fits each body type.
+6. **Dungeons and quests** have no design yet (structure, rewards, how companions take part).
+
 ---
 
 ## Content Specifications (EA target, v0.1)
@@ -161,3 +203,4 @@ Premium early access at **$24.99** → 1.0 at **$29.99** → paid region expansi
 ## Changelog
 - **0.1 (2026-10-19):** First version. Pillars, loops, system intent, content targets, monetization and art references.
 - **0.1 approved (2026-10-19):** Stakeholder approved via PR #1 merge, including PvE-by-default, permanent creature death on Hardcore servers, and the 16-player server target (still to be validated at M1).
+- **0.2 (2026-10-21):** §10 Summoned Companions, from the stakeholder's direction: companions can do everything the player can (combat and magic, exploration, quests and dungeons, gathering and crafting, equipment); tiers as both species rarity and per-creature growth stages; per-creature skill trees; fusion by mutual consent with merged memories. Open questions listed. Hitting creatures stays in the game (stakeholder, 2026-10-21).
