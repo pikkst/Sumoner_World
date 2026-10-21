@@ -26,6 +26,7 @@ moderator script, consent form, questionnaire, coding guide and the report tool 
 | Key | Does | What the creature remembers about the player (the tester is never told) |
 |---|---|---|
 | W A S D | walk (relative to the camera) | |
+| right mouse button + mouse, wheel | turn the camera around the character, zoom (3–25 m) | |
 | E | feed the creature in reach | `FedBy`: trust grows. After about 8 meals it shows the Trust emote |
 | F | hit it; the 3rd hit kills it | `AttackedBy`: fear, or anger in bold creatures. On a kill, the same species within 30 m remember `KilledKin` (core) and tell their group |
 | R | free it from a snare | `SavedLifeOf` (core) |
@@ -37,8 +38,8 @@ only what the player did and saw ("You feed the mossback."), never what the crea
 **No memory UI** is shown (QA plan B2, DEC-002). The dev overlay and AI Inspector exist only in debug builds.
 
 ## Self-test
-`--playtest --self-test --screenshot=file.png` walks to the snared calf, frees it, feeds it and shouts, using in-engine key events.
-It logs each line and saves a frame. Last run on the dev PC (2026-10-21): calf in reach after 1.2 s; "You free the mossback from
+`--playtest --self-test --screenshot=file.png` walks to the snared calf, frees it, feeds it and shouts, using in-engine key events,
+then turns the camera a quarter round with a right-button drag. It logs each line and saves a frame. Last run on the dev PC (2026-10-21): calf in reach after 1.2 s; "You free the mossback from
 the snare." / "You feed the mossback." / "You shout. Nothing answers."
 
 ## Telemetry (QA plan B6, M1-23c)

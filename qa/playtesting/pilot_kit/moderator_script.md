@@ -18,8 +18,8 @@ tester is never told, and never guesses from us, that creatures remember. **Neve
 ## 2. Briefing (1 min): read word for word, nothing more
 - **"This is an early prototype. Explore and interact with the creatures however you like. Please think aloud if you can."**
 - Then the controls, also word for word:
-  **"You walk with W, A, S and D. The camera follows you. When you are close to a creature, a line at the bottom shows the
-  keys you can use with it."**
+  **"You walk with W, A, S and D. Hold the right mouse button and move the mouse to turn the camera, and use the mouse wheel to
+  zoom. When you are close to a creature, a line at the bottom shows the keys you can use with it."**
 - Start the build (`--playtest`). Note the clock time when the tester can first move: that is 0:00 of play.
 
 ## 3. Free play (15 min)
