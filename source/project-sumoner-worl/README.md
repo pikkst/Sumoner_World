@@ -16,7 +16,8 @@ See `documentation/technical/architecture/ADR-001-engine-language-architecture.m
 4. For the terrain: from `source/`, run `bash scripts/fetch-terrain3d.sh` (installs the pinned Terrain3D addon, not committed), then open the project once in the editor. Without it, the test region uses a simple fallback terrain.
 5. Test region: `Godot --path project-sumoner-worl -- --region` (right mouse to look, WASD/Q/E to fly, Shift = faster; `--region-chunks=64` for 4 km)
 6. Emote showcase: `-- --showcase=grazer` or `--showcase=predator` (add `--showcase-distance=12` for a close look)
-7. Play against the dev server: start it (Docker, see `docker-compose.dev.yml`), then `Godot --path project-sumoner-worl -- --connect=127.0.0.1:7777` (WASD moves)
+7. Play against the dev server: start it (Docker, see `docker-compose.dev.yml`), then `Godot --path project-sumoner-worl -- --connect=127.0.0.1:7777` (WASD moves, right mouse turns the camera)
+8. Family test package (DEC-003): `GODOT=<Godot console exe> bash scripts/package-family.sh` → `builds/SumonerWorld-family-<commit>.zip` (needs the 4.7.2 .NET export templates; launchers and README in `packaging/family/`)
 
 ## Development rules
 Every change must pass the Definition of Done in `documentation/production/development_rules_enforcement.md`.

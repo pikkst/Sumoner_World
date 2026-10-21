@@ -67,5 +67,4 @@ The rescued calf showed Affection 0.06 s after it was freed. Two seconds later a
 (a rumour, at half strength) came closer, curious.
 
 ## Not in this build yet
-- A packaged export for remote testers.
 - Avian and real creature models.
