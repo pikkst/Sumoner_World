@@ -113,6 +113,15 @@ public enum IntentKind : byte
     /// <summary>Gather from a node (since protocol 16): target = node id; detail = how many were gathered.</summary>
     Gather = 13,
 
+    /// <summary>Start making a recipe (since protocol 17): argument = recipe index.</summary>
+    Craft = 14,
+
+    /// <summary>Put on gear (since protocol 17): target = 0 for oneself or one's creature's stable id; argument = item index.</summary>
+    Equip = 15,
+
+    /// <summary>Take off gear (since protocol 17): target as for Equip; argument = equipment position.</summary>
+    Unequip = 16,
+
     /// <summary>
     /// Cast a spell (since protocol 14): argument = index in the spells data; target = aim heading in 1/256 turns (bits 0–7),
     /// burst distance in decimetres (bits 8–23) and the ward's creature stable id (bits 24 and up, 0 = self).
@@ -143,6 +152,7 @@ public enum IntentKind : byte
 /// <param name="Learned">Learned skill bits (since protocol 13).</param>
 /// <param name="Affinity">How much it likes each branch of its tree, in branch order (since protocol 13).</param>
 /// <param name="Combos">Learned combo bits (since protocol 15).</param>
+/// <param name="Worn">What it wears (since protocol 17).</param>
 public readonly record struct CompanionEntry(
     ulong Id,
     byte Species,
@@ -153,7 +163,8 @@ public readonly record struct CompanionEntry(
     byte Points = 0,
     ulong Learned = 0,
     Affinities Affinity = default,
-    byte Combos = 0);
+    byte Combos = 0,
+    WornItems Worn = default);
 
 /// <summary>Up to four branch affinities (−128…127), in branch order.</summary>
 /// <param name="Count">How many branches.</param>
@@ -193,10 +204,61 @@ public readonly record struct CompanionList(IReadOnlyList<CompanionEntry> Entrie
 /// <param name="Count">How many.</param>
 public readonly record struct InventoryEntry(int Item, int Count);
 
+/// <summary>Worn items by equipment position (item index + 1, 0 = empty), since protocol 17.</summary>
+/// <param name="Weapon">Weapon.</param>
+/// <param name="OffHand">Off hand.</param>
+/// <param name="Head">Head.</param>
+/// <param name="Body">Body.</param>
+/// <param name="Charm1">First charm.</param>
+/// <param name="Charm2">Second charm.</param>
+public readonly record struct WornItems(ushort Weapon, ushort OffHand, ushort Head, ushort Body, ushort Charm1, ushort Charm2)
+{
+    /// <summary>The item worn at position <paramref name="index"/> (−1 when empty).</summary>
+    public int this[int index] => index switch
+    {
+        0 => Weapon,
+        1 => OffHand,
+        2 => Head,
+        3 => Body,
+        4 => Charm1,
+        _ => Charm2,
+    } - 1;
+
+    /// <summary>Writes the six positions.</summary>
+    public void Write(ref MessageWriter writer)
+    {
+        for (int i = 0; i < 6; i++)
+        {
+            writer.WriteVarUInt((ulong)(this[i] + 1));
+        }
+    }
+
+    /// <summary>Reads the six positions.</summary>
+    public static WornItems Read(ref MessageReader reader)
+    {
+        Span<ushort> at = stackalloc ushort[6];
+        for (int i = 0; i < 6; i++)
+        {
+            at[i] = Small(ref reader);
+        }
+
+        return new WornItems(at[0], at[1], at[2], at[3], at[4], at[5]);
+    }
+
+    /// <summary>Reads a value that must fit in 16 bits.</summary>
+    public static ushort Small(ref MessageReader reader)
+    {
+        ulong value = reader.ReadVarUInt();
+        return value <= ushort.MaxValue ? (ushort)value : throw new MalformedMessageException($"Value {value} does not fit in 16 bits.");
+    }
+}
+
 /// <summary>Server → client, reliable (since protocol 16): the receiver's gold and non-empty slots, in slot order.</summary>
 /// <param name="Gold">Gold.</param>
 /// <param name="Entries">At most <see cref="MaxEntries"/>.</param>
-public readonly record struct InventoryList(int Gold, IReadOnlyList<InventoryEntry> Entries)
+/// <param name="Worn">What the receiver wears (since protocol 17).</param>
+/// <param name="Crafting">The recipe being made + 1, 0 = none (since protocol 17).</param>
+public readonly record struct InventoryList(int Gold, IReadOnlyList<InventoryEntry> Entries, WornItems Worn = default, int Crafting = 0)
 {
     /// <summary>Most slots sent.</summary>
     public const int MaxEntries = 24;
@@ -222,6 +284,9 @@ public sealed class InventoryListCodec : IMessageCodec<InventoryList>
             writer.WriteVarUInt((ulong)entry.Item);
             writer.WriteVarUInt((ulong)entry.Count);
         }
+
+        message.Worn.Write(ref writer);
+        writer.WriteVarUInt((ulong)Math.Max(0, message.Crafting));
     }
 
     /// <inheritdoc />
@@ -247,8 +312,10 @@ public sealed class InventoryListCodec : IMessageCodec<InventoryList>
             entries[i] = new InventoryEntry((int)item, (int)number);
         }
 
+        WornItems worn = WornItems.Read(ref reader);
+        int crafting = WornItems.Small(ref reader);
         reader.EnsureEnd();
-        return new InventoryList((int)gold, entries);
+        return new InventoryList((int)gold, entries, worn, crafting);
     }
 }
 
@@ -282,6 +349,7 @@ public sealed class CompanionListCodec : IMessageCodec<CompanionList>
             }
 
             writer.WriteByte(entry.Combos);
+            entry.Worn.Write(ref writer);
         }
     }
 
@@ -322,7 +390,7 @@ public sealed class CompanionListCodec : IMessageCodec<CompanionList>
                 affinity[b] = unchecked((sbyte)reader.ReadByte());
             }
 
-            entries[i] = new CompanionEntry(id, species, summoned == 1, level, stage, bondLevel, points, learned, Affinities.Of(affinity[..branches]), reader.ReadByte());
+            entries[i] = new CompanionEntry(id, species, summoned == 1, level, stage, bondLevel, points, learned, Affinities.Of(affinity[..branches]), reader.ReadByte(), WornItems.Read(ref reader));
         }
 
         reader.EnsureEnd();

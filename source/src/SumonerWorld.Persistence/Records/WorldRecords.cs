@@ -41,6 +41,10 @@ public sealed record PlayerRecord
     /// <summary>Inventory slots by item id.</summary>
     [Key(8)]
     public IReadOnlyList<SlotRecord> Items { get; init; } = [];
+
+    /// <summary>Worn item ids by position (M2-14); empty in older saves.</summary>
+    [Key(9)]
+    public IReadOnlyList<string> Equipped { get; init; } = [];
 }
 
 /// <summary>A saved inventory slot.</summary>
@@ -95,6 +99,10 @@ public sealed record CreatureRecord
     /// <summary>Combos (M2-12); null in saves from before they existed.</summary>
     [Key(8)]
     public CombosRecord? Combos { get; init; }
+
+    /// <summary>Worn item ids by position (M2-14); empty in older saves.</summary>
+    [Key(9)]
+    public IReadOnlyList<string> Equipped { get; init; } = [];
 }
 
 /// <summary>A creature's combos (combat spec §10): learned bits, landings per combo, times it started one by itself.</summary>

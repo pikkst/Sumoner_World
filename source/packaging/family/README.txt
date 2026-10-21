@@ -43,7 +43,11 @@ The game plays on the local dev server, which runs in Docker on this PC. Nothing
    obeys at once; one that is unsure pauses or does it its own way; one may even refuse.
    Loot: a defeated creature leaves a bag for everyone who fought it; walk onto your bag to pick it up.
    H gathers from a berry bush, a sweetroot patch or fallen branches nearby (they grow back by the next day).
-   I shows your inventory and gold.
+   I shows your inventory and gold. While it is open: 1-9 puts on gear from your bag (a staff,
+   a vest, a charm), Shift + 1-6 takes off what you wear there, O switches to a companion at
+   your side, so you can dress it too (a bird wears only a charm or a hat).
+   B opens crafting: press a recipe's number to make it. Stand still for a few seconds; if
+   something hits you, you stop and lose nothing.
    K opens the companion panel: your companion's level, bond and skill tree. Teach it a skill with
    1-9 or a click. It likes some branches more than others; a branch it dislikes costs 2 points.
    P opens the Pact menu: choose up to 3 promises with the number keys 1-6 (or click them),

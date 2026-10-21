@@ -15,7 +15,9 @@ namespace SumonerWorld.Game.Playtest;
 /// right-button drag that turns the camera a quarter round, Space held for a dodge, then Z (summon the companion the
 /// <see cref="SelfTestFixture"/> gave), W held for a moment (it follows, M2-07), the commands 2 (guard me) and 3 (hold here),
 /// W again (it holds), 4 (come back, M2-08), X (send it back), and the companion panel (K, M2-10): it logs the skill tree and
-/// teaches skill 2; then the spells (M2-11): C thornbolt, V entangle, G mend. It logs the interaction lines, the attack's result and the calf's health, the own stamina, the calf's
+/// teaches skill 2; then the spells (M2-11): C thornbolt, V entangle, G mend; the inventory (I, M2-13); crafting (B, M2-14): it makes
+/// a wooden staff from the branches the fixture gave, then puts the first gear in the bag on (I, 1).
+///  It logs the interaction lines, the attack's result and the calf's health, the own stamina, the calf's
 /// emote while it answers and the answer line, then watches for <see cref="WatchSeconds"/> so the creature can react.
 /// <see cref="Done"/> lets the host take its screenshot afterwards.
 /// </summary>
@@ -24,6 +26,7 @@ public sealed partial class PlaytestSelfTest(
     CompanionBar companions,
     CompanionPanel panel,
     Items.ItemControls items,
+    Items.GearControls gear,
     CombatControls combat, LockOn lockOn, GameClient client, OrbitCamera camera, Func<bool> worldShown, ILog log, Action<string> capture)
     : Node
 {
@@ -31,7 +34,7 @@ public sealed partial class PlaytestSelfTest(
     private const float CloseMetres = 3f; // inside the basic attack's reach of a mossback (2 m + its 1.6 m body)
     private const double StepSeconds = 1.2;
     private const double WatchSeconds = 6;
-    private const int LastStep = 29;
+    private const int LastStep = 37;
 
     private double _clock;
     private double _walking;
@@ -223,6 +226,45 @@ public sealed partial class PlaytestSelfTest(
                 log.Write(LogLevel.Info, "selftest.items", OneLine(items.InventoryText));
                 capture("inventory");
                 PressKey(Key.I);
+                break;
+            default:
+                return GearStep();
+        }
+
+        return true;
+    }
+
+    // Crafting and gear (M2-14); false when every step is done.
+    private bool GearStep()
+    {
+        switch (_step)
+        {
+            case 30:
+                PressKey(Key.B);
+                break;
+            case 31:
+                log.Write(LogLevel.Info, "selftest.craft", OneLine(gear.CraftingText));
+                capture("crafting");
+                gear.Craft(3); // the wooden staff, 3 seconds
+                break;
+            case 32:
+                log.Write(LogLevel.Info, "selftest.craft", $"{controls.Feedback}; making #{client.Inventory.Crafting}");
+                break;
+            case 35:
+                log.Write(LogLevel.Info, "selftest.craft", $"{controls.Feedback}; making #{client.Inventory.Crafting}");
+                PressKey(Key.B);
+                PressKey(Key.I);
+                break;
+            case 36:
+                log.Write(LogLevel.Info, "selftest.gear", OneLine(gear.GearText));
+                PressKey(Key.Key1);
+                break;
+            case 37:
+                log.Write(LogLevel.Info, "selftest.gear", $"{controls.Feedback}; {OneLine(gear.GearText)}");
+                capture("gear");
+                PressKey(Key.I);
+                break;
+            case 33 or 34:
                 break;
             default:
                 return false;

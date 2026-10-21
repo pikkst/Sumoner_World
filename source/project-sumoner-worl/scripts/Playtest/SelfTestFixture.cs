@@ -24,6 +24,15 @@ public static class SelfTestFixture
         world.Economy.AddNode(bush, at);
     }
 
+    /// <summary>Three fallen branches (for the wooden staff) and a mossback charm in the bag (M2-14), so it can craft and put gear on.</summary>
+    public static void GiveMaterials(GameServer server, ulong account)
+    {
+        ArgumentNullException.ThrowIfNull(server);
+        CreatureWorld world = server.World;
+        world.Economy.Inventories.Of(account).Add(
+            world.Data, [new Core.Items.ItemCount(world.Data.ItemIndex("mossback_charm"), 1), new Core.Items.ItemCount(world.Data.ItemIndex("fallen_branch"), 3)]);
+    }
+
     /// <summary>Pacts the first hollow owl to <paramref name="account"/>; false when the world has none.</summary>
     public static bool GiveCompanion(GameServer server, ulong account)
     {

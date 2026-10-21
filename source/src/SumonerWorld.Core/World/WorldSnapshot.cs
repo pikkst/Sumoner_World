@@ -29,6 +29,7 @@ public sealed record WorldSnapshot(
 /// <param name="Growth">Tier, level, stage and experience (M2-09); null in saves from before it existed.</param>
 /// <param name="Skills">Learned skills and spent points (M2-10); null in saves from before they existed.</param>
 /// <param name="Combos">Learned combos and landings (M2-12); null in saves from before they existed.</param>
+/// <param name="Equipped">Worn item ids by position (M2-14); null in older saves.</param>
 public sealed record CreatureSave(
     StableId Id,
     string Species,
@@ -39,7 +40,8 @@ public sealed record CreatureSave(
     BondState Bond,
     Progression.CreatureGrowth? Growth = null,
     Progression.CreatureSkills? Skills = null,
-    Combat.CreatureCombos? Combos = null);
+    Combat.CreatureCombos? Combos = null,
+    IReadOnlyList<string>? Equipped = null);
 
 /// <summary>One saved reputation score.</summary>
 /// <param name="Species">Species data id.</param>
@@ -53,7 +55,34 @@ public readonly record struct ReputationSave(string Species, int Region, ulong P
 /// <param name="Position">Where the avatar was last.</param>
 /// <param name="Progress">Class, rank, level and experience (M2-09); null in saves from before it existed (a new player's).</param>
 /// <param name="Inventory">Gold and items (M2-13); null in saves from before it existed (empty).</param>
-public readonly record struct PlayerSave(ulong Account, Vector3 Position, Progression.PlayerProgress? Progress = null, InventorySave? Inventory = null);
+/// <param name="Equipped">Worn item ids by position (M2-14); empty strings for empty positions; null in older saves.</param>
+public readonly record struct PlayerSave(
+    ulong Account, Vector3 Position, Progression.PlayerProgress? Progress = null, InventorySave? Inventory = null, IReadOnlyList<string>? Equipped = null)
+{
+    /// <summary>Equal when every field is, the worn ids compared position by position (a missing position is empty).</summary>
+    public bool Equals(PlayerSave other) =>
+        Account == other.Account && Position == other.Position && Progress == other.Progress && Equals(Inventory, other.Inventory)
+        && SameWorn(Equipped, other.Equipped);
+
+    private static bool SameWorn(IReadOnlyList<string>? a, IReadOnlyList<string>? b)
+    {
+        int count = Math.Max(a?.Count ?? 0, b?.Count ?? 0);
+        for (int i = 0; i < count; i++)
+        {
+            string left = a is not null && i < a.Count ? a[i] : string.Empty;
+            string right = b is not null && i < b.Count ? b[i] : string.Empty;
+            if (left != right)
+            {
+                return false;
+            }
+        }
+
+        return true;
+    }
+
+    /// <inheritdoc />
+    public override int GetHashCode() => HashCode.Combine(Account, Position);
+}
 
 /// <summary>A saved inventory: gold and the slots by item id (so a reordered items file cannot mix them up).</summary>
 /// <param name="Gold">Gold.</param>

@@ -101,6 +101,21 @@ and if they want to.
 - **Safety:** pick-up and gathering are atomic transactions: everything fits or nothing changes; a repeated intent gets the
   first answer (tests). Graves on death (§9), vendors (§3) and trading come later.
 
+## 12. Implementation notes (M2-14)
+- **Data:** `data/items/recipes.json` (six hand recipes: berry meal, sweetroot bundle, sigil ink, wooden staff, leather vest,
+  mossback charm); gear items name their `slot`, `wearers` (`player` and body types), `minLevel` and `stats` (power %, guard,
+  resists, stamina). The loader checks every recipe's items, counts and time, and that gear names known wearers.
+- **Crafting:** B opens the panel, a number starts a recipe (`Craft`, protocol 17). It takes the recipe's time; a hit on the
+  crafter or a move it starts stops it and nothing is used up; when the time is up, inputs and output change in one step if
+  they still fit. Only hand recipes for now: campfire, workbench and forge recipes are refused until the Sanctum has them.
+- **Equipment:** six positions (weapon, off hand, head, body, two charms); creatures use only those their body has
+  (quadrupeds head, body, a charm; birds head, a charm). With the inventory open (I), a number puts gear on, Shift + number
+  takes it off, O switches between oneself and the companions at one's side. Gear is refused below its level or on the
+  wrong body. Stats are recomputed from scratch (base, level, skills, gear), so nothing adds up twice; worn gear is saved by
+  item id with the player and with each creature.
+- **Safety:** craft, equip and unequip are atomic, idempotent transactions (tests); equipping on someone else's creature is
+  refused. Durability, quality, stations and recipe discovery come later.
+
 ## Changelog
 - **0.2 (2026-10-21):** approved with the stakeholder's answers: a first loot system with **gold, item drops and inventory**
   (§3, §4, personal loot bags), so killing now drops loot (its memory consequences stay); gold vendors, respecs and repairs;

@@ -28,8 +28,10 @@ public sealed class DataRegistry : IDataRegistry
         IReadOnlyList<ComboDefinition> combos,
         IReadOnlyList<ItemDefinition> items,
         IReadOnlyList<LootTableDefinition> lootTables,
-        IReadOnlyList<GatherNodeDefinition> gatherNodes)
+        IReadOnlyList<GatherNodeDefinition> gatherNodes,
+        IReadOnlyList<RecipeDefinition> recipes)
     {
+        Recipes = recipes;
         Items = items;
         GatherNodes = gatherNodes;
         _itemIndexById = items.Select((definition, index) => (definition.Id, index)).ToDictionary(item => item.Id, item => item.index, StringComparer.Ordinal);
@@ -97,6 +99,9 @@ public sealed class DataRegistry : IDataRegistry
 
     /// <inheritdoc />
     public IReadOnlyList<GatherNodeDefinition> GatherNodes { get; }
+
+    /// <inheritdoc />
+    public IReadOnlyList<RecipeDefinition> Recipes { get; }
 
     /// <inheritdoc />
     public int ItemIndex(string id)

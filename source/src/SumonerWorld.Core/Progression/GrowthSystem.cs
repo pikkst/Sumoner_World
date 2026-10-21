@@ -122,7 +122,7 @@ public sealed class GrowthSystem : ISimulationSystem
         {
             if (_players.Components[i].AccountId == account && _progress.Has(players[i]))
             {
-                PlayerGrowth.Earn(_world.Growth, ref _progress.Get(players[i]), ref _combatants.Get(players[i]), _world.Data.Combat.Player, xp);
+                Items.PlayerStats.Earn(_world, players[i], xp);
             }
         }
     }

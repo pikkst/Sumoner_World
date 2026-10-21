@@ -52,6 +52,15 @@ internal sealed class PlayerIntents(CreatureWorld world, TransactionProcessor tr
             case IntentKind.Gather:
                 var gather = new GatherTransaction(world, avatar, request.Target);
                 return transactions.Execute(id, ref gather, now);
+            case IntentKind.Craft:
+                var craft = new CraftTransaction(world, avatar, request.Argument);
+                return transactions.Execute(id, ref craft, now);
+            case IntentKind.Equip:
+                var equip = new EquipTransaction(world, avatar, target, request.Argument);
+                return Changed(transactions.Execute(id, ref equip, now), target, out changed);
+            case IntentKind.Unequip:
+                var unequip = new UnequipTransaction(world, avatar, target, (EquipPosition)request.Argument);
+                return Changed(transactions.Execute(id, ref unequip, now), target, out changed);
             case IntentKind.Cast:
                 var cast = new CastTransaction(
                     world, avatar, request.Argument, (byte)(request.Target & 0xFF), ((request.Target >> 8) & 0xFFFF) / 10f, new StableId(request.Target >> 24));

@@ -45,6 +45,7 @@ internal static class SaveMapping
                 TravelCm = growth.TravelCm,
             }
             : null,
+        Equipped = save.Equipped ?? [],
         Combos = save.Combos is CreatureCombos combos
             ? new CombosRecord { Learned = combos.Learned, Landed = [combos.Landed0, combos.Landed1, combos.Landed2, combos.Landed3], SelfStarted = combos.SelfStarted }
             : null,
@@ -74,7 +75,8 @@ internal static class SaveMapping
                 ? new CreatureGrowth(growth.Tier, growth.Level, growth.Stage, growth.CombatXp, growth.WorkXp, growth.TravelXp, growth.TravelCm)
                 : null,
             record.Skills is SkillsRecord skills ? new CreatureSkills(skills.Learned, skills.UnspentSince, 0, skills.Spent, skills.PickedItself) : null,
-            record.Combos is CombosRecord combos ? Combos(combos) : null);
+            record.Combos is CombosRecord combos ? Combos(combos) : null,
+            record.Equipped);
     }
 
     private static CreatureCombos Combos(CombosRecord record)

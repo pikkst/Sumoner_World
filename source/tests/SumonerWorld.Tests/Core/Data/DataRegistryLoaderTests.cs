@@ -335,6 +335,37 @@ public class DataRegistryLoaderTests
             registry.Combos.Select(combo => (combo.Id, combo.Effect, combo.MoveTag, combo.DamagePercent, combo.StaggerTicks, combo.LearnAfter, combo.TriggerSpell)).Single());
     }
 
+    [Fact]
+    public void Recipes_name_known_items_and_gear_names_its_wearers()
+    {
+        List<DataFile> files = ReadShippedData();
+        Replace(files, "recipes.json", "{ \"item\": \"fallen_branch\", \"count\": 3 }", "{ \"item\": \"dragon_bone\", \"count\": 3 }");
+        Replace(files, "recipes.json", "\"ticks\": 90", "\"ticks\": 0");
+        Replace(files, "items.json", "\"wearers\": [\"player\"]", "\"wearers\": [\"dragon\"]");
+
+        var error = Assert.Throws<DataValidationException>(() => DataRegistryLoader.Load(files));
+
+        string[] expected = ["dragon_bone", "ticks", "names its wearers"];
+        Assert.All(expected, fragment => Assert.Contains(error.Errors, message => message.Contains(fragment, StringComparison.Ordinal)));
+    }
+
+    [Fact]
+    public void The_shipped_wooden_staff_is_made_by_hand_from_three_branches()
+    {
+        DataRegistry registry = DataRegistryLoader.Load(ReadShippedData());
+
+        RecipeDefinition staff = registry.Recipes.Single(recipe => recipe.Id == "wooden_staff");
+        Assert.Equal((CraftStation.Hand, "fallen_branch", 3), (staff.Station, staff.Inputs.Single().Item, staff.Inputs.Single().Count));
+        Assert.Equal((EquipSlot.Weapon, 10), (registry.Items[registry.ItemIndex("wooden_staff")].Slot, registry.Items[registry.ItemIndex("wooden_staff")].Stats.Power));
+    }
+
+    private static void Replace(List<DataFile> files, string name, string find, string replace)
+    {
+        int index = files.FindIndex(file => file.Path.EndsWith(name, StringComparison.Ordinal));
+        Assert.Contains(find, files[index].Content, StringComparison.Ordinal);
+        files[index] = files[index] with { Content = files[index].Content.Replace(find, replace, StringComparison.Ordinal) };
+    }
+
     private static string SpeciesJson(string id) => $$"""
         { "schemaVersion": 1, "kind": "species", "entries": [ {
           "id": "{{id}}", "nameKey": "species.{{id}}.name", "role": "grazer", "bodyType": "quadruped", "group": "herd",

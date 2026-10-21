@@ -358,12 +358,13 @@ public class AuthoritativeLoopTests
     }
 
     [Fact]
-    public void Saved_players_reappear_where_they_were_and_are_captured_with_the_players_in_the_world()
+    public void Saved_players_reappear_where_they_were_with_what_they_wear_and_are_captured_with_the_players_in_the_world()
     {
         using var lan = new Lan(0);
         var veteran = new PlayerProgress((int)SummonerClass.Elf, (int)Rank.E, 12, lan.World.Growth.XpFor(12));
         var bag = new InventorySave(12, [new SavedItem("fox_fur", 3)]);
-        lan.Server.RestorePlayers([new PlayerSave(1001, new Vector3(100, 0, 120), veteran, bag), new PlayerSave(3003, new Vector3(5, 0, 5))]);
+        string[] worn = ["wooden_staff", string.Empty, string.Empty, string.Empty, "mossback_charm", string.Empty];
+        lan.Server.RestorePlayers([new PlayerSave(1001, new Vector3(100, 0, 120), veteran, bag, worn), new PlayerSave(3003, new Vector3(5, 0, 5))]);
         lan.Join(1001);
         lan.Join(1002);
         lan.Run(10, _ => MoveInput.None);
@@ -374,9 +375,10 @@ public class AuthoritativeLoopTests
         Combatant aliceStats = lan.World.World.GetComponent<Combatant>(alice);
         Assert.True(aliceStats.MaxHealth > lan.World.Data.Combat.Player.Health, "a level 12 summoner has more health than a new one");
         Assert.Equal(aliceStats.MaxHealth, aliceStats.Health);
+        Assert.Equal(lan.World.Data.Combat.Player.Resist.Primal + 100, aliceStats.ResistPrimal);
         Assert.Equal(
             [
-                new PlayerSave(1001, new Vector3(100, 0, 120), veteran, bag),
+                new PlayerSave(1001, new Vector3(100, 0, 120), veteran, bag, worn),
                 new PlayerSave(1002, lan.Settings.SpawnPoint, PlayerProgress.New, new InventorySave(0, [])),
                 new PlayerSave(3003, new Vector3(5, 0, 5)),
             ],

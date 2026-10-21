@@ -53,6 +53,9 @@ public interface IDataRegistry
     /// <summary>Gathering node kinds, ordered by id (crafting spec §5).</summary>
     IReadOnlyList<GatherNodeDefinition> GatherNodes { get; }
 
+    /// <summary>Recipes in file order (crafting spec §6); a recipe's index is what the client names it by.</summary>
+    IReadOnlyList<RecipeDefinition> Recipes { get; }
+
     /// <summary>Index of the item with this id in <see cref="Items"/>; throws when unknown.</summary>
     int ItemIndex(string id);
 

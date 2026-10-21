@@ -173,9 +173,11 @@ public sealed partial class ClientHost : Node
         AddChild(_companionPanel);
         _items = new Items.ItemControls(_client!, data, controls, () => _avatar?.Feet ?? Vector3.Zero);
         AddChild(_items);
+        var gear = new Items.GearControls(_client!, data, controls, () => _items.InventoryOpen);
+        AddChild(gear);
         if (_options.SelfTest)
         {
-            _selfTest = new PlaytestSelfTest(controls, _companionBar, _companionPanel, _items, _combat, _lockOn, _client!, _orbit, () => _views.Shown > 0 && _elapsed > ScreenshotAfterSeconds, _log, Capture);
+            _selfTest = new PlaytestSelfTest(controls, _companionBar, _companionPanel, _items, gear, _combat, _lockOn, _client!, _orbit, () => _views.Shown > 0 && _elapsed > ScreenshotAfterSeconds, _log, Capture);
             AddChild(_selfTest);
         }
 

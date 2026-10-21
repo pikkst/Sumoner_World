@@ -172,6 +172,7 @@ public sealed record CreatureSystems(
         scheduler.Register(Fight.Status);
         scheduler.Register(Fight.Vitals);
         scheduler.Register(Fight.Loot);
+        scheduler.Register(Fight.Crafting);
         scheduler.Register(Growth);
         scheduler.Register(Skills);
         scheduler.Register(ReputationFlush);
@@ -186,8 +187,16 @@ public sealed record CreatureSystems(
 /// <param name="Status">Status effects over time: mending, expiry (M2-11).</param>
 /// <param name="Vitals">Regeneration, yield, defeat (combat spec §5, §6).</param>
 /// <param name="Loot">Personal loot bags from defeated creatures (M2-13).</param>
+/// <param name="Crafting">Finishing crafts, or interrupting them on a hit (M2-14).</param>
 public sealed record FightSystems(
-    CreatureAttackSystem Attacks, CombatSystem Combat, CompanionAlertSystem Alerts, ComboSystem Combos, StatusSystem Status, VitalsSystem Vitals, LootSystem Loot)
+    CreatureAttackSystem Attacks,
+    CombatSystem Combat,
+    CompanionAlertSystem Alerts,
+    ComboSystem Combos,
+    StatusSystem Status,
+    VitalsSystem Vitals,
+    LootSystem Loot,
+    CraftingSystem Crafting)
 {
     /// <summary>Builds them for a world.</summary>
     public static FightSystems Create(CreatureWorld world) =>
@@ -198,7 +207,8 @@ public sealed record FightSystems(
             new ComboSystem(world),
             new StatusSystem(world.World),
             new VitalsSystem(world),
-            new LootSystem(world));
+            new LootSystem(world),
+            new CraftingSystem(world));
 }
 
 /// <summary>
