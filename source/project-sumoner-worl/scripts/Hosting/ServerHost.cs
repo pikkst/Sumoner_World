@@ -96,6 +96,7 @@ public sealed partial class ServerHost : Node
             LastSessionId = _store.MaxIntentSession(),
             Movement = DevWorld.Movement(),
             DevTools = _options.DevTools,
+            Hardcore = _options.Hardcore,
         };
         _server = new GameServer(_world, metered, new DevTokenAuthenticator(_options.DevSecret), _log, settings, _benchmark, _writer);
         if (saved is null)

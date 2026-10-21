@@ -40,6 +40,9 @@ public class HostOptionsTests
         Assert.False(HostOptions.Parse([], NoEnvironment).DevTools);
         Assert.True(HostOptions.Parse([], name => name == "SW_DEV_TOOLS" ? "1" : null).DevTools);
         Assert.True(HostOptions.Parse(["--server", "--dev-tools"], NoEnvironment).DevTools);
+        Assert.True(HostOptions.Parse(["--server", "--hardcore"], NoEnvironment).Hardcore);
+        Assert.True(HostOptions.Parse([], name => name == "SW_HARDCORE" ? "1" : null).Hardcore);
+        Assert.False(HostOptions.Parse(["--server"], NoEnvironment).Hardcore);
 
         HostOptions nearest = HostOptions.Parse(["--connect=127.0.0.1:7777", "--inspect=nearest"], NoEnvironment);
         HostOptions byId = HostOptions.Parse(["--inspect=42"], NoEnvironment);

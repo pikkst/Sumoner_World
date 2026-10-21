@@ -10,9 +10,10 @@ namespace SumonerWorld.Game.Combat;
 /// Combat on mouse and keyboard (combat spec §3–§5): a left click attacks with the basic move, holding the left button for
 /// <see cref="HeavyHoldSeconds"/> and releasing does the heavy one, both aimed where the camera looks. Shift held is the
 /// guard (block, and a parry if raised just before a hit), Space dodges along the movement. Block and dodge travel as input
-/// buttons every tick (<see cref="Buttons"/>); attacks are intents, so the server checks stamina and timing.
+/// buttons every tick (<see cref="Buttons"/>); attacks are intents, so the server checks stamina and timing. While locked on
+/// (<see cref="LockOn"/>), attacks aim at the target instead of along the camera.
 /// </summary>
-public sealed partial class CombatControls(GameClient client, Func<Camera3D?> camera) : Node
+public sealed partial class CombatControls(GameClient client, Func<Camera3D?> camera, Func<(Vector3 Player, Vector3 Target)?> locked) : Node
 {
     /// <summary>Holding the left button at least this long makes the attack heavy.</summary>
     public const double HeavyHoldSeconds = 0.4;
@@ -41,6 +42,11 @@ public sealed partial class CombatControls(GameClient client, Func<Camera3D?> ca
 
         Basis basis = view.GlobalBasis;
         var ahead = new System.Numerics.Vector3(-basis.Z.X, 0, -basis.Z.Z);
+        if (locked() is (Vector3 player, Vector3 target))
+        {
+            ahead = new System.Numerics.Vector3(target.X - player.X, 0, target.Z - player.Z);
+        }
+
         byte heading = Snapshot.EncodeFacing(ahead);
         _lastAttack = client.SendIntent(IntentKind.Attack, heading, heavy ? HeavySlot : BasicSlot);
     }

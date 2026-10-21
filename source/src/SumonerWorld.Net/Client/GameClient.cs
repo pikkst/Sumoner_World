@@ -58,6 +58,9 @@ public sealed class GameClient : IClientSessionHandler
     /// <summary>Remote entities for presentation, interpolated 100 ms in the past; the host advances it every frame.</summary>
     public RemoteInterpolation Remote { get; } = new();
 
+    /// <summary>True when the server allows lock-on (Normal preset; not on Hardcore).</summary>
+    public bool LockOnAllowed => Session.Session is Welcome welcome && (welcome.Rules & ServerRules.LockOn) != 0;
+
     /// <summary>The own character's vitals and combat action from the newest snapshot (since protocol 7).</summary>
     public SnapshotVitals OwnVitals { get; private set; } = new(byte.MaxValue, byte.MaxValue, byte.MaxValue, 0);
 

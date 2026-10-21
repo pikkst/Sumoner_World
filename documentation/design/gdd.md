@@ -82,6 +82,8 @@ Creatures are **never captured**. The player proposes a **Pact**, a magical cont
 
 ### 3. Combat (real-time action)
 - Stamina-based melee + spellcasting. Directional dodge and block/parry. Readable enemy telegraphs (souls-lite).
+- **Lock-on** (stakeholder 2026-10-21): the camera can lock on to an enemy so attacks and combos aim at it; **not on Hardcore
+  servers**. See the combat spec §11a.
 - **Summoner tactics:** quick commands (attack target, guard me, hold, retreat, combo with my spell). How well a command is carried out depends on bond, trust and the creature's personality.
 - **Combos with creatures:** player spell + creature ability combos (e.g. a frost spell freezes a target and a heavy creature shatters it). Combos are learned by the creature through repetition (Pillar 1 + 3).
 - All combat values are data-driven and validated on the server (R08, R30).
@@ -118,7 +120,8 @@ Creatures are **never captured**. The player proposes a **Pact**, a magical cont
 ### 9. Death & Difficulty (hardcore)
 - **On death:** you respawn at the Sanctum or a shrine. Your carried inventory stays at a **grave** you must go back for (Valheim-style). Your bonded creatures react to your death based on their bond: they defend your grave, flee or go wild.
 - **Creature death:** on **Normal** servers (the default) a fallen companion can be revived at a cost. On **Hardcore** servers creature death is permanent. Either way, other creatures remember the loss and grieve.
-- **Server presets:** *Normal (default, stakeholder 2026-10-21) / Hardcore / Custom.* All values are data-driven (R08).
+- **Server presets:** *Normal (default, stakeholder 2026-10-21) / Hardcore / Custom.* All values are data-driven (R08). Hardcore
+  also turns off lock-on (§3).
 
 ### 10. Summoned Companions (stakeholder direction, v0.2)
 The end goal: **a Summoner's creatures are intelligent companions that can do everything the player can**: fight, explore, take

@@ -41,6 +41,9 @@ public sealed class GameServerSettings
     /// creature minds to any connected client and costs server time.
     /// </summary>
     public bool DevTools { get; init; }
+
+    /// <summary>Hardcore preset (GDD §9): no lock-on for clients. Normal is the default.</summary>
+    public bool Hardcore { get; init; }
 }
 
 /// <summary>
@@ -102,7 +105,10 @@ public sealed class GameServer : IServerSessionHandler
         _log = log;
         _settings = settings;
         _journal = journal;
-        _endpoint = new ServerEndpoint(transport, authenticator, log, settings.MaxPlayers, this, settings.LastSessionId);
+        _endpoint = new ServerEndpoint(transport, authenticator, log, settings.MaxPlayers, this, settings.LastSessionId)
+        {
+            Rules = settings.Hardcore ? ServerRules.None : ServerRules.LockOn,
+        };
         Movement = new MovementModel(settings.Movement);
         Transactions = new TransactionProcessor(_dedupe);
         _snapshots = new SnapshotSender(world, transport, settings.InterestRadius);

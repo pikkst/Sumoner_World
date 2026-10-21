@@ -63,6 +63,7 @@ public sealed partial class ClientHost : Node
     private PlaytestSelfTest? _selfTest;
     private OrbitCamera? _orbit;
     private CombatControls? _combat;
+    private LockOn? _lockOn;
     private byte _ownHealth = byte.MaxValue;
     private Core.Data.DataRegistry? _data;
     private bool _inspectRequested;
@@ -151,12 +152,15 @@ public sealed partial class ClientHost : Node
         AddChild(_views);
         var controls = new InteractionControls(_client!, _views, data, () => _avatar?.GlobalPosition ?? Vector3.Zero);
         AddChild(controls);
-        _combat = new CombatControls(_client!, () => _region?.Camera);
+        _lockOn = new LockOn(_client!, _views, () => _region?.Camera, () => _avatar?.GlobalPosition ?? Vector3.Zero);
+        AddChild(_lockOn);
+        _combat = new CombatControls(
+            _client!, () => _region?.Camera, () => _lockOn.TryGetTarget(out Vector3 target) && _avatar is not null ? (_avatar.GlobalPosition, target) : null);
         AddChild(_combat);
         AddChild(new CombatHud(_client!));
         if (_options.SelfTest)
         {
-            _selfTest = new PlaytestSelfTest(controls, _combat, _client!, _orbit, () => _views.Shown > 0 && _elapsed > ScreenshotAfterSeconds, _log);
+            _selfTest = new PlaytestSelfTest(controls, _combat, _lockOn, _client!, _orbit, () => _views.Shown > 0 && _elapsed > ScreenshotAfterSeconds, _log);
             AddChild(_selfTest);
         }
 
@@ -193,7 +197,8 @@ public sealed partial class ClientHost : Node
 
         _ownHealth = _client.OwnVitals.Health;
         CombatPose.Settle(_avatar, GetProcessDeltaTime());
-        _orbit!.Place(camera, position);
+        _orbit!.Focus = _lockOn is not null && _lockOn.TryGetTarget(out Vector3 locked) ? locked : null;
+        _orbit.Place(camera, position);
         StartDevTools();
         if (_options.Screenshot.Length > 0 && _views!.Shown > 0 && _elapsed > ScreenshotAfterSeconds && DevToolsReady() && (_selfTest?.Done ?? true))
         {
