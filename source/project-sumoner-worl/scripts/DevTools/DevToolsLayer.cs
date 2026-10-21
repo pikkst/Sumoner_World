@@ -85,7 +85,7 @@ public sealed partial class DevToolsLayer : CanvasLayer
 
     /// <summary>
     /// Self-test of the controls (<c>--inspect=click|tab</c>): queues the same input events a player makes, so they go through
-    /// <see cref="_UnhandledInput"/>. <c>click</c>: F3, then a left click on the nearest creature; returns its id.
+    /// <see cref="_UnhandledInput"/>. <c>click</c>: F3 (unless the overlay is already open), then a left click on the nearest creature; returns its id.
     /// <c>tab</c>: Tab twice (the second-nearest creature ends up inspected).
     /// </summary>
     public ulong PressForTest(string how)
@@ -97,7 +97,11 @@ public sealed partial class DevToolsLayer : CanvasLayer
             return 0;
         }
 
-        Press(Key.F3);
+        if (!OverlayVisible)
+        {
+            Press(Key.F3); // the left click only picks while the overlay is open
+        }
+
         Camera3D? camera = GetViewport().GetCamera3D();
         Vector3 player = _player();
         (ulong id, Node3D view) = _views.Creatures
@@ -175,7 +179,8 @@ public sealed partial class DevToolsLayer : CanvasLayer
             case InputEventKey { Pressed: true, Echo: false, Keycode: Key.Escape } when Inspected != 0:
                 Inspect(0);
                 break;
-            case InputEventMouseButton { Pressed: true, ButtonIndex: MouseButton.Left } click:
+            // Only while the overlay or the inspector is open: otherwise the left button attacks (M2-02b).
+            case InputEventMouseButton { Pressed: true, ButtonIndex: MouseButton.Left } click when OverlayVisible || Inspected != 0:
                 Pick(click.Position);
                 break;
             default:

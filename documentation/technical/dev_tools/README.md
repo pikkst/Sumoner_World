@@ -19,7 +19,7 @@ A server without dev tools ignores requests and logs `dev.refused`. The overlay 
 |---|---|
 | F3 | Dev overlay on/off |
 | F4 | AI Inspector: open on the creature nearest to you / close |
-| Left click | Inspect the creature under the cursor (within 48 px) |
+| Left click | Inspect the creature under the cursor (within 48 px), while the overlay or the inspector is open; otherwise the left button attacks |
 | Tab | Inspect the next of the 16 creatures nearest to you |
 | Esc | Close the inspector |
 
