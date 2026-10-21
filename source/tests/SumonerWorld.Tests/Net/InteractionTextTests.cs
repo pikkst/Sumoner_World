@@ -68,7 +68,9 @@ public class InteractionTextTests
         var lunge = new SumonerWorld.Core.Data.Definitions.SkillNodeDefinition { Id = "lunge", Branch = "pack", Move = "lunge" };
         var hide = new SumonerWorld.Core.Data.Definitions.SkillNodeDefinition
         {
-            Id = "thick_hide", Branch = "guardian", Passive = new() { Stat = SumonerWorld.Core.Data.Definitions.SkillStat.Health, Amount = 15 },
+            Id = "thick_hide",
+            Branch = "guardian",
+            Passive = new() { Stat = SumonerWorld.Core.Data.Definitions.SkillStat.Health, Amount = 15 },
         };
 
         Assert.Equal("Thick hide", InteractionText.SkillName("thick_hide"));
