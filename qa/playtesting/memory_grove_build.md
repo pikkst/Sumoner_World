@@ -10,7 +10,8 @@ Godot --path project-sumoner-worl -- --playtest
 The world is kept in `user://playtest/` and deleted at the next start. On Windows that folder is
 `%APPDATA%\Godot\app_userdata\Sumoner World\playtest`.
 
-A packaged build for testers (a Godot export, so testers need no editor) and its distribution follow before the pilot.
+A packaged build for testers (a Godot export, so testers need no editor) and its distribution follow before the pilot. The
+moderator script, consent form, questionnaire, coding guide and the report tool are in `pilot_kit/`.
 
 ## The grove
 14 creatures within 60 m of the start. The layout and personalities are seeded, so every session starts the same.
