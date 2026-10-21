@@ -1,5 +1,6 @@
 using System.Globalization;
 using System.Numerics;
+using SumonerWorld.Core.Bonding;
 using SumonerWorld.Core.Cognition;
 using SumonerWorld.Core.Cognition.Appraisal;
 using SumonerWorld.Core.Cognition.Lod;
@@ -51,6 +52,10 @@ public class DevReadoutTests
         Assert.Contains("60s ago", text, StringComparison.Ordinal);
         Assert.Equal($"Approach: {string.Join(" > ", tree.PathTo(lastNode).Select(node => node.Describe()))}", DevReadout.TreePath(inspection, Data));
         Assert.Equal("(not running)", DevReadout.TreePath(inspection with { TreeNode = -1 }, Data));
+        Assert.DoesNotContain("order", text, StringComparison.Ordinal);
+
+        var command = new InspectedCommand(CompanionCommand.Attack, CommandResponse.Hesitate, 312, ObedienceReason.Danger, 60);
+        Assert.Contains("order Attack -> Hesitate (obedience 312: the foe is dangerous) 2s ago", DevReadout.Inspector(inspection with { Command = command }, Data), StringComparison.Ordinal);
     }
 
     [Fact]

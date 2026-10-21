@@ -44,6 +44,9 @@ internal sealed class PlayerIntents(CreatureWorld world, TransactionProcessor tr
             case IntentKind.Dismiss:
                 var dismiss = new DismissTransaction(world, avatar, target);
                 return Changed(transactions.Execute(id, ref dismiss, now), target, out changed);
+            case IntentKind.Command:
+                var command = new CommandTransaction(world, avatar, (CompanionCommand)request.Argument, target);
+                return transactions.Execute(id, ref command, now);
             case IntentKind.Attack when request.Target <= byte.MaxValue:
                 var attack = new AttackTransaction(world, avatar, request.Argument, (byte)request.Target);
                 return transactions.Execute(id, ref attack, now);

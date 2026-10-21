@@ -1,4 +1,5 @@
 using System.Numerics;
+using SumonerWorld.Core.Bonding;
 using SumonerWorld.Core.Cognition;
 using SumonerWorld.Core.Cognition.Appraisal;
 using SumonerWorld.Core.Cognition.Lod;
@@ -225,7 +226,8 @@ public sealed class DevInspectionCodec : IMessageCodec<DevInspection>
         + 1 + (CreatureInspection.MaxMemories * (3 + 1 + 10 + 2 + 2 + 3 + 1 + 10))
         + 1 + (CreatureInspection.MaxOpinions * (1 + 10 + (4 * 2)))
         + 1 + (CreatureInspection.MaxGoals * (3 + 5))
-        + 3 + 1;
+        + 3 + 1
+        + 1 + 1 + 1 + 5 + 1 + 10;
 
     /// <inheritdoc />
     public MessageType Type => MessageType.DevInspection;
@@ -285,6 +287,15 @@ public sealed class DevInspectionCodec : IMessageCodec<DevInspection>
 
         writer.WriteVarUInt(inspection.TreeGoal);
         writer.WriteVarInt(inspection.TreeNode);
+        writer.WriteBool(inspection.Command is not null);
+        if (inspection.Command is InspectedCommand command)
+        {
+            writer.WriteByte((byte)command.Command);
+            writer.WriteByte((byte)command.Response);
+            writer.WriteVarInt(command.Obedience);
+            writer.WriteByte((byte)command.Reason);
+            writer.WriteVarUInt(command.AgeTicks);
+        }
     }
 
     /// <inheritdoc />
@@ -334,10 +345,18 @@ public sealed class DevInspectionCodec : IMessageCodec<DevInspection>
 
         var treeGoal = (ushort)ReadUInt(ref reader, ushort.MaxValue);
         int treeNode = (int)reader.ReadVarInt(-1, BehaviourTreeDefinition.MaxNodes - 1);
+        InspectedCommand? command = reader.ReadBool()
+            ? new InspectedCommand(
+                ReadEnum<CompanionCommand>(reader.ReadByte()),
+                ReadEnum<CommandResponse>(reader.ReadByte()),
+                (int)reader.ReadVarInt(int.MinValue, int.MaxValue),
+                ReadEnum<ObedienceReason>(reader.ReadByte()),
+                reader.ReadVarUInt())
+            : null;
         reader.EnsureEnd();
         return new DevInspection(requested, new CreatureInspection(
             tick, id, species, group, tier, position, emote, goal, focus, focusDistance, birth, personality, emotions, needs, core, episodic,
-            memories, opinions, goals, treeGoal, treeNode));
+            memories, opinions, goals, treeGoal, treeNode, command));
     }
 
     private static int Emotion(int value) => Math.Clamp(value, 0, EmotionState.Max);

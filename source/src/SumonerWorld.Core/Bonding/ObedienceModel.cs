@@ -20,11 +20,58 @@ public enum CommandResponse : byte
     Refuse,
 }
 
+/// <summary>
+/// The part of the obedience score that mattered most (M2-08, AI Bible §7.4: "the player learns why"): for an obeyed command the
+/// biggest reason to obey, otherwise the biggest reason against. Values are sent to the AI Inspector: never renumber.
+/// </summary>
+public enum ObedienceReason : byte
+{
+    /// <summary>Nothing stood out.</summary>
+    None = 0,
+
+    /// <summary>Their bond (bond level).</summary>
+    Bond = 1,
+
+    /// <summary>It trusts the owner.</summary>
+    Trust = 2,
+
+    /// <summary>It does not trust the owner.</summary>
+    Distrust = 3,
+
+    /// <summary>It respects the owner.</summary>
+    Respect = 4,
+
+    /// <summary>It does not respect the owner.</summary>
+    Disrespect = 5,
+
+    /// <summary>It is loyal by nature.</summary>
+    Loyal = 6,
+
+    /// <summary>It is independent by nature.</summary>
+    Independent = 7,
+
+    /// <summary>It is afraid of the owner.</summary>
+    Fear = 8,
+
+    /// <summary>The command is dangerous.</summary>
+    Danger = 9,
+
+    /// <summary>The command goes against its memories (e.g. fighting its own kind).</summary>
+    MemoryConflict = 10,
+
+    /// <summary>The command is suicidal and it is not loyal enough.</summary>
+    Suicidal = 11,
+
+    /// <summary>It knows a better way (learning).</summary>
+    BetterTactic = 12,
+}
+
 /// <summary>A command response and the obedience score behind it.</summary>
 /// <param name="Response">What the creature does.</param>
 /// <param name="Obedience">The score (higher = more willing).</param>
 /// <param name="Suicidal">True if the command was refused as suicidal.</param>
-public readonly record struct ObedienceResult(CommandResponse Response, int Obedience, bool Suicidal);
+/// <param name="Reason">What mattered most (M2-08).</param>
+public readonly record struct ObedienceResult(CommandResponse Response, int Obedience, bool Suicidal, ObedienceReason Reason = ObedienceReason.None);
 
 /// <summary>Weights and thresholds of the obedience formula (AI Bible §7.4). Starting values, tuned in the M1 playtest (R48).</summary>
 public sealed class ObedienceSettings
@@ -114,18 +161,25 @@ public sealed class ObedienceModel : IObedienceModel
 
         Personality personality = _store.GetPersonality(creature);
         Opinion opinion = _opinions.GetOpinion(creature, owner, now);
-        int obedience = _settings.Base
-            + (bondLevel * _settings.PerBondLevel)
-            + (opinion.Trust * _settings.TrustWeight)
-            + (opinion.Respect * _settings.RespectWeight)
-            + (personality.Loyalty * _settings.LoyaltyWeight)
-            - (Math.Max(0, opinion.Fear) * _settings.FearWeight)
-            - (danger / _settings.DangerDivisor)
-            - (conflictsWithMemory ? _settings.MemoryConflictPenalty : 0);
+        Span<(int Points, ObedienceReason For, ObedienceReason Against)> parts =
+        [
+            (bondLevel * _settings.PerBondLevel, ObedienceReason.Bond, ObedienceReason.None),
+            (opinion.Trust * _settings.TrustWeight, ObedienceReason.Trust, ObedienceReason.Distrust),
+            (opinion.Respect * _settings.RespectWeight, ObedienceReason.Respect, ObedienceReason.Disrespect),
+            (personality.Loyalty * _settings.LoyaltyWeight, ObedienceReason.Loyal, ObedienceReason.Independent),
+            (-(Math.Max(0, opinion.Fear) * _settings.FearWeight), ObedienceReason.None, ObedienceReason.Fear),
+            (-(danger / _settings.DangerDivisor), ObedienceReason.None, ObedienceReason.Danger),
+            (conflictsWithMemory ? -_settings.MemoryConflictPenalty : 0, ObedienceReason.None, ObedienceReason.MemoryConflict),
+        ];
+        int obedience = _settings.Base;
+        foreach ((int points, _, _) in parts)
+        {
+            obedience += points;
+        }
 
         if (danger >= _settings.SuicidalDanger && personality.Loyalty < _settings.SuicidalLoyaltyBelow)
         {
-            return new ObedienceResult(CommandResponse.Refuse, obedience, Suicidal: true);
+            return new ObedienceResult(CommandResponse.Refuse, obedience, Suicidal: true, ObedienceReason.Suicidal);
         }
 
         CommandResponse response =
@@ -133,6 +187,25 @@ public sealed class ObedienceModel : IObedienceModel
             : obedience >= _settings.ImproviseAt ? CommandResponse.Improvise
             : obedience >= _settings.HesitateAt ? CommandResponse.Hesitate
             : CommandResponse.Refuse;
-        return new ObedienceResult(response, obedience, Suicidal: false);
+        ObedienceReason reason = response == CommandResponse.Improvise && obedience >= _settings.ObeyAt ? ObedienceReason.BetterTactic
+            : MostImportant(parts, response == CommandResponse.Obey);
+        return new ObedienceResult(response, obedience, Suicidal: false, reason);
+    }
+
+    // The largest part in favour (for an obeyed command) or against (otherwise).
+    private static ObedienceReason MostImportant(ReadOnlySpan<(int Points, ObedienceReason For, ObedienceReason Against)> parts, bool inFavour)
+    {
+        (int best, ObedienceReason reason) = (0, ObedienceReason.None);
+        foreach ((int points, ObedienceReason good, ObedienceReason bad) in parts)
+        {
+            int weight = inFavour ? points : -points;
+            ObedienceReason candidate = inFavour ? good : bad;
+            if (weight > best && candidate != ObedienceReason.None)
+            {
+                (best, reason) = (weight, candidate);
+            }
+        }
+
+        return reason;
     }
 }

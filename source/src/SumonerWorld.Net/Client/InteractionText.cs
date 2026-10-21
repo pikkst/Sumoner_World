@@ -23,7 +23,17 @@ public static class InteractionText
     public const double PactAnswerDelaySeconds = 1.5;
 
     /// <summary>The companion keys, shown under the companion list.</summary>
-    public const string CompanionHints = "[Z] call   [X] send back";
+    public const string CompanionHints = "[Z] call   [X] send back\n[1] attack   [2] guard me   [3] hold here   [4] come back";
+
+    /// <summary>The line after a command was given (the companions answer with their bodies).</summary>
+    public static string CommandSent(CompanionCommand command) => command switch
+    {
+        CompanionCommand.Attack => "You call: attack!",
+        CompanionCommand.GuardMe => "You call: guard me!",
+        CompanionCommand.Hold => "You call: hold here!",
+        CompanionCommand.Retreat => "You call: come back!",
+        _ => string.Empty,
+    };
 
     /// <summary>A companion's line in the list: its name and whether it is at the player's side.</summary>
     public static string CompanionLine(string creature, bool summoned) => summoned ? $"{creature}: with you" : $"{creature}: away";
@@ -47,7 +57,7 @@ public static class InteractionText
     };
 
     /// <summary>The line shown for an intent's result; <paramref name="creature"/> is the target's display name (unused for Scare).</summary>
-    public static string Result(IntentKind kind, IntentResult result, string creature)
+    public static string Result(IntentKind kind, IntentResult result, string creature, byte argument = 0)
     {
         if (!result.IsApplied && kind == IntentKind.Summon)
         {
@@ -58,6 +68,17 @@ public static class InteractionText
                 SummonRefusal.Busy => "Not now.",
                 SummonRefusal.AlreadySummoned => $"The {creature} is already with you.",
                 SummonRefusal.NotPacted => $"The {creature} is not bonded to you.",
+                _ => "Nothing happens.",
+            };
+        }
+
+        if (kind == IntentKind.Command)
+        {
+            return result.IsApplied ? CommandSent((CompanionCommand)argument) : result.Reason switch
+            {
+                IntentRejectReason.WrongState => "No companion is with you. Call one first [Z].",
+                IntentRejectReason.InvalidTarget => "Choose a creature to attack: lock on with T, or stand near it.",
+                IntentRejectReason.OutOfRange => "That is too far away.",
                 _ => "Nothing happens.",
             };
         }

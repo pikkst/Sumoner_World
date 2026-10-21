@@ -1,4 +1,5 @@
 using System.Numerics;
+using SumonerWorld.Core.Cognition.Appraisal;
 using SumonerWorld.Core.Cognition.Behaviour;
 using SumonerWorld.Core.Combat;
 using SumonerWorld.Core.Data.Definitions;
@@ -132,6 +133,21 @@ public sealed class CompanionSystem : ISimulationSystem
     /// <summary>How long the summoner must stand still before an independent companion gets bored (10 s).</summary>
     public const ulong BoredAfterTicks = 300;
 
+    /// <summary>A guarding companion stays this close (body edges, metres).</summary>
+    public const float GuardMetres = 2f;
+
+    /// <summary>A holding companion fights only foes this close to its place.</summary>
+    public const float HoldDefendMetres = 6f;
+
+    /// <summary>How long a companion shows its answer to a command (1.5 s).</summary>
+    public const ulong ShowAnswerTicks = 45;
+
+    /// <summary>How long a hesitating companion pauses before it obeys (1 s).</summary>
+    public const ulong HesitateTicks = 30;
+
+    /// <summary>How long a retreat lasts: no fighting until it is over (5 s).</summary>
+    public const ulong RetreatTicks = 150;
+
     private const ulong RepathTicks = 10;
     private const float WalkPercent = 120;
     private const float RunPercent = 230;
@@ -148,6 +164,8 @@ public sealed class CompanionSystem : ISimulationSystem
     private readonly ComponentStore<MoveTarget> _targets;
     private readonly ComponentStore<FocusRef> _focus;
     private readonly ComponentStore<Combatant> _combatants;
+    private readonly ComponentStore<CompanionOrder> _orders;
+    private readonly ComponentStore<CurrentEmote> _emotes;
     private readonly List<Entity> _gone = [];
 
     /// <summary>Creates the system for a world.</summary>
@@ -163,6 +181,8 @@ public sealed class CompanionSystem : ISimulationSystem
         _targets = _ecs.Store<MoveTarget>();
         _focus = _ecs.Store<FocusRef>();
         _combatants = _ecs.Store<Combatant>();
+        _orders = _ecs.Store<CompanionOrder>();
+        _emotes = _ecs.Store<CurrentEmote>();
     }
 
     /// <inheritdoc />
@@ -238,10 +258,31 @@ public sealed class CompanionSystem : ISimulationSystem
 
         state.OwnerAt = them;
         float gap = Flat(them - me) - _world.Sizes.RadiusOf(companion) - _world.Sizes.RadiusOf(owner);
-        if (StillFoe(ref state, them, now))
+        CompanionCommand command = Obey(companion, ref state, now, out bool hesitating, out bool flank);
+        if (hesitating)
+        {
+            Stop(companion);
+            return;
+        }
+
+        if (command == CompanionCommand.Hold)
+        {
+            Hold(companion, ref state, me, now);
+            return;
+        }
+
+        if (command == CompanionCommand.Retreat)
+        {
+            state.FoeUntil = 0;
+            state.Mode = (int)CompanionMode.Follow;
+            Follow(companion, owner, ref state, me, them, gap, FollowMetres, RunPercent, now);
+            return;
+        }
+
+        if (StillFoe(ref state, them, LeashMetres, now))
         {
             state.Mode = (int)CompanionMode.Fight;
-            Fight(companion, ref state, me, now);
+            Fight(companion, ref state, me, flank, now);
             return;
         }
 
@@ -252,7 +293,8 @@ public sealed class CompanionSystem : ISimulationSystem
             return;
         }
 
-        bool bored = now - state.OwnerStillSince >= BoredAfterTicks && Independent(companion);
+        bool guarding = command == CompanionCommand.GuardMe;
+        bool bored = !guarding && now - state.OwnerStillSince >= BoredAfterTicks && Independent(companion);
         if (bored && gap < LeashMetres)
         {
             state.Mode = (int)CompanionMode.Roam;
@@ -260,15 +302,100 @@ public sealed class CompanionSystem : ISimulationSystem
         }
 
         state.Mode = (int)CompanionMode.Follow;
-        Follow(companion, owner, ref state, me, them, gap, now);
+        Follow(companion, owner, ref state, me, them, gap, guarding ? GuardMetres : FollowMetres, gap > RunMetres ? RunPercent : WalkPercent, now);
     }
 
-    private bool StillFoe(ref CompanionState state, Vector3 owner, ulong now)
+    // The command being carried out (M2-08), after showing the answer: Obey Trust, Improvise Curiosity, Hesitate Fear or Grudge
+    // (and a pause), Refuse Grudge (and the command is dropped). An Attack sets the foe; it ends when the foe no longer stands.
+    private CompanionCommand Obey(Entity companion, ref CompanionState state, ulong now, out bool hesitating, out bool flank)
+    {
+        hesitating = false;
+        flank = false;
+        if (!_orders.Has(companion) || _orders.Get(companion).Active == 0)
+        {
+            return CompanionCommand.None;
+        }
+
+        ref CompanionOrder order = ref _orders.Get(companion);
+        ulong age = now - order.Since;
+        var response = (CommandResponse)order.Response;
+        if (age < ShowAnswerTicks)
+        {
+            _emotes.Get(companion) = new CurrentEmote(AnswerEmote(response, (ObedienceReason)order.Reason));
+        }
+
+        if (response == CommandResponse.Refuse)
+        {
+            order.Active = age < ShowAnswerTicks ? 1 : 0;
+            return CompanionCommand.None;
+        }
+
+        if (response == CommandResponse.Hesitate && age < HesitateTicks)
+        {
+            hesitating = true;
+            return CompanionCommand.None;
+        }
+
+        var command = (CompanionCommand)order.Command;
+        switch (command)
+        {
+            case CompanionCommand.Attack when order.Active == 1:
+                state.Foe = order.Target;
+                state.FoeUntil = now + CompanionAlertSystem.FoeTicks;
+                order.Active = 2; // the attack has begun
+                break;
+            case CompanionCommand.Attack when state.Foe != order.Target || now >= state.FoeUntil:
+                order.Active = 0;
+                return CompanionCommand.None;
+            case CompanionCommand.Retreat when age >= RetreatTicks:
+                order.Active = 0;
+                return CompanionCommand.None;
+            default:
+                break;
+        }
+
+        flank = command == CompanionCommand.Attack && response == CommandResponse.Improvise;
+        return command;
+    }
+
+    private static Emote AnswerEmote(CommandResponse response, ObedienceReason reason) => response switch
+    {
+        CommandResponse.Obey => Emote.Trust,
+        CommandResponse.Improvise => Emote.Curiosity,
+        CommandResponse.Hesitate => reason is ObedienceReason.Fear or ObedienceReason.Danger ? Emote.Fear : Emote.Grudge,
+        _ => Emote.Grudge,
+    };
+
+    // Stay at the place it was told to hold; fight only what comes within reach of it.
+    private void Hold(Entity companion, ref CompanionState state, Vector3 me, ulong now)
+    {
+        Vector3 place = _orders.Get(companion).HoldAt;
+        if (StillFoe(ref state, place, HoldDefendMetres, now))
+        {
+            state.Mode = (int)CompanionMode.Fight;
+            Fight(companion, ref state, me, flank: false, now);
+            return;
+        }
+
+        state.Mode = (int)CompanionMode.Follow;
+        if (Flat(place - me) > 1f && now >= state.NextPathTick)
+        {
+            Walk(companion, me, place, WalkPercent, ref state, now);
+        }
+        else if (Flat(place - me) <= 1f)
+        {
+            Stop(companion);
+        }
+    }
+
+    private void Stop(Entity companion) => _targets.Get(companion) = _targets.Get(companion) with { Active = 0 };
+
+    private bool StillFoe(ref CompanionState state, Vector3 anchor, float leash, ulong now)
     {
         Entity foe = state.Foe;
         bool standing = now < state.FoeUntil && _ecs.IsAlive(foe) && _positions.Has(foe)
             && !_ecs.Has<Yielding>(foe) && !_ecs.Has<Downed>(foe) && (!_combatants.Has(foe) || _combatants.Get(foe).Health > 0)
-            && Flat(_positions.Get(foe).Value - owner) <= LeashMetres;
+            && Flat(_positions.Get(foe).Value - anchor) <= leash;
         if (!standing)
         {
             state.FoeUntil = 0;
@@ -277,26 +404,28 @@ public sealed class CompanionSystem : ISimulationSystem
         return standing;
     }
 
-    private void Fight(Entity companion, ref CompanionState state, Vector3 me, ulong now)
+    // Improvising, it goes round to the foe's side first (flanks) instead of charging straight in.
+    private void Fight(Entity companion, ref CompanionState state, Vector3 me, bool flank, ulong now)
     {
         Vector3 foe = _positions.Get(state.Foe).Value;
         float gap = Flat(foe - me) - _world.Sizes.RadiusOf(companion) - _world.Sizes.RadiusOf(state.Foe);
         _focus.Get(companion) = new FocusRef(state.Foe, 0, 1);
         if (gap <= AttackReachMetres)
         {
-            _world.Events.Publish(new CreatureIntent(companion, IntentKind.Attack, MoveTargetMode.Focus, 0, Cognition.Appraisal.Emote.None, InteractVerb.Eat, null));
+            _world.Events.Publish(new CreatureIntent(companion, IntentKind.Attack, MoveTargetMode.Focus, 0, Emote.None, InteractVerb.Eat, null));
             return;
         }
 
         if (now >= state.NextPathTick)
         {
             Vector3 towards = Vector3.Normalize(new Vector3(foe.X - me.X, 0, foe.Z - me.Z));
-            Walk(companion, me, foe - (towards * (_world.Sizes.RadiusOf(companion) + _world.Sizes.RadiusOf(state.Foe) + 0.5f)), RunPercent, ref state, now);
+            Vector3 side = flank ? Vector3.Normalize(towards + new Vector3(-towards.Z, 0, towards.X)) : towards;
+            Walk(companion, me, foe - (side * (_world.Sizes.RadiusOf(companion) + _world.Sizes.RadiusOf(state.Foe) + 0.5f)), RunPercent, ref state, now);
         }
     }
 
     // Toward a spot beside and a little behind the summoner, at the comfort distance; stopped once there.
-    private void Follow(Entity companion, Entity owner, ref CompanionState state, Vector3 me, Vector3 them, float gap, ulong now)
+    private void Follow(Entity companion, Entity owner, ref CompanionState state, Vector3 me, Vector3 them, float gap, float within, float percent, ulong now)
     {
         MoveTarget target = _targets.Get(companion);
         if (gap <= ComfortMetres + 0.5f && target.Active != 0)
@@ -305,7 +434,7 @@ public sealed class CompanionSystem : ISimulationSystem
             return;
         }
 
-        if (gap <= FollowMetres && target.Active == 0)
+        if (gap <= within && target.Active == 0)
         {
             return;
         }
@@ -315,7 +444,7 @@ public sealed class CompanionSystem : ISimulationSystem
             Vector3 away = new Vector3(me.X - them.X, 0, me.Z - them.Z);
             away = away.LengthSquared() > 0 ? Vector3.Normalize(away) : Vector3.UnitX;
             float stop = _world.Sizes.RadiusOf(companion) + _world.Sizes.RadiusOf(owner) + ComfortMetres;
-            Walk(companion, me, them + (away * stop), gap > RunMetres ? RunPercent : WalkPercent, ref state, now);
+            Walk(companion, me, them + (away * stop), percent, ref state, now);
         }
     }
 

@@ -27,7 +27,7 @@ public sealed partial class InteractionControls : CanvasLayer
     private readonly EntityViewSync _views;
     private readonly IDataRegistry _data;
     private readonly Func<Vector3> _player;
-    private readonly List<(uint Sequence, IntentKind Kind, string Creature)> _pending = [];
+    private readonly List<(uint Sequence, IntentKind Kind, string Creature, byte Argument)> _pending = [];
     private readonly List<(double ShowAt, string Line)> _delayed = [];
     private (ulong Id, string Name) _pactTarget;
     private double _clock;
@@ -74,15 +74,15 @@ public sealed partial class InteractionControls : CanvasLayer
         }
 
         ulong target = kind == IntentKind.Scare ? 0 : Target.Id;
-        _pending.Add((_client.SendIntent(kind, target, 0), kind, Target.Name));
+        _pending.Add((_client.SendIntent(kind, target, 0), kind, Target.Name, 0));
     }
 
     /// <summary>Sends an intent about a creature and shows its result line like the keys' (the companion keys use this).</summary>
-    public void Send(IntentKind kind, ulong creature, string name)
+    public void Send(IntentKind kind, ulong creature, string name, byte argument = 0)
     {
         if (_client.Session.State == ClientSessionState.InSession)
         {
-            _pending.Add((_client.SendIntent(kind, creature, 0), kind, name));
+            _pending.Add((_client.SendIntent(kind, creature, argument), kind, name, argument));
         }
     }
 
@@ -91,7 +91,7 @@ public sealed partial class InteractionControls : CanvasLayer
     {
         if (_client.Session.State == ClientSessionState.InSession && _pactTarget.Id != 0)
         {
-            _pending.Add((_client.SendIntent(IntentKind.OfferPact, _pactTarget.Id, terms.Mask), IntentKind.OfferPact, _pactTarget.Name));
+            _pending.Add((_client.SendIntent(IntentKind.OfferPact, _pactTarget.Id, terms.Mask), IntentKind.OfferPact, _pactTarget.Name, terms.Mask));
         }
     }
 
@@ -136,11 +136,11 @@ public sealed partial class InteractionControls : CanvasLayer
 
         for (int i = _pending.Count - 1; i >= 0; i--)
         {
-            (uint sequence, IntentKind kind, string creature) = _pending[i];
+            (uint sequence, IntentKind kind, string creature, byte argument) = _pending[i];
             if (_client.IntentResults.TryGetValue(sequence, out IntentResult result))
             {
                 bool answered = kind == IntentKind.OfferPact && result.IsApplied;
-                _delayed.Add((_clock + (answered ? InteractionText.PactAnswerDelaySeconds : 0), InteractionText.Result(kind, result, creature)));
+                _delayed.Add((_clock + (answered ? InteractionText.PactAnswerDelaySeconds : 0), InteractionText.Result(kind, result, creature, argument)));
                 _pending.RemoveAt(i);
             }
         }

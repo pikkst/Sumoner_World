@@ -1,4 +1,5 @@
 using System.Numerics;
+using SumonerWorld.Core.Bonding;
 using SumonerWorld.Core.Cognition;
 using SumonerWorld.Core.Cognition.Appraisal;
 using SumonerWorld.Core.Cognition.Lod;
@@ -145,7 +146,8 @@ public class DevToolsTests
         return new CreatureInspection(
             ulong.MaxValue, new StableId(ulong.MaxValue), ushort.MaxValue, int.MinValue, AiLodTier.Abstract, new Vector3(-1e9f, 1e9f, float.MaxValue),
             Emote.Grief, ushort.MaxValue, far, 1000, extreme, extreme, new EmotionState(100, 100, 100, 100, 100), [100, 100, 100, 100, 100],
-            ICreatureMindStore.CoreCapacity, ICreatureMindStore.EpisodicCapacity, memories, opinions, goals, ushort.MaxValue, BehaviourTreeDefinition.MaxNodes - 1);
+            ICreatureMindStore.CoreCapacity, ICreatureMindStore.EpisodicCapacity, memories, opinions, goals, ushort.MaxValue, BehaviourTreeDefinition.MaxNodes - 1,
+            new InspectedCommand(CompanionCommand.Retreat, CommandResponse.Refuse, int.MinValue, ObedienceReason.BetterTactic, ulong.MaxValue));
     }
 
     private static byte[] Encode(DevInspection message)
