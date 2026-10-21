@@ -1,7 +1,6 @@
 using System.Numerics;
 using SumonerWorld.Core.Bonding;
 using SumonerWorld.Core.Cognition.Memory;
-using SumonerWorld.Core.Combat;
 using SumonerWorld.Core.Data.Definitions;
 using SumonerWorld.Core.Ecosystem;
 using SumonerWorld.Core.Ecs;
@@ -102,8 +101,7 @@ public record struct OfferPactTransaction(CreatureWorld Creatures, CooldownTrack
 
         if (outcome == BondingOutcome.Accepted)
         {
-            ref PlayerProgress progress = ref world.GetComponent<PlayerProgress>(Avatar);
-            PlayerGrowth.Earn(Creatures.Growth, ref progress, ref world.GetComponent<Combatant>(Avatar), Creatures.Data.Combat.Player, Creatures.Growth.Definition.PlayerPactXp);
+            Items.PlayerStats.Earn(Creatures, Avatar, Creatures.Growth.Definition.PlayerPactXp);
         }
 
         PublishMemories(creature, account, outcome, now);

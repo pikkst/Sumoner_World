@@ -1,5 +1,6 @@
 using SumonerWorld.Core.Combat;
 using SumonerWorld.Core.Ecs;
+using SumonerWorld.Core.Items;
 using SumonerWorld.Core.Progression;
 using SumonerWorld.Core.World;
 
@@ -14,7 +15,8 @@ internal static class PlayerRecords
             account,
             world.World.GetComponent<Position>(avatar).Value,
             world.World.GetComponent<PlayerProgress>(avatar),
-            world.Economy.Export(account, world.Data));
+            world.Economy.Export(account, world.Data),
+            EquipRules.Export(world.Data, world.World.GetComponent<Equipment>(avatar)));
 
     /// <summary>Loads a saved player's inventory (their avatar takes the rest when it enters).</summary>
     public static void Restore(CreatureWorld world, PlayerSave saved)
@@ -34,8 +36,9 @@ internal static class PlayerRecords
         }
 
         world.World.GetComponent<PlayerProgress>(avatar) = progress;
+        world.World.GetComponent<Equipment>(avatar) = EquipRules.Import(world.Data, saved.Equipped);
+        PlayerStats.Restat(world, avatar);
         ref Combatant combatant = ref world.World.GetComponent<Combatant>(avatar);
-        PlayerGrowth.Restat(world.Growth, progress, ref combatant, world.Data.Combat.Player);
         combatant.Health = combatant.MaxHealth;
     }
 }

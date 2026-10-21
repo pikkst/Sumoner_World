@@ -10,6 +10,15 @@
     { "id": "owl_feather", "category": "material", "stack": 30, "weightGrams": 20, "goldValue": 3, "tags": ["feather", "hollow_owl"] },
     { "id": "sweet_berries", "category": "food", "stack": 30, "weightGrams": 50, "goldValue": 1, "tags": ["plant", "food"] },
     { "id": "sweetroot", "category": "offering", "stack": 20, "weightGrams": 150, "goldValue": 2, "tags": ["plant", "offering"] },
-    { "id": "fallen_branch", "category": "material", "stack": 30, "weightGrams": 400, "goldValue": 1, "tags": ["wood"] }
+    { "id": "fallen_branch", "category": "material", "stack": 30, "weightGrams": 400, "goldValue": 1, "tags": ["wood"] },
+    { "id": "berry_meal", "category": "food", "stack": 10, "weightGrams": 200, "goldValue": 4, "tags": ["food", "cooked"] },
+    { "id": "sweetroot_bundle", "category": "offering", "stack": 10, "weightGrams": 300, "goldValue": 6, "tags": ["offering"] },
+    { "id": "sigil_ink", "category": "offering", "stack": 10, "weightGrams": 100, "goldValue": 8, "tags": ["ink"] },
+    { "id": "wooden_staff", "category": "weapon", "stack": 1, "weightGrams": 1500, "goldValue": 10, "tags": ["wood"],
+      "slot": "weapon", "wearers": ["player"], "stats": { "power": 10 } },
+    { "id": "leather_vest", "category": "armour", "stack": 1, "weightGrams": 2000, "goldValue": 14, "tags": ["fur"],
+      "slot": "body", "wearers": ["player", "quadruped"], "minLevel": 3, "stats": { "guard": 2, "resistPhysical": 50 } },
+    { "id": "mossback_charm", "category": "charm", "stack": 1, "weightGrams": 100, "goldValue": 12, "tags": ["horn"],
+      "slot": "charm", "wearers": ["player", "quadruped", "avian"], "stats": { "resistPrimal": 100, "stamina": 10 } }
   ]
 }

@@ -134,6 +134,11 @@ public static class InteractionText
             };
         }
 
+        if (kind is IntentKind.Craft or IntentKind.Equip or IntentKind.Unequip)
+        {
+            return GearResult(kind, result, creature);
+        }
+
         if (kind == IntentKind.PickUp)
         {
             return result.IsApplied ? $"You pick up the loot (+{result.Detail} gold)."
@@ -205,6 +210,55 @@ public static class InteractionText
             _ => string.Empty,
         };
     }
+
+    /// <summary>The line for a craft, equip or unequip result; <paramref name="name"/> is the recipe's or the item's name (M2-14).</summary>
+    public static string GearResult(IntentKind kind, IntentResult result, string name)
+    {
+        if (result.IsApplied)
+        {
+            return kind switch
+            {
+                IntentKind.Craft => $"You start making: {name}. Stand still, a hit will stop you.",
+                IntentKind.Equip => $"You put on: {name}.",
+                _ => $"You take off: {name}.",
+            };
+        }
+
+        return result.Reason switch
+        {
+            IntentRejectReason.InvalidTarget => "Call that companion to your side first.",
+            IntentRejectReason.WrongState => (GearRefusal)result.Detail switch
+            {
+                GearRefusal.MissingInputs => $"You do not have everything for {name}.",
+                GearRefusal.InventoryFull => "Your bag is full.",
+                GearRefusal.NeedsStation => "That needs a workbench or a forge.",
+                GearRefusal.Busy => "Not now: you are busy.",
+                GearRefusal.CannotWear => $"{name} cannot be worn by that one.",
+                GearRefusal.LevelTooLow => $"Not strong enough for {name} yet.",
+                _ => "Nothing happens.",
+            },
+            _ => "Nothing happens.",
+        };
+    }
+
+    /// <summary>A recipe line in the crafting panel: what it makes and from what, e.g. <c>Wooden staff  ← 3 Fallen branch</c>.</summary>
+    public static string RecipeLine(Core.Data.Definitions.RecipeDefinition recipe)
+    {
+        ArgumentNullException.ThrowIfNull(recipe);
+        string output = recipe.Output.Count > 1 ? $"{SkillName(recipe.Output.Item)} x{recipe.Output.Count}" : SkillName(recipe.Output.Item);
+        return $"{output}  ← {string.Join(", ", recipe.Inputs.Select(part => $"{part.Count} {SkillName(part.Item)}"))}";
+    }
+
+    /// <summary>The line when crafting ended: made, or stopped (a hit, a move, or the inputs went missing).</summary>
+    public static string CraftEnded(string name, bool made) => made ? $"You made: {name}." : $"You stopped making: {name}. Nothing was used up.";
+
+    /// <summary>The name of an equipment position.</summary>
+    public static string PositionName(EquipPosition position) => position switch
+    {
+        EquipPosition.OffHand => "off hand",
+        EquipPosition.Charm1 or EquipPosition.Charm2 => "charm",
+        _ => position.ToString().ToLowerInvariant(),
+    };
 
     /// <summary>A species id as a display name (until localization: <c>hollow_owl</c> → <c>hollow owl</c>).</summary>
     public static string DisplayName(string speciesId)

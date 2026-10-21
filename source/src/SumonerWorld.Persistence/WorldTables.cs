@@ -64,6 +64,7 @@ internal sealed class WorldTables(WorldStore store)
                     Xp = progress?.Xp ?? 0,
                     Gold = player.Inventory?.Gold,
                     Items = [.. (player.Inventory?.Items ?? []).Select(item => new SlotRecord { Item = item.Item, Count = item.Count })],
+                    Equipped = player.Equipped ?? [],
                 });
                 insert.ExecuteNonQuery();
             }
@@ -129,7 +130,7 @@ internal sealed class WorldTables(WorldStore store)
                 PlayerRecord record = _players.Decode((byte[])reader.GetValue(1));
                 PlayerProgress? progress = record.Class is byte playerClass ? new PlayerProgress(playerClass, record.Rank, record.Level, record.Xp) : null;
                 InventorySave? inventory = record.Gold is int gold ? new InventorySave(gold, [.. record.Items.Select(item => new SavedItem(item.Item, item.Count))]) : null;
-                players.Add(new PlayerSave((ulong)reader.GetInt64(0), new Vector3(record.X, record.Y, record.Z), progress, inventory));
+                players.Add(new PlayerSave((ulong)reader.GetInt64(0), new Vector3(record.X, record.Y, record.Z), progress, inventory, record.Equipped));
             }
         }
 

@@ -40,6 +40,7 @@ public static class ProgressionComponents
         world.Add(creature, GrowthRules.Wild(species, stableId));
         world.Add(creature, default(CreatureSkills));
         world.Add(creature, default(CreatureCombos));
+        world.Add(creature, default(Items.Equipment));
     }
 
     /// <summary>Gives a new player avatar its progress (a new player until profiles are saved, M2-20).</summary>
@@ -47,19 +48,28 @@ public static class ProgressionComponents
     {
         ArgumentNullException.ThrowIfNull(world);
         world.Add(avatar, PlayerProgress.New);
+        world.Add(avatar, default(Items.Equipment));
     }
 
-    /// <summary>Sets a creature's stats from its growth and its learned passive skills.</summary>
+    /// <summary>Sets a creature's stats from its growth, its learned passive skills and what it wears (from scratch each time).</summary>
     public static void Restat(GrowthRules rules, DataRegistry data, EcsWorld world, Entity creature, CombatStatsDefinition species, ref Combatant combatant)
     {
         ArgumentNullException.ThrowIfNull(rules);
         ArgumentNullException.ThrowIfNull(data);
         ArgumentNullException.ThrowIfNull(world);
         rules.Apply(ref combatant, species, world.GetComponent<CreatureGrowth>(creature));
+        combatant.ResistPhysical = species.Resist.Physical;
+        combatant.ResistPrimal = species.Resist.Primal;
         if (world.Has<CreatureSkills>(creature))
         {
             SkillRules.ApplyPassives(
                 data.SkillTreeOf(world.GetComponent<World.SpeciesRef>(creature).Index), world.GetComponent<CreatureSkills>(creature).Learned, species, ref combatant);
+        }
+
+        if (world.Has<Items.Equipment>(creature))
+        {
+            Items.EquipRules.Apply(data, world.GetComponent<Items.Equipment>(creature), ref combatant);
+            combatant.Stamina = Math.Min(combatant.Stamina, combatant.MaxStamina);
         }
     }
 }

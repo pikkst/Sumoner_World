@@ -6,7 +6,7 @@ using SumonerWorld.Core.Progression;
 
 namespace SumonerWorld.Core.World;
 
-/// <summary>The component sets beyond the creature basics (combat, bonding, progression): registration and the state hash.</summary>
+/// <summary>The component sets beyond the creature basics (combat, bonding, progression, items): registration and the state hash.</summary>
 public static class ComponentSets
 {
     /// <summary>Registers every set with a world.</summary>
@@ -15,6 +15,7 @@ public static class ComponentSets
         BondingComponents.Register(world);
         ProgressionComponents.Register(world);
         CombatState.Register(world);
+        Items.ItemComponents.Register(world);
     }
 
     /// <summary>Adds every set to a state hash.</summary>
@@ -23,5 +24,6 @@ public static class ComponentSets
         ProgressionComponents.AddTo(ref hash, world);
         CombatState.AddTo(ref hash, world);
         BondingComponents.AddTo(ref hash, world);
+        Items.ItemComponents.AddTo(ref hash, world);
     }
 }

@@ -1,0 +1,14 @@
+// Slice recipes (crafting spec §6). There are no campfires or workbenches in the slice yet, so all are made by hand for now.
+// Append only: a recipe's position is its index on the wire. Ticks at 30 per second.
+{
+  "schemaVersion": 1,
+  "kind": "recipes",
+  "entries": [
+    { "id": "berry_meal", "inputs": [ { "item": "sweet_berries", "count": 3 }, { "item": "sweetroot" } ], "output": { "item": "berry_meal" }, "ticks": 60 },
+    { "id": "sweetroot_bundle", "inputs": [ { "item": "sweetroot", "count": 2 }, { "item": "shed_moss" } ], "output": { "item": "sweetroot_bundle" }, "ticks": 60 },
+    { "id": "sigil_ink", "inputs": [ { "item": "bright_tooth" }, { "item": "sweet_berries", "count": 2 } ], "output": { "item": "sigil_ink" }, "ticks": 90 },
+    { "id": "wooden_staff", "inputs": [ { "item": "fallen_branch", "count": 3 } ], "output": { "item": "wooden_staff" }, "ticks": 90 },
+    { "id": "leather_vest", "inputs": [ { "item": "fox_fur", "count": 4 }, { "item": "fallen_branch" } ], "output": { "item": "leather_vest" }, "ticks": 150 },
+    { "id": "mossback_charm", "inputs": [ { "item": "horn_chip" }, { "item": "shed_moss", "count": 3 } ], "output": { "item": "mossback_charm" }, "ticks": 120 }
+  ]
+}

@@ -121,6 +121,7 @@ public static partial class DataRegistryLoader
         private readonly List<ItemDefinition> _items = [];
         private readonly List<(LootTableDefinition Entry, string Where)> _lootTables = [];
         private readonly List<(GatherNodeDefinition Entry, string Where)> _gatherNodes = [];
+        private readonly List<(RecipeDefinition Entry, string Where)> _recipes = [];
         private readonly Dictionary<string, string> _speciesSources = new(StringComparer.Ordinal);
         private readonly Dictionary<string, List<string>> _filesByKind = new(StringComparer.Ordinal);
 
@@ -199,7 +200,7 @@ public static partial class DataRegistryLoader
                 case RunesKind or SpellsKind or EffectsKind or CombosKind:
                     AddMagic(kind, file);
                     break;
-                case ItemsKind or LootTablesKind or GatherNodesKind:
+                case ItemsKind or LootTablesKind or GatherNodesKind or RecipesKind:
                     AddEconomy(kind, file);
                     break;
                 case SkillTreesKind:
@@ -212,7 +213,7 @@ public static partial class DataRegistryLoader
 
                     break;
                 default:
-                    Errors.Add($"{file.Path}: unknown kind '{kind}'. Known kinds: {MemoryEventTypesKind}, {SpeciesKind}, {OpinionWeightsKind}, {GoalsKind}, {BehaviourTreesKind}, {PactTermsKind}, {BondLevelsKind}, {MovesKind}, {CombatKind}, {SkillTreesKind}, {RunesKind}, {SpellsKind}, {EffectsKind}, {CombosKind}, {ItemsKind}, {LootTablesKind}, {GatherNodesKind}.");
+                    Errors.Add($"{file.Path}: unknown kind '{kind}'. Known kinds: {MemoryEventTypesKind}, {SpeciesKind}, {OpinionWeightsKind}, {GoalsKind}, {BehaviourTreesKind}, {PactTermsKind}, {BondLevelsKind}, {MovesKind}, {CombatKind}, {SkillTreesKind}, {RunesKind}, {SpellsKind}, {EffectsKind}, {CombosKind}, {ItemsKind}, {LootTablesKind}, {GatherNodesKind}, {RecipesKind}.");
                     break;
             }
         }
@@ -237,10 +238,17 @@ public static partial class DataRegistryLoader
                     }
 
                     break;
-                default:
+                case GatherNodesKind:
                     foreach ((GatherNodeDefinition entry, int index) in ReadEntries<GatherNodeDefinition>(file, Errors))
                     {
                         _gatherNodes.Add((entry, $"{file.Path}: entries[{index}]"));
+                    }
+
+                    break;
+                default:
+                    foreach ((RecipeDefinition entry, int index) in ReadEntries<RecipeDefinition>(file, Errors))
+                    {
+                        _recipes.Add((entry, $"{file.Path}: entries[{index}]"));
                     }
 
                     break;
@@ -306,7 +314,7 @@ public static partial class DataRegistryLoader
             ValidateMoveReferences(_moves, _combatants, Errors);
             ValidateSkillTreeReferences(_skillTrees, _species, _moves, Errors);
             ValidateCombos(_combos, _effects, _spells, Errors);
-            ValidateEconomy(_items, _lootTables, _gatherNodes, _species, Errors);
+            ValidateEconomy(_items, _lootTables, _gatherNodes, _recipes, _species, Errors);
 
             if (Errors.Count > 0)
             {
@@ -329,7 +337,8 @@ public static partial class DataRegistryLoader
                 [.. _combos.Select(item => item.Entry)],
                 [.. _items.OrderBy(definition => definition.Id, StringComparer.Ordinal)],
                 [.. _lootTables.Select(item => item.Entry)],
-                [.. _gatherNodes.Select(item => item.Entry).OrderBy(definition => definition.Id, StringComparer.Ordinal)]);
+                [.. _gatherNodes.Select(item => item.Entry).OrderBy(definition => definition.Id, StringComparer.Ordinal)],
+                [.. _recipes.Select(item => item.Entry)]);
         }
 
         private void AddSpecies(DataFile file)

@@ -1,5 +1,6 @@
 using SumonerWorld.Core.Bonding;
 using SumonerWorld.Core.Intents;
+using SumonerWorld.Core.Items;
 using SumonerWorld.Net.Client;
 using SumonerWorld.Net.Messages;
 using SumonerWorld.Scenarios;
@@ -113,5 +114,19 @@ public class InteractionTextTests
         }
 
         Assert.DoesNotContain("chance", InteractionText.PactMenuTitle("mossback") + InteractionText.PactMenuHints, StringComparison.OrdinalIgnoreCase);
+    }
+
+    [Fact]
+    public void Craft_and_gear_results_say_what_happened_or_why_not()
+    {
+        Assert.StartsWith("You start making: Wooden staff.", InteractionText.Result(IntentKind.Craft, IntentResult.Applied(), "Wooden staff"), StringComparison.Ordinal);
+        Assert.Equal("You put on: Leather vest.", InteractionText.Result(IntentKind.Equip, IntentResult.Applied(3), "Leather vest"));
+        Assert.Equal("You take off: Leather vest.", InteractionText.Result(IntentKind.Unequip, IntentResult.Applied(), "Leather vest"));
+        var missing = new IntentResult(IntentStatus.Rejected, IntentRejectReason.WrongState, (byte)GearRefusal.MissingInputs);
+        Assert.Equal("You do not have everything for Wooden staff.", InteractionText.Result(IntentKind.Craft, missing, "Wooden staff"));
+        var level = new IntentResult(IntentStatus.Rejected, IntentRejectReason.WrongState, (byte)GearRefusal.LevelTooLow);
+        Assert.Equal("Not strong enough for Leather vest yet.", InteractionText.Result(IntentKind.Equip, level, "Leather vest"));
+        Assert.Equal("Call that companion to your side first.", InteractionText.Result(IntentKind.Equip, IntentResult.Reject(IntentRejectReason.InvalidTarget), "x"));
+        Assert.Equal("charm", InteractionText.PositionName(EquipPosition.Charm2));
     }
 }

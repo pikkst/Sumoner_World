@@ -51,6 +51,104 @@ public sealed record ItemDefinition
 
     /// <summary>Tags (e.g. <c>fur</c>, <c>plant</c>).</summary>
     public IReadOnlyList<string> Tags { get; init; } = [];
+
+    /// <summary>Gear: the kind of slot it is worn in (<see cref="EquipSlot.None"/> for other items, crafting spec §8).</summary>
+    public EquipSlot Slot { get; init; } = EquipSlot.None;
+
+    /// <summary>Gear: who can wear it: <c>player</c> and/or body types (<c>quadruped</c>, <c>avian</c>, …).</summary>
+    public IReadOnlyList<string> Wearers { get; init; } = [];
+
+    /// <summary>Gear: the lowest level of its wearer.</summary>
+    public int MinLevel { get; init; } = 1;
+
+    /// <summary>Gear: what it adds to its wearer's combat stats.</summary>
+    public GearStats Stats { get; init; } = new();
+}
+
+/// <summary>The kinds of equipment slot (crafting spec §8).</summary>
+public enum EquipSlot
+{
+    /// <summary>Not gear.</summary>
+    None,
+
+    /// <summary>A weapon.</summary>
+    Weapon,
+
+    /// <summary>The off hand.</summary>
+    OffHand,
+
+    /// <summary>Head.</summary>
+    Head,
+
+    /// <summary>Body.</summary>
+    Body,
+
+    /// <summary>A charm (players wear two).</summary>
+    Charm,
+}
+
+/// <summary>What gear adds to combat stats (combat spec §2).</summary>
+public sealed record GearStats
+{
+    /// <summary>Power, in percent.</summary>
+    public int Power { get; init; }
+
+    /// <summary>Guard, flat.</summary>
+    public int Guard { get; init; }
+
+    /// <summary>Physical resistance, per mille.</summary>
+    public int ResistPhysical { get; init; }
+
+    /// <summary>Primal resistance, per mille.</summary>
+    public int ResistPrimal { get; init; }
+
+    /// <summary>Stamina, flat.</summary>
+    public int Stamina { get; init; }
+}
+
+/// <summary>Where a recipe is made (crafting spec §6). The slice has no stations yet: every slice recipe is made by hand.</summary>
+public enum CraftStation
+{
+    /// <summary>Anywhere.</summary>
+    Hand,
+
+    /// <summary>At a campfire.</summary>
+    Campfire,
+
+    /// <summary>At a workbench.</summary>
+    Workbench,
+
+    /// <summary>At a forge.</summary>
+    Forge,
+}
+
+/// <summary>A recipe (crafting spec §6), from <c>data/items/recipes.json</c>. Its position in the file is its index on the wire.</summary>
+public sealed record RecipeDefinition
+{
+    /// <summary>Stable id, e.g. <c>wooden_staff</c>.</summary>
+    public required string Id { get; init; }
+
+    /// <summary>What it takes (all taken when it is done).</summary>
+    public required IReadOnlyList<RecipePart> Inputs { get; init; }
+
+    /// <summary>What it makes.</summary>
+    public required RecipePart Output { get; init; }
+
+    /// <summary>Where it is made.</summary>
+    public CraftStation Station { get; init; } = CraftStation.Hand;
+
+    /// <summary>How long it takes, in ticks.</summary>
+    public required int Ticks { get; init; }
+}
+
+/// <summary>An item and a count in a recipe.</summary>
+public sealed record RecipePart
+{
+    /// <summary>Item id.</summary>
+    public required string Item { get; init; }
+
+    /// <summary>How many.</summary>
+    public int Count { get; init; } = 1;
 }
 
 /// <summary>What a defeated creature of a species drops (crafting spec §4), from <c>data/items/loot_tables.json</c>.</summary>

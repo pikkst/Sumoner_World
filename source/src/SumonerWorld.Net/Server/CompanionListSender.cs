@@ -18,7 +18,7 @@ internal sealed class CompanionListSender(CreatureWorld world, ITransport transp
     private readonly List<Companion> _current = [];
     private readonly Dictionary<ulong, Companion[]> _sent = [];
     private readonly InventoryListCodec _inventoryCodec = new();
-    private readonly Dictionary<ulong, (int Gold, Core.Items.ItemCount[] Slots)> _sentInventory = [];
+    private readonly Dictionary<ulong, (int Gold, Core.Items.ItemCount[] Slots, WornItems Worn, int Crafting)> _sentInventory = [];
 
     /// <summary>Sends the account's list on <paramref name="connection"/> if it changed.</summary>
     public void Update(ConnectionId connection, ulong account)
@@ -45,13 +45,32 @@ internal sealed class CompanionListSender(CreatureWorld world, ITransport transp
                 (byte)Math.Min(companion.Points, byte.MaxValue),
                 companion.Learned,
                 BranchAffinities(companion),
-                (byte)companion.Combos);
+                (byte)companion.Combos,
+                world.TryFindCreature(companion.Id, out Core.Ecs.Entity worn) ? Worn(world.World.GetComponent<Core.Items.Equipment>(worn)) : default);
         }
 
         var writer = new MessageWriter(_buffer);
         _codec.Write(ref writer, new CompanionList(entries));
         transport.Send(connection, Channel.ReliableOrdered, writer.WrittenSpan);
     }
+
+    // What the player wears and the recipe they are making (+1), from their avatar.
+    private (WornItems Worn, int Crafting) WornAndCrafting(ulong account)
+    {
+        foreach (Core.Ecs.Entity avatar in world.World.Store<PlayerAvatar>().Entities)
+        {
+            if (world.World.GetComponent<PlayerAvatar>(avatar).AccountId == account)
+            {
+                int crafting = world.World.Has<Core.Items.Crafting>(avatar) ? world.World.GetComponent<Core.Items.Crafting>(avatar).Recipe + 1 : 0;
+                return (Worn(world.World.GetComponent<Core.Items.Equipment>(avatar)), crafting);
+            }
+        }
+
+        return (default, 0);
+    }
+
+    private static WornItems Worn(Core.Items.Equipment equipment) =>
+        new((ushort)equipment.Weapon, (ushort)equipment.OffHand, (ushort)equipment.Head, (ushort)equipment.Body, (ushort)equipment.Charm1, (ushort)equipment.Charm2);
 
     // How much it likes each branch of its tree now (its traits and the roles it did most).
     private Affinities BranchAffinities(Companion companion)
@@ -84,13 +103,14 @@ internal sealed class CompanionListSender(CreatureWorld world, ITransport transp
     private void UpdateInventory(ConnectionId connection, ulong account)
     {
         Core.Items.Inventory inventory = world.Economy.Inventories.Of(account);
-        if (_sentInventory.TryGetValue(account, out (int Gold, Core.Items.ItemCount[] Slots) sent)
-            && sent.Gold == inventory.Gold && inventory.Stacks.SequenceEqual(sent.Slots))
+        (WornItems worn, int crafting) = WornAndCrafting(account);
+        if (_sentInventory.TryGetValue(account, out (int Gold, Core.Items.ItemCount[] Slots, WornItems Worn, int Crafting) sent)
+            && sent.Gold == inventory.Gold && inventory.Stacks.SequenceEqual(sent.Slots) && sent.Worn == worn && sent.Crafting == crafting)
         {
             return;
         }
 
-        _sentInventory[account] = (inventory.Gold, inventory.Stacks.ToArray());
+        _sentInventory[account] = (inventory.Gold, inventory.Stacks.ToArray(), worn, crafting);
         var entries = new List<InventoryEntry>();
         foreach (Core.Items.ItemCount slot in inventory.Stacks)
         {
@@ -101,7 +121,7 @@ internal sealed class CompanionListSender(CreatureWorld world, ITransport transp
         }
 
         var writer = new MessageWriter(_buffer);
-        _inventoryCodec.Write(ref writer, new InventoryList(inventory.Gold, entries));
+        _inventoryCodec.Write(ref writer, new InventoryList(inventory.Gold, entries, worn, crafting));
         transport.Send(connection, Channel.ReliableOrdered, writer.WrittenSpan);
     }
 }

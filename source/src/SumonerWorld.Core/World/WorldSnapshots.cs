@@ -45,7 +45,8 @@ public static class WorldSnapshots
             world.Services.Bonding.GetBond(mind),
             world.World.GetComponent<Progression.CreatureGrowth>(creature),
             world.World.GetComponent<Progression.CreatureSkills>(creature),
-            world.World.GetComponent<Combat.CreatureCombos>(creature));
+            world.World.GetComponent<Combat.CreatureCombos>(creature),
+            Items.EquipRules.Export(world.Data, world.World.GetComponent<Items.Equipment>(creature)));
     }
 
     /// <summary>
@@ -85,6 +86,7 @@ public static class WorldSnapshots
             world.World.Add(creature, save.Growth ?? Progression.GrowthRules.Migrated(world.Data.Species[species], save.Id.Value, save.Bond.State != Bonding.OwnershipState.Wild));
             world.World.Add(creature, (save.Skills ?? default) with { ReluctantUntil = 0 });
             world.World.Add(creature, (save.Combos ?? default) with { ProudUntil = 0 });
+            world.World.Add(creature, Items.EquipRules.Import(world.Data, save.Equipped));
             world.AddCombatant(creature, species);
             world.Services.Bonding.Restore(mind, save.Bond);
         }
