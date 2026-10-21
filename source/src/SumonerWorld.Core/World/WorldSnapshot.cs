@@ -37,7 +37,8 @@ public sealed record CreatureSave(
 /// <param name="Score">Score.</param>
 public readonly record struct ReputationSave(string Species, int Region, ulong Player, int Score);
 
-/// <summary>A player's saved place in the world (characters, inventories and stats arrive with gameplay).</summary>
+/// <summary>A player's saved place in the world and progress (inventories arrive with gameplay).</summary>
 /// <param name="Account">Account id.</param>
 /// <param name="Position">Where the avatar was last.</param>
-public readonly record struct PlayerSave(ulong Account, Vector3 Position);
+/// <param name="Progress">Class, rank, level and experience (M2-09); null in saves from before it existed (a new player's).</param>
+public readonly record struct PlayerSave(ulong Account, Vector3 Position, Progression.PlayerProgress? Progress = null);

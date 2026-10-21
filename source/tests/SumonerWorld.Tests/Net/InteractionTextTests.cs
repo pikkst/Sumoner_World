@@ -55,6 +55,10 @@ public class InteractionTextTests
     public void A_companion_line_shows_level_stage_and_where_it_is()
     {
         Assert.Equal("hollow owl Lv 3 (young): with you", InteractionText.CompanionLine("hollow owl", 3, SumonerWorld.Core.Progression.LifeStage.Young, summoned: true));
+        Assert.Equal(
+            "The mossback does not answer to your kind of summoner.",
+            InteractionText.Result(IntentKind.OfferPact, IntentResult.Applied((byte)BondingOutcome.WrongClass), "mossback"));
+        Assert.Equal("Elf · Rank D · Level 23", InteractionText.PlayerLine(SumonerWorld.Core.Progression.SummonerClass.Elf, SumonerWorld.Core.Progression.Rank.D, 23));
         Assert.Equal("bogfox Lv 8 (elder): away", InteractionText.CompanionLine("bogfox", 8, SumonerWorld.Core.Progression.LifeStage.Elder, summoned: false));
     }
 

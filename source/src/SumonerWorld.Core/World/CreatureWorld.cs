@@ -334,7 +334,7 @@ public sealed class CreatureWorld : IDisposable
         World.Add(creature, new MindRef(mind));
         World.Add(creature, new GroupRef(group));
         World.Add(creature, new SpeciesRef(species));
-        World.Add(creature, GrowthRules.Wild(Data.Species[species], id.Value));
+        ProgressionComponents.AddWild(World, creature, Data.Species[species], id.Value);
         AddCombatant(creature, species);
         Reputation.SeedOpinions(Minds, mind, species, RegionOf(position));
         return creature;
@@ -425,6 +425,7 @@ public sealed class CreatureWorld : IDisposable
         World.Add(avatar, new PlayerAvatar(accountId));
         AddBody(avatar, position);
         World.Add(avatar, CombatRules.Create(Data.Combat.Player, CombatRules.PlayerSource));
+        ProgressionComponents.AddPlayer(World, avatar);
         return avatar;
     }
 
@@ -459,8 +460,7 @@ public sealed class CreatureWorld : IDisposable
         hash.Add<GroupRef>(World.Store<GroupRef>().Components);
         hash.Add<Entity>(World.Store<Combatant>().Entities);
         hash.Add<Combatant>(World.Store<Combatant>().Components);
-        hash.Add<Entity>(World.Store<CreatureGrowth>().Entities);
-        hash.Add<CreatureGrowth>(World.Store<CreatureGrowth>().Components);
+        ProgressionComponents.AddTo(ref hash, World);
         CombatState.AddTo(ref hash, World);
         BondingComponents.AddTo(ref hash, World);
         Minds.AddTo(ref hash);
@@ -489,7 +489,7 @@ public sealed class CreatureWorld : IDisposable
         world.Register<Snared>();
         BondingComponents.Register(world);
         world.Register<Combatant>();
-        world.Register<CreatureGrowth>();
+        ProgressionComponents.Register(world);
         CombatState.Register(world);
         return world;
     }
@@ -516,7 +516,7 @@ public sealed class CreatureWorld : IDisposable
     internal void AddCombatant(Entity creature, ushort species)
     {
         Combatant combatant = CombatRules.Create(Data.Species[species].Combat, species);
-        Growth.Apply(ref combatant, Data.Species[species].Combat, World.GetComponent<CreatureGrowth>(creature));
+        ProgressionComponents.Restat(Growth, World, creature, Data.Species[species].Combat, ref combatant);
         World.Add(creature, combatant);
     }
 

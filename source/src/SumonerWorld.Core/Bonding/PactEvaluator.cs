@@ -35,7 +35,8 @@ public readonly record struct PactTerms(byte Mask)
 
 /// <summary>
 /// Why a creature accepted or refused a Pact: every part of the score, so the game can show the player why (Pillar 1).
-/// <c>Score = Terms + Trust + Respect + Reputation − FearPenalty − GrudgePenalty</c>; accepted when Score ≥ Threshold.
+/// <c>Score = Terms + Trust + Respect + Reputation − FearPenalty − GrudgePenalty + LevelGap</c>; accepted when Score ≥ Threshold,
+/// and never when the creature belongs to another class.
 /// </summary>
 /// <param name="Accepted">The creature accepts.</param>
 /// <param name="Score">Total acceptance score.</param>
@@ -46,17 +47,21 @@ public readonly record struct PactTerms(byte Mask)
 /// <param name="Reputation">The player's reputation with the species in this region / 5.</param>
 /// <param name="FearPenalty">3 × Fear of the player.</param>
 /// <param name="GrudgePenalty">Penalty for a negative core memory about the player (e.g. it killed kin).</param>
+/// <param name="LevelGap">The level difference's part (companions spec §2, M2-09).</param>
+/// <param name="WrongClass">The creature belongs to another class: it always refuses (companions spec §2).</param>
 public readonly record struct PactDecision(
-    bool Accepted, int Score, int Threshold, int Terms, int Trust, int Respect, int Reputation, int FearPenalty, int GrudgePenalty);
+    bool Accepted, int Score, int Threshold, int Terms, int Trust, int Respect, int Reputation, int FearPenalty, int GrudgePenalty, int LevelGap = 0, bool WrongClass = false);
 
 /// <summary>Decides whether a creature accepts a Pact (AI Bible §10.2). Deterministic: no random roll decides it (R15).</summary>
 public interface IPactEvaluator
 {
     /// <summary>
     /// Evaluates an offer of <paramref name="terms"/> from <paramref name="player"/> with server reputation
-    /// <paramref name="reputation"/> (−1000…1000, AI Bible §4.5).
+    /// <paramref name="reputation"/> (−1000…1000, AI Bible §4.5); <paramref name="conditions"/> add the class rule and the level
+    /// difference (companions spec §2).
     /// </summary>
-    PactDecision Evaluate(MindHandle creature, SpeciesDefinition species, MemorySubject player, PactTerms terms, int reputation, ulong now);
+    PactDecision Evaluate(
+        MindHandle creature, SpeciesDefinition species, MemorySubject player, PactTerms terms, int reputation, ulong now, Progression.PactConditions? conditions = null);
 
     /// <summary>The value of one catalogue term to this creature right now.</summary>
     int TermValue(MindHandle creature, int termIndex, ulong now);
@@ -99,7 +104,8 @@ public sealed class PactEvaluator : IPactEvaluator
     }
 
     /// <inheritdoc />
-    public PactDecision Evaluate(MindHandle creature, SpeciesDefinition species, MemorySubject player, PactTerms terms, int reputation, ulong now)
+    public PactDecision Evaluate(
+        MindHandle creature, SpeciesDefinition species, MemorySubject player, PactTerms terms, int reputation, ulong now, Progression.PactConditions? conditions = null)
     {
         ArgumentNullException.ThrowIfNull(species);
         ValidateTerms(terms);
@@ -116,9 +122,12 @@ public sealed class PactEvaluator : IPactEvaluator
         int reputationPart = Math.Clamp(reputation, -MaxReputation, MaxReputation) / ReputationDivisor;
         int fearPenalty = FearWeight * Math.Max(0, opinion.Fear);
         int grudgePenalty = HasGrudge(creature, player, now) ? GrudgePenalty : 0;
-        int score = termValue + trust + respect + reputationPart - fearPenalty - grudgePenalty;
+        int levelGap = conditions?.LevelBonus ?? 0;
+        bool wrongClass = conditions?.WrongClass ?? false;
+        int score = termValue + trust + respect + reputationPart - fearPenalty - grudgePenalty + levelGap;
 
-        return new PactDecision(score >= species.PactThreshold, score, species.PactThreshold, termValue, trust, respect, reputationPart, fearPenalty, grudgePenalty);
+        return new PactDecision(
+            !wrongClass && score >= species.PactThreshold, score, species.PactThreshold, termValue, trust, respect, reputationPart, fearPenalty, grudgePenalty, levelGap, wrongClass);
     }
 
     /// <inheritdoc />

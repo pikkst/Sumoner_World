@@ -1,10 +1,12 @@
 using System.Numerics;
 using SumonerWorld.Core.Bonding;
 using SumonerWorld.Core.Cognition.Memory;
+using SumonerWorld.Core.Combat;
 using SumonerWorld.Core.Data.Definitions;
 using SumonerWorld.Core.Ecosystem;
 using SumonerWorld.Core.Ecs;
 using SumonerWorld.Core.Intents;
+using SumonerWorld.Core.Progression;
 using SumonerWorld.Core.Transactions;
 
 namespace SumonerWorld.Core.World;
@@ -13,7 +15,8 @@ namespace SumonerWorld.Core.World;
 /// A player offers a Pact to a wild creature (AI Bible §10.2), run through the <see cref="ITransactionProcessor"/>. Validation: the
 /// player's avatar exists, the terms are in the catalogue, the creature exists and is wild, it is within <see cref="Range"/> and the
 /// player's offer cooldown has passed. The commit asks the creature (acceptance uses the player's reputation with its kind in the
-/// region); a refusal is still applied, because the creature remembers being asked. Either way the creature then answers with its
+/// region, the class rule and the level difference, companions spec §2); a refusal is still applied, because the creature
+/// remembers being asked. An accepted Pact gives the player experience. Either way the creature then answers with its
 /// body (<see cref="PactAnswerSystem"/>, M2-05). <see cref="IntentResult.Detail"/> is the <see cref="BondingOutcome"/>.
 /// </summary>
 /// <param name="Creatures">The world.</param>
@@ -79,6 +82,9 @@ public record struct OfferPactTransaction(CreatureWorld Creatures, CooldownTrack
         Vector3 position = world.GetComponent<Position>(creature).Value;
         int reputation = Creatures.Reputation.GetScore(new ReputationKey(species, Creatures.RegionOf(position), account));
 
+        PlayerProgress player = world.GetComponent<PlayerProgress>(Avatar);
+        var conditions = new PactConditions(
+            (SummonerClass)player.Class, player.Level, Creatures.Data.Species[species].Class, world.GetComponent<CreatureGrowth>(creature).Level);
         BondingOutcome outcome = Creatures.Services.Bonding.OfferPact(
             world.GetComponent<MindRef>(creature).Handle,
             Creatures.Data.Species[species],
@@ -86,11 +92,18 @@ public record struct OfferPactTransaction(CreatureWorld Creatures, CooldownTrack
             Terms,
             reputation,
             now,
-            out _);
+            out _,
+            conditions);
         Cooldowns.Start(account, Kind, now, CooldownTicks);
-        if (outcome is BondingOutcome.Accepted or BondingOutcome.Refused)
+        if (outcome is BondingOutcome.Accepted or BondingOutcome.Refused or BondingOutcome.WrongClass)
         {
             PactAnswerSystem.Begin(world, creature, Avatar, outcome == BondingOutcome.Accepted, now);
+        }
+
+        if (outcome == BondingOutcome.Accepted)
+        {
+            ref PlayerProgress progress = ref world.GetComponent<PlayerProgress>(Avatar);
+            PlayerGrowth.Earn(Creatures.Growth, ref progress, ref world.GetComponent<Combatant>(Avatar), Creatures.Data.Combat.Player, Creatures.Growth.Definition.PlayerPactXp);
         }
 
         PublishMemories(creature, account, outcome, now);
@@ -105,7 +118,7 @@ public record struct OfferPactTransaction(CreatureWorld Creatures, CooldownTrack
         string? answer = outcome switch
         {
             BondingOutcome.Accepted => "PactSealed",
-            BondingOutcome.Refused => "PactRefused",
+            BondingOutcome.Refused or BondingOutcome.WrongClass => "PactRefused",
             _ => null,
         };
         if (answer is not null && Creatures.Rules.FindByKey(answer) is ushort eventType)

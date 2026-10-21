@@ -283,7 +283,11 @@ public enum SnapshotEntityKind : byte
 /// <param name="Stamina">Stamina.</param>
 /// <param name="Mana">Mana.</param>
 /// <param name="Action">What they are doing (<c>CombatAction</c>).</param>
-public readonly record struct SnapshotVitals(byte Health, byte Stamina, byte Mana, byte Action);
+/// <param name="Level">Their level (since protocol 12).</param>
+/// <param name="Rank">Their Summoner Rank (<c>Rank</c>, since protocol 12).</param>
+/// <param name="Class">Their class (<c>SummonerClass</c>, since protocol 12).</param>
+/// <param name="Xp">Progress to the next level, 0–255 (255 at the rank's cap).</param>
+public readonly record struct SnapshotVitals(byte Health, byte Stamina, byte Mana, byte Action, byte Level = 1, byte Rank = 0, byte Class = 0, byte Xp = 0);
 
 /// <summary>One part's header: the tick, the receiver's own avatar (exact, for reconciliation) and how many entities follow.</summary>
 /// <param name="ServerTick">Tick the state is from.</param>
@@ -336,6 +340,10 @@ public static class Snapshot
         writer.WriteByte(own.Stamina);
         writer.WriteByte(own.Mana);
         writer.WriteByte(own.Action);
+        writer.WriteByte(own.Level);
+        writer.WriteByte(own.Rank);
+        writer.WriteByte(own.Class);
+        writer.WriteByte(own.Xp);
         writer.WriteByte(0);
         return writer.Written - 1;
     }
@@ -380,7 +388,8 @@ public static class Snapshot
         }
 
         var own = new Vector3(reader.ReadSingle(), reader.ReadSingle(), reader.ReadSingle());
-        var vitals = new SnapshotVitals(reader.ReadByte(), reader.ReadByte(), reader.ReadByte(), reader.ReadByte());
+        var vitals = new SnapshotVitals(
+            reader.ReadByte(), reader.ReadByte(), reader.ReadByte(), reader.ReadByte(), reader.ReadByte(), reader.ReadByte(), reader.ReadByte(), reader.ReadByte());
         int count = reader.ReadByte();
         return count > MaxEntitiesPerPart
             ? throw new MalformedMessageException($"Snapshot part with {count} entities (max {MaxEntitiesPerPart}).")

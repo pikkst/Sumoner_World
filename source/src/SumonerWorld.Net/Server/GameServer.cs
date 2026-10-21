@@ -6,6 +6,7 @@ using SumonerWorld.Core.Diagnostics;
 using SumonerWorld.Core.Ecs;
 using SumonerWorld.Core.Intents;
 using SumonerWorld.Core.Movement;
+using SumonerWorld.Core.Progression;
 using SumonerWorld.Core.Simulation;
 using SumonerWorld.Core.Transactions;
 using SumonerWorld.Core.World;
@@ -77,7 +78,7 @@ public sealed class GameServer : IServerSessionHandler
     private readonly List<PlayerSlot> _players = [];
     private readonly Dictionary<ConnectionId, PlayerSlot> _byConnection = [];
     private readonly Dictionary<ulong, PlayerSlot> _bySession = [];
-    private readonly Dictionary<ulong, Vector3> _knownPlayers = [];
+    private readonly Dictionary<ulong, PlayerSave> _knownPlayers = [];
     private readonly PlayerInput[] _batch = new PlayerInput[InputBatch.MaxInputs];
     private readonly byte[] _buffer = new byte[Protocol.MaxMessageSize];
     private readonly IntentRequestCodec _intentCodec = new();
@@ -192,11 +193,11 @@ public sealed class GameServer : IServerSessionHandler
         {
             if (player.InWorld)
             {
-                _knownPlayers[player.Account] = _world.World.GetComponent<Position>(player.Avatar).Value;
+                _knownPlayers[player.Account] = SaveOf(player);
             }
         }
 
-        return [.. _knownPlayers.OrderBy(entry => entry.Key).Select(entry => new PlayerSave(entry.Key, entry.Value))];
+        return [.. _knownPlayers.OrderBy(entry => entry.Key).Select(entry => entry.Value)];
     }
 
     /// <summary>Loads saved players: each appears where it was when it next joins.</summary>
@@ -205,7 +206,7 @@ public sealed class GameServer : IServerSessionHandler
         ArgumentNullException.ThrowIfNull(players);
         foreach (PlayerSave player in players)
         {
-            _knownPlayers[player.Account] = player.Position;
+            _knownPlayers[player.Account] = player;
         }
     }
 
@@ -275,7 +276,7 @@ public sealed class GameServer : IServerSessionHandler
         var player = new PlayerSlot(accountId, sessionId)
         {
             Connection = connection,
-            LastPosition = _knownPlayers.TryGetValue(accountId, out Vector3 known) ? known : _settings.SpawnPoint,
+            LastPosition = _knownPlayers.TryGetValue(accountId, out PlayerSave known) ? known.Position : _settings.SpawnPoint,
         };
         Enter(player);
         _players.Add(player);
@@ -384,16 +385,26 @@ public sealed class GameServer : IServerSessionHandler
         }
     }
 
+    private PlayerSave SaveOf(PlayerSlot player) =>
+        new(player.Account, _world.World.GetComponent<Position>(player.Avatar).Value, _world.World.GetComponent<PlayerProgress>(player.Avatar));
+
     private void Enter(PlayerSlot player)
     {
         player.Avatar = _world.SpawnPlayerAvatar(player.Account, player.LastPosition);
         player.InWorld = true;
+        if (_knownPlayers.TryGetValue(player.Account, out PlayerSave saved) && saved.Progress is PlayerProgress progress)
+        {
+            // Back with their class, rank and level; stats follow the level.
+            _world.World.GetComponent<PlayerProgress>(player.Avatar) = progress;
+            PlayerGrowth.Restat(_world.Growth, progress, ref _world.World.GetComponent<Combatant>(player.Avatar), _world.Data.Combat.Player);
+            _world.World.GetComponent<Combatant>(player.Avatar).Health = _world.World.GetComponent<Combatant>(player.Avatar).MaxHealth;
+        }
     }
 
     private void Leave(PlayerSlot player)
     {
         player.LastPosition = _world.World.GetComponent<Position>(player.Avatar).Value;
-        _knownPlayers[player.Account] = player.LastPosition;
+        _knownPlayers[player.Account] = SaveOf(player);
         _world.DespawnPlayerAvatar(player.Avatar);
         player.InWorld = false;
     }

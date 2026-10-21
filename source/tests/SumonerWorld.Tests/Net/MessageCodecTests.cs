@@ -92,6 +92,17 @@ public class MessageCodecTests
         Assert.Equal(new SnapshotEntity(SnapshotEntityKind.Creature, 77, new Vector3(10f, 0, -3.46f), 64, 3, 2), creature);
         Assert.Equal(9_000_001UL, player.Id);
         Assert.Equal(64, Snapshot.EncodeFacing(Vector3.UnitX));
+
+        var vitals = new SnapshotVitals(200, 100, 50, 9, Level: 17, Rank: 2, Class: 0, Xp: 128);
+        var entity = new SnapshotEntity(SnapshotEntityKind.Creature, 5, Vector3.Zero, 0, 0, 1, 255, 0, 0, Stage: 2, Level: 9);
+        writer = new MessageWriter(buffer);
+        countOffset = Snapshot.WriteHeader(ref writer, 1, 1, Vector3.Zero, vitals);
+        Snapshot.WriteEntity(ref writer, entity);
+        Snapshot.SetEntityCount(buffer, countOffset, 1);
+        reader = new MessageReader(writer.WrittenSpan);
+        Protocol.ReadHeader(ref reader);
+        Assert.Equal(vitals, Snapshot.ReadHeader(ref reader).Own);
+        Assert.Equal(entity, Snapshot.ReadEntity(ref reader));
         Assert.Equal(0, Snapshot.EncodeFacing(Vector3.UnitZ));
     }
 

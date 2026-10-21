@@ -135,7 +135,12 @@ contract v1.0.0); combat spec v0.4 (D1)
 - **Shown:** snapshots and the companion list carry level and stage (protocol 11); the companion list reads "hollow owl Lv 3
   (young): with you"; the AI Inspector shows level, cap, tier, stage and experience per role.
 - **Saved:** growth is part of the creature record; creatures saved before it existed migrate as §9 says (pacted: level 1, young).
-- The class rule and the level difference in Pacts follow in M2-09b, with the player's level and rank.
+- **M2-09b:** every player has a class, a Summoner Rank, a level and experience (`PlayerProgress`; Elf and rank F until the
+  ranking quest, M2-21). Players earn experience for defeating (+20) or sparing (+30) a creature and for a sealed Pact (+50);
+  levels follow the same curve, capped by the rank, and raise health and power like a creature's. A Pact offer now applies §2:
+  a creature of another class always refuses (`WrongClass`, remembered as `PactRefused`, "does not answer to your kind of
+  summoner"), and the level difference table adds to the score. Progress is saved with the player and shown in the HUD
+  ("Elf · Rank F · Level 1" and an experience bar; protocol 12).
 
 ## Changelog
 - **0.2 (2026-10-21):** approved with the stakeholder's answers: three life stages (young, grown, elder) and levels; creatures

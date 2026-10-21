@@ -1,6 +1,7 @@
 using System.Numerics;
 using Microsoft.Data.Sqlite;
 using SumonerWorld.Core.Ecs;
+using SumonerWorld.Core.Progression;
 using SumonerWorld.Core.World;
 using SumonerWorld.Persistence.Records;
 
@@ -51,7 +52,17 @@ internal sealed class WorldTables(WorldStore store)
             foreach (PlayerSave player in players)
             {
                 account.Value = (long)player.Account;
-                payload.Value = _players.Encode(new PlayerRecord { X = player.Position.X, Y = player.Position.Y, Z = player.Position.Z });
+                PlayerProgress? progress = player.Progress;
+                payload.Value = _players.Encode(new PlayerRecord
+                {
+                    X = player.Position.X,
+                    Y = player.Position.Y,
+                    Z = player.Position.Z,
+                    Class = progress is PlayerProgress p ? (byte)p.Class : null,
+                    Rank = (byte)(progress?.Rank ?? 0),
+                    Level = progress?.Level ?? 0,
+                    Xp = progress?.Xp ?? 0,
+                });
                 insert.ExecuteNonQuery();
             }
         }
@@ -114,7 +125,8 @@ internal sealed class WorldTables(WorldStore store)
             while (reader.Read())
             {
                 PlayerRecord record = _players.Decode((byte[])reader.GetValue(1));
-                players.Add(new PlayerSave((ulong)reader.GetInt64(0), new Vector3(record.X, record.Y, record.Z)));
+                PlayerProgress? progress = record.Class is byte playerClass ? new PlayerProgress(playerClass, record.Rank, record.Level, record.Xp) : null;
+                players.Add(new PlayerSave((ulong)reader.GetInt64(0), new Vector3(record.X, record.Y, record.Z), progress));
             }
         }
 

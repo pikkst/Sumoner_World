@@ -7,6 +7,7 @@ using SumonerWorld.Core.Diagnostics;
 using SumonerWorld.Core.Ecs;
 using SumonerWorld.Core.Intents;
 using SumonerWorld.Core.Movement;
+using SumonerWorld.Core.Progression;
 using SumonerWorld.Core.Randomness;
 using SumonerWorld.Core.Transactions;
 using SumonerWorld.Core.World;
@@ -357,15 +358,24 @@ public class AuthoritativeLoopTests
     public void Saved_players_reappear_where_they_were_and_are_captured_with_the_players_in_the_world()
     {
         using var lan = new Lan(0);
-        lan.Server.RestorePlayers([new PlayerSave(1001, new Vector3(100, 0, 120)), new PlayerSave(3003, new Vector3(5, 0, 5))]);
+        var veteran = new PlayerProgress((int)SummonerClass.Elf, (int)Rank.E, 12, lan.World.Growth.XpFor(12));
+        lan.Server.RestorePlayers([new PlayerSave(1001, new Vector3(100, 0, 120), veteran), new PlayerSave(3003, new Vector3(5, 0, 5))]);
         lan.Join(1001);
         lan.Join(1002);
         lan.Run(10, _ => MoveInput.None);
 
         Assert.Equal(new Vector3(100, 0, 120), lan.ServerPosition(1001));
         Assert.Equal(lan.Settings.SpawnPoint, lan.ServerPosition(1002));
+        Assert.True(lan.Server.TryGetAvatar(1001, out Entity alice));
+        Combatant aliceStats = lan.World.World.GetComponent<Combatant>(alice);
+        Assert.True(aliceStats.MaxHealth > lan.World.Data.Combat.Player.Health, "a level 12 summoner has more health than a new one");
+        Assert.Equal(aliceStats.MaxHealth, aliceStats.Health);
         Assert.Equal(
-            [new PlayerSave(1001, new Vector3(100, 0, 120)), new PlayerSave(1002, lan.Settings.SpawnPoint), new PlayerSave(3003, new Vector3(5, 0, 5))],
+            [
+                new PlayerSave(1001, new Vector3(100, 0, 120), veteran),
+                new PlayerSave(1002, lan.Settings.SpawnPoint, PlayerProgress.New),
+                new PlayerSave(3003, new Vector3(5, 0, 5)),
+            ],
             lan.Server.CapturePlayers());
     }
 

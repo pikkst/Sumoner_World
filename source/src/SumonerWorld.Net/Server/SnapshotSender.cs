@@ -76,8 +76,13 @@ internal sealed class SnapshotSender(CreatureWorld world, ITransport transport, 
     {
         Combatant c = _combatants.Get(avatar);
         CombatAction action = CombatRules.ActionOf(world.World, world.Data, avatar, tick).Action;
+        Core.Progression.PlayerProgress p = world.World.GetComponent<Core.Progression.PlayerProgress>(avatar);
+        int from = world.Growth.XpFor(p.Level);
+        int to = world.Growth.XpFor(p.Level + 1);
+        byte xp = p.Level >= Core.Progression.GrowthRules.Cap((Core.Progression.Rank)p.Rank) ? byte.MaxValue : Snapshot.Fraction(p.Xp - from, to - from);
         return new SnapshotVitals(
-            Snapshot.Fraction(c.Health, c.MaxHealth), Snapshot.Fraction(c.Stamina, c.MaxStamina), Snapshot.Fraction(c.Mana, c.MaxMana), (byte)action);
+            Snapshot.Fraction(c.Health, c.MaxHealth), Snapshot.Fraction(c.Stamina, c.MaxStamina), Snapshot.Fraction(c.Mana, c.MaxMana), (byte)action,
+            (byte)p.Level, (byte)p.Rank, (byte)p.Class, xp);
     }
 
     private void Flush(ConnectionId connection, ref MessageWriter writer, int countOffset, int count)
