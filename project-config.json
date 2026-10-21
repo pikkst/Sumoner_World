@@ -258,12 +258,12 @@
         "Server-authoritative loop with reconnect works",
         "GO / RE-SCOPE gate decision by stakeholder"
       ],
-      "status": "In progress"
+      "status": "Done (closed 2026-10-21, GO)"
     },
     {
       "id": "M2",
       "name": "Networked Vertical Slice",
-      "start": "2027-04-01",
+      "start": "2026-10-21",
       "target_date": "2027-08-31",
       "deliverables": [
         "Summoning/bonding loop",
@@ -276,7 +276,8 @@
         "30-minute playable slice in multiplayer",
         "Zero critical bugs",
         "Save migration tests pass"
-      ]
+      ],
+      "status": "In progress (plan documentation/production/milestones/M2_plan.md; Steam page deferred by DEC-003)"
     },
     {
       "id": "M3",
