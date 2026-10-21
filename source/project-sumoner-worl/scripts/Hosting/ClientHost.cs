@@ -65,6 +65,7 @@ public sealed partial class ClientHost : Node
     private EntityViewSync? _views;
     private HumanoidRig? _avatar;
     private InteractionControls? _interactions;
+    private CompanionBar? _companionBar;
     private Vector3 _lastAvatarPosition;
     private float _avatarYaw;
     private float _avatarSpeed;
@@ -167,9 +168,11 @@ public sealed partial class ClientHost : Node
             _client!, () => _region?.Camera, () => _lockOn.TryGetTarget(out Vector3 target) && _avatar is not null ? (AvatarCentre(), target) : null);
         AddChild(_combat);
         AddChild(new CombatHud(_client!));
+        _companionBar = new CompanionBar(_client!, data, _views, controls);
+        AddChild(_companionBar);
         if (_options.SelfTest)
         {
-            _selfTest = new PlaytestSelfTest(controls, _combat, _lockOn, _client!, _orbit, () => _views.Shown > 0 && _elapsed > ScreenshotAfterSeconds, _log, Capture);
+            _selfTest = new PlaytestSelfTest(controls, _companionBar, _combat, _lockOn, _client!, _orbit, () => _views.Shown > 0 && _elapsed > ScreenshotAfterSeconds, _log, Capture);
             AddChild(_selfTest);
         }
 

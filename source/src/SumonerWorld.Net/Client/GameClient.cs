@@ -32,6 +32,7 @@ public sealed class GameClient : IClientSessionHandler
     private readonly DevRequestCodec _devRequestCodec = new();
     private readonly ServerMetricsCodec _metricsCodec = new();
     private readonly DevInspectionCodec _inspectionCodec = new();
+    private readonly CompanionListCodec _companionCodec = new();
     private uint _lastIntent;
 
     /// <summary>Creates the client; <paramref name="movement"/> must match the server's.</summary>
@@ -60,6 +61,9 @@ public sealed class GameClient : IClientSessionHandler
 
     /// <summary>True when the server allows lock-on (Normal preset; not on Hardcore).</summary>
     public bool LockOnAllowed => Session.Session is Welcome welcome && (welcome.Rules & ServerRules.LockOn) != 0;
+
+    /// <summary>The player's pacted creatures, as the server last sent them (since protocol 9).</summary>
+    public IReadOnlyList<CompanionEntry> Companions { get; private set; } = [];
 
     /// <summary>The own character's vitals and combat action from the newest snapshot (since protocol 7).</summary>
     public SnapshotVitals OwnVitals { get; private set; } = new(byte.MaxValue, byte.MaxValue, byte.MaxValue, 0);
@@ -203,6 +207,9 @@ public sealed class GameClient : IClientSessionHandler
                 AcksReceived++;
                 _unanswered.Remove(ack.Sequence);
                 break;
+            case MessageType.CompanionList:
+                Companions = _companionCodec.Read(ref reader).Entries;
+                break;
             case MessageType.DevMetrics:
                 ServerMetrics metrics = _metricsCodec.Read(ref reader);
                 DevMetrics = DevRequest.Metrics ? metrics : null;
@@ -244,7 +251,7 @@ public sealed class GameClient : IClientSessionHandler
             _entities.Clear();
             Prediction.Reconcile(header.AckedInput, header.OwnPosition);
             OwnVitals = header.Own;
-            Prediction.Frozen = header.Own.Action is (byte)CombatAction.Down or (byte)CombatAction.Stagger;
+            Prediction.Frozen = header.Own.Action is (byte)CombatAction.Down or (byte)CombatAction.Stagger or (byte)CombatAction.Cast;
         }
 
         for (int i = 0; i < header.EntityCount; i++)

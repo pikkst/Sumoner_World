@@ -25,7 +25,10 @@
       "dodgeStamina": 25,
       "dodgeCooldownTicks": 15,
       "dodgeSpeedPercent": 250,
-      "staggerTicks": 12
+      "staggerTicks": 12,
+      "summonManaCost": 20,
+      "summonCastTicks": 30,
+      "bondCapacity": 2
     }
   ]
 }

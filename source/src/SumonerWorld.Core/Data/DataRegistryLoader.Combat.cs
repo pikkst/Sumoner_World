@@ -100,6 +100,9 @@ public static partial class DataRegistryLoader
         CheckRange(entry.DodgeCooldownTicks, 1, MaxMoveTicks, "dodgeCooldownTicks", where, errors);
         CheckRange(entry.DodgeSpeedPercent, 100, 1000, "dodgeSpeedPercent", where, errors);
         CheckRange(entry.StaggerTicks, 1, MaxMoveTicks, "staggerTicks", where, errors);
+        CheckRange(entry.SummonManaCost, 0, MaxStat, "summonManaCost", where, errors);
+        CheckRange(entry.SummonCastTicks, 1, MaxStat, "summonCastTicks", where, errors);
+        CheckRange(entry.BondCapacity, 1, Bonding.BondingRules.MaxBondCapacity, "bondCapacity", where, errors);
     }
 
     private static void ValidateMoveReferences(

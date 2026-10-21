@@ -15,6 +15,7 @@ namespace SumonerWorld.Game.Characters;
 /// <item><b>Stagger:</b> arms thrown out, head back, a wobbly crouch.</item>
 /// <item><b>Yield:</b> down on one knee, head bowed, staff lowered.</item>
 /// <item><b>Down:</b> limp (the view itself is laid on its side by <c>CombatPose</c>).</item>
+/// <item><b>Cast</b> (M2-06): both arms raised to the sky, staff upright and high, standing in a turning, pulsing sigil.</item>
 /// <item><b>Hit:</b> a short flinch (head and chest snap back) on top of any pose, started by <see cref="Hit"/>.</item>
 /// </list>
 /// The whole-body tilts of <c>CombatPose</c> still apply to the view, so both layers together read at a distance.
@@ -41,6 +42,7 @@ public static class HumanoidAnimator
         CombatAction.Stagger => new(0.15f, -0.3f, 0.2f, -0.45f, -0.3f, 1.2f, -0.3f, -0.4f, 1.1f, -0.5f, -0.2f, 0.4f, 0.35f, 0.35f, 0.35f),
         CombatAction.Yield => new(0.42f, 0.25f, 0, 0.7f, 0.1f, 0.1f, -0.6f, 0.05f, 0.1f, -0.9f, -1.5f, 1.55f, 0.1f, 2.4f, 2.6f),
         CombatAction.Down => new(0, 0, 0, 0.3f, -0.4f, 1.3f, -0.2f, -0.2f, 1.1f, -0.3f, -0.1f, 0.2f, 0.15f, 0.3f, 0.35f),
+        CombatAction.Cast => new(0, -0.15f, 0, -0.35f, -2.6f, 0.35f, -0.2f, -2.5f, 0.3f, -0.3f, -0.15f, 0.1f, 0.15f, 0.1f, 2.8f),
         _ => null,
     };
 
@@ -83,6 +85,12 @@ public static class HumanoidAnimator
         rig.Legs[1].Rotation = new Vector3(pose.RightLeg, 0, 0);
         rig.Knees[1].Rotation = new Vector3(pose.RightKnee, 0, 0);
         rig.Staff.Rotation = new Vector3(pose.Staff, 0, 0);
+        rig.Sigil.Visible = action == CombatAction.Cast;
+        if (rig.Sigil.Visible)
+        {
+            rig.Sigil.Rotation = new Vector3(0, t * 1.2f, 0);
+            rig.Sigil.Scale = Vector3.One * (1 + (Mathf.Sin(t * 8) * 0.05f));
+        }
     }
 
     // Walk and run: legs swing in opposition, arms counter-swing, knees bend on the forward swing; the run leans in and bends more.

@@ -31,6 +31,8 @@ The game plays on the local dev server, which runs in Docker on this PC. Nothing
                            your attacks then aim at it by themselves
    Near a creature, a line at the bottom shows what you can do:
    E feed   F hit   R free from a snare   P offer a Pact   Q shout
+   Z calls a companion (a creature that accepted your Pact): you draw a glowing sigil for a
+   moment and it comes to your side. X sends it back. Your companions are listed at the top left.
    P opens the Pact menu: choose up to 3 promises with the number keys 1-6 (or click them),
    then Enter (or "Offer the Pact"); Esc closes it. Watch the creature: it answers first with
    its body (it comes closer, or turns away), then a line tells you its answer.

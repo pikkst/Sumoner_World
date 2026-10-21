@@ -77,6 +77,15 @@ public sealed partial class InteractionControls : CanvasLayer
         _pending.Add((_client.SendIntent(kind, target, 0), kind, Target.Name));
     }
 
+    /// <summary>Sends an intent about a creature and shows its result line like the keys' (the companion keys use this).</summary>
+    public void Send(IntentKind kind, ulong creature, string name)
+    {
+        if (_client.Session.State == ClientSessionState.InSession)
+        {
+            _pending.Add((_client.SendIntent(kind, creature, 0), kind, name));
+        }
+    }
+
     // The Pact menu's offer, to the creature that was in reach when it opened.
     private void OfferPact(PactTerms terms)
     {

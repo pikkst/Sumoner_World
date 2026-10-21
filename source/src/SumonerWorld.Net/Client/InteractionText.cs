@@ -22,6 +22,12 @@ public static class InteractionText
     /// </summary>
     public const double PactAnswerDelaySeconds = 1.5;
 
+    /// <summary>The companion keys, shown under the companion list.</summary>
+    public const string CompanionHints = "[Z] call   [X] send back";
+
+    /// <summary>A companion's line in the list: its name and whether it is at the player's side.</summary>
+    public static string CompanionLine(string creature, bool summoned) => summoned ? $"{creature}: with you" : $"{creature}: away";
+
     /// <summary>The keys shown at the bottom of the Pact menu.</summary>
     public const string PactMenuHints = "[1-6] choose up to 3 promises   [Enter] offer   [Esc] cancel";
 
@@ -43,6 +49,19 @@ public static class InteractionText
     /// <summary>The line shown for an intent's result; <paramref name="creature"/> is the target's display name (unused for Scare).</summary>
     public static string Result(IntentKind kind, IntentResult result, string creature)
     {
+        if (!result.IsApplied && kind == IntentKind.Summon)
+        {
+            return (SummonRefusal)result.Detail switch
+            {
+                SummonRefusal.NoMana => "Not enough mana to draw the sigil.",
+                SummonRefusal.CapacityReached => "You cannot call more companions now. Send one back first.",
+                SummonRefusal.Busy => "Not now.",
+                SummonRefusal.AlreadySummoned => $"The {creature} is already with you.",
+                SummonRefusal.NotPacted => $"The {creature} is not bonded to you.",
+                _ => "Nothing happens.",
+            };
+        }
+
         if (!result.IsApplied)
         {
             return result.Reason switch
@@ -63,6 +82,8 @@ public static class InteractionText
             IntentKind.Help => $"You free the {creature} from the snare.",
             IntentKind.Scare when result.Detail == 0 => "You shout. Nothing answers.",
             IntentKind.Scare => "You shout.",
+            IntentKind.Summon => $"You draw a sigil and call the {creature}.",
+            IntentKind.Dismiss => $"You send the {creature} back.",
             IntentKind.OfferPact => (BondingOutcome)result.Detail == BondingOutcome.Accepted
                 ? $"The {creature} accepts your Pact."
                 : $"The {creature} turns away from your Pact.",

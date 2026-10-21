@@ -34,6 +34,9 @@ public enum MessageType : byte
 
     /// <summary>Server → client, unreliable: the inspected creature's mind for the AI Inspector.</summary>
     DevInspection = 11,
+
+    /// <summary>Server → client, reliable: the player's pacted creatures, sent when the list changes (since protocol 9).</summary>
+    CompanionList = 12,
 }
 
 /// <summary>Why the server refused a session.</summary>
@@ -58,7 +61,7 @@ public enum RejectReason : byte
 public static class Protocol
 {
     /// <summary>Current protocol version; bump on any wire-format change.</summary>
-    public const ushort Version = 8;
+    public const ushort Version = 9;
 
     /// <summary>Largest message, in bytes (fits one UDP datagram on common networks).</summary>
     public const int MaxMessageSize = 1200;

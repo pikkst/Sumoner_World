@@ -39,12 +39,28 @@ public class InteractionTextTests
             InteractionText.Hints,
             InteractionText.ShoutHint,
             InteractionText.PactMenuHints,
+            InteractionText.CompanionHints,
+            InteractionText.CompanionLine("x", true),
+            InteractionText.CompanionLine("x", false),
+            .. Enum.GetValues<SummonRefusal>().Select(refusal => InteractionText.Result(IntentKind.Summon, new IntentResult(IntentStatus.Rejected, IntentRejectReason.WrongState, (byte)refusal), "x")),
             InteractionText.PactMenuTitle("x"),
             .. ShippedData.Current.PactTerms.Select(term => InteractionText.PactTerm(term.Key)),
         ];
         string[] forbidden = ["remember", "memory", "trust", "fear", "opinion", "likes", "hates", "angry", "scared"];
         Assert.DoesNotContain(lines, line => forbidden.Any(word => line.Contains(word, StringComparison.OrdinalIgnoreCase)));
         Assert.Equal("hollow owl", InteractionText.DisplayName("hollow_owl"));
+    }
+
+    [Theory]
+    [InlineData(SummonRefusal.NoMana, "Not enough mana to draw the sigil.")]
+    [InlineData(SummonRefusal.CapacityReached, "You cannot call more companions now. Send one back first.")]
+    [InlineData(SummonRefusal.AlreadySummoned, "The bogfox is already with you.")]
+    public void A_refused_summon_says_why(SummonRefusal refusal, string expected)
+    {
+        var result = new IntentResult(IntentStatus.Rejected, IntentRejectReason.WrongState, (byte)refusal);
+        Assert.Equal(expected, InteractionText.Result(IntentKind.Summon, result, "bogfox"));
+        Assert.Equal("You draw a sigil and call the bogfox.", InteractionText.Result(IntentKind.Summon, IntentResult.Applied(), "bogfox"));
+        Assert.Equal("You send the bogfox back.", InteractionText.Result(IntentKind.Dismiss, IntentResult.Applied(), "bogfox"));
     }
 
     [Fact]
