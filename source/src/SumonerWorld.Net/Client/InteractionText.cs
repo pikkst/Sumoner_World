@@ -35,8 +35,7 @@ public static class InteractionText
         return kind switch
         {
             IntentKind.Feed => $"You feed the {creature}.",
-            IntentKind.Hit when result.Detail == 1 => $"You hit the {creature}. It falls and does not get up.",
-            IntentKind.Hit => $"You hit the {creature}.",
+            IntentKind.Hit => $"You strike at the {creature}.",
             IntentKind.Help => $"You free the {creature} from the snare.",
             IntentKind.Scare when result.Detail == 0 => "You shout. Nothing answers.",
             IntentKind.Scare => "You shout.",

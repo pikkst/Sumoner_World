@@ -7,6 +7,7 @@ public sealed class DataRegistry : IDataRegistry
 {
     private readonly Dictionary<ushort, MemoryEventTypeDefinition> _memoryEventTypesById;
     private readonly Dictionary<string, SpeciesDefinition> _speciesById;
+    private readonly Dictionary<string, int> _moveIndexById;
 
     internal DataRegistry(
         IReadOnlyList<MemoryEventTypeDefinition> memoryEventTypes,
@@ -15,8 +16,13 @@ public sealed class DataRegistry : IDataRegistry
         IReadOnlyList<GoalDefinition> goals,
         IReadOnlyList<BehaviourTreeDefinition> behaviourTrees,
         IReadOnlyList<PactTermDefinition> pactTerms,
-        IReadOnlyList<BondLevelDefinition> bondLevels)
+        IReadOnlyList<BondLevelDefinition> bondLevels,
+        IReadOnlyList<MoveDefinition> moves,
+        CombatDefinition combat)
     {
+        Moves = moves;
+        Combat = combat;
+        _moveIndexById = moves.Select((definition, index) => (definition.Id, index)).ToDictionary(item => item.Id, item => item.index, StringComparer.Ordinal);
         PactTerms = pactTerms;
         BondLevels = bondLevels;
         Goals = goals;
@@ -48,6 +54,19 @@ public sealed class DataRegistry : IDataRegistry
 
     /// <inheritdoc />
     public IReadOnlyList<BondLevelDefinition> BondLevels { get; }
+
+    /// <inheritdoc />
+    public IReadOnlyList<MoveDefinition> Moves { get; }
+
+    /// <inheritdoc />
+    public CombatDefinition Combat { get; }
+
+    /// <inheritdoc />
+    public int MoveIndex(string id)
+    {
+        ArgumentNullException.ThrowIfNull(id);
+        return _moveIndexById.TryGetValue(id, out int index) ? index : throw new KeyNotFoundException($"Unknown move id '{id}'.");
+    }
 
     /// <inheritdoc />
     public MemoryEventTypeDefinition GetMemoryEventType(ushort id) =>

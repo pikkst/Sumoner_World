@@ -1,5 +1,5 @@
 # Sumoner World - Combat & Magic v1 (D1)
-Version: **0.1** (M2 D1) · Date: 2026-10-21 · Owners: Sr Game Designer (feel, values) + Mechanics Developer (contract, server) ·
+Version: **0.2** (M2 D1, M2-01) · Date: 2026-10-21 · Owners: Sr Game Designer (feel, values) + Mechanics Developer (contract, server) ·
 Status: **Approved by stakeholder 2026-10-21** (§13 answers recorded)
 Rules: R08, R11, R15, R21, R27, R28, R30–R33, R50 · Related: GDD v0.2 §3 Combat, §4 Magic, §9 Death, §10 Companions;
 AI Bible v0.1 §4 (memory events), §7–8 (decisions, learning), §10 (Bonding); TDD v0.1 §1 (budgets), §2 (tick stages), §3 (net)
@@ -42,7 +42,7 @@ Every combatant (player or creature) has a `Combatant` component on the server:
 | | Health | Stamina | Mana | Power | Guard | Notes |
 |---|---|---|---|---|---|---|
 | Player (start) | 100 | 100 | 60 | 100 | 0 | |
-| Mossback (grazer) | 160 | 80 | 0 | 90 | 4 | slow, heavy charge |
+| Mossback (grazer) | 160 | 80 | 0 | 90 | 2 | slow, heavy charge (guard 4 → 2 in M2-01: a flat 4 left light hits at 4 damage) |
 | Bogfox (small predator) | 60 | 120 | 20 | 110 | 0 | fast bites, one Primal trick |
 | Hollow owl | 40 | 100 | 40 | 80 | 0 | placeholder until the avian model |
 
@@ -176,6 +176,22 @@ window. Combos are data (`data/combat/combos.json`).
   duplicate intents deal damage once (R27, R30, R34).
 - **Determinism:** two seeded runs of the combat scenario give identical state hashes (R11).
 
+## 12a. Implementation (M2-01, Combat contract v1.0.0)
+- **Data:** `data/combat/moves.json` (kind `moves`), `data/combat/combat.json` (kind `combat`: rules and the player's stats),
+  and a `combat` block in every species file. The loader checks ranges and that every listed move exists.
+- **Core:** `SumonerWorld.Core.Combat`: `CombatRules` (the formula, `CanStart`, `Start`), components `Combatant`,
+  `ActiveMove`, `Yielding` and `Downed` (all in the state hash), events `CombatHit` and `CombatantDefeated`.
+  `CombatSystem` (stage 7) resolves arc, line and circle hits once per move; `VitalsSystem` (stage 8) regenerates without
+  rounding drift, settles spares and defeats.
+- **Player attacks** use the basic move (the first in the player's list) through the existing `Hit` intent (F key), aimed at
+  the target. A hit can miss if the creature moves out of the shape during the wind-up.
+- **Placeholders until later tasks:** whether a creature yields is decided by `yieldMaxBoldness` until the utility AI decides it
+  (M2-03); creatures do not attack yet (M2-03); a defeated player gets up where they fell after `playerDownTicks` (graves and
+  shrines later); health is not saved (restored creatures start at full health, M2-15); block, parry, dodge and stagger come
+  with M2-02.
+- **Tests:** formula table, shapes, regeneration sums, move timing, yield and spare, mistreatment, herd friendly fire, a downed
+  player getting up, and a six-creature fight that is deterministic and allocates 0 bytes per tick.
+
 ## 13. Stakeholder answers (2026-10-21)
 1. **Yield and spare (§6): yes**, this is how defeating without killing works.
 2. **Server preset: Normal is the default** (fallen companions can be revived). Hardcore stays an option a server can choose.
@@ -185,4 +201,5 @@ window. Combos are data (`data/combat/combos.json`).
 
 ## Changelog
 - **0.1 (2026-10-21):** First draft (M2 D1), for stakeholder approval.
+- **0.2 (2026-10-21, M2-01):** implementation notes (§12a); mossback guard 4 → 2 (a flat 4 left light hits at 4 damage).
 - **0.1 approved (2026-10-21):** yield and spare confirmed; Normal is the default server preset; no randomness in v1 kept.

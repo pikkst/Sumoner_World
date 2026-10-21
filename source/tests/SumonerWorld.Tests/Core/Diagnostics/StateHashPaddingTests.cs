@@ -3,6 +3,7 @@ using System.Reflection;
 using System.Runtime.CompilerServices;
 using SumonerWorld.Core.Cognition;
 using SumonerWorld.Core.Cognition.Opinions;
+using SumonerWorld.Core.Combat;
 using SumonerWorld.Core.Ecs;
 using SumonerWorld.Core.World;
 
@@ -19,6 +20,7 @@ public class StateHashPaddingTests
         typeof(Entity), typeof(StableId), typeof(Position), typeof(Facing), typeof(MoveTarget), typeof(AiTier), typeof(FocusRef),
         typeof(CurrentEmote), typeof(CurrentGoal), typeof(GroupRef),
         typeof(Opinion), typeof(Personality),
+        typeof(Combatant), typeof(ActiveMove), typeof(Yielding),
     };
 
     [Theory]

@@ -294,6 +294,17 @@ public class CreatureMindStoreTests
             PactThreshold = 1,
             BodyRadiusCm = 100,
             Perception = new PerceptionDefinition { SightRange = 50, SightHalfAngle = 120, HearingRange = 30 },
+            Combat = new CombatStatsDefinition
+            {
+                Health = 10,
+                Stamina = 10,
+                Mana = 0,
+                Power = 100,
+                Guard = 0,
+                Poise = 0,
+                Resist = new ResistDefinition { Physical = 0, Primal = 0 },
+                Moves = ["bite"],
+            },
             Goals = ["Eat"],
         };
 

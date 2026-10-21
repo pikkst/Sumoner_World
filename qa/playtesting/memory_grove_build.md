@@ -28,7 +28,7 @@ moderator script, consent form, questionnaire, coding guide and the report tool 
 | W A S D | walk (relative to the camera) | |
 | right mouse button + mouse, wheel | turn the camera around the character, zoom (3–25 m) | |
 | E | feed the creature in reach | `FedBy`: trust grows. After about 8 meals it shows the Trust emote |
-| F | hit it; the 3rd hit kills it | `AttackedBy`: fear, or anger in bold creatures. On a kill, the same species within 30 m remember `KilledKin` (core) and tell their group |
+| F | strike at it with the basic attack (combat spec, M2-01: damage until its health runs out) | `AttackedBy`: fear, or anger in bold creatures. A timid creature low on health yields: left alone for 5 s it remembers `DefeatedButSpared`; hit again, `Mistreated`. On a kill, the same species within 30 m remember `KilledKin` (core) and tell their group |
 | R | free it from a snare | `SavedLifeOf` (core) |
 | P | offer a Pact | `PactOffered` / `PactSealed` / `PactRefused` |
 | Q | shout | predators within 12 m remember `AttackedBy` and are frightened |

@@ -11,8 +11,7 @@ public class InteractionTextTests
 
     [Theory]
     [InlineData(IntentKind.Feed, 0, "You feed the mossback.")]
-    [InlineData(IntentKind.Hit, 0, "You hit the mossback.")]
-    [InlineData(IntentKind.Hit, 1, "You hit the mossback. It falls and does not get up.")]
+    [InlineData(IntentKind.Hit, 0, "You strike at the mossback.")]
     [InlineData(IntentKind.Help, 0, "You free the mossback from the snare.")]
     [InlineData(IntentKind.Scare, 0, "You shout. Nothing answers.")]
     [InlineData(IntentKind.Scare, 2, "You shout.")]

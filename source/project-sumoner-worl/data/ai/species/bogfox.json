@@ -38,6 +38,22 @@
         "sightHalfAngle": 70,
         "hearingRange": 40
       },
+      "combat": {
+        "health": 60,
+        "stamina": 120,
+        "mana": 20,
+        "power": 110,
+        "guard": 0,
+        "poise": 15,
+        "resist": {
+          "physical": 0,
+          "primal": 100
+        },
+        "moves": [
+          "bite",
+          "pounce"
+        ]
+      },
       "goals": [
         "Flee",
         "Fight",

@@ -1,6 +1,7 @@
 using System.Numerics;
 using SumonerWorld.Core.Cognition.Appraisal;
 using SumonerWorld.Core.Cognition.Memory;
+using SumonerWorld.Core.Combat;
 using SumonerWorld.Core.Data.Definitions;
 using SumonerWorld.Core.Ecosystem;
 using SumonerWorld.Core.Ecs;
@@ -15,7 +16,7 @@ public enum InteractionKind : byte
     /// <summary>Gave food to one creature.</summary>
     Feed = 1,
 
-    /// <summary>Struck one creature; the third hit kills it.</summary>
+    /// <summary>Attacked one creature (combat spec: damage, yield, defeat).</summary>
     Hit = 2,
 
     /// <summary>Freed a snared creature.</summary>
@@ -31,10 +32,6 @@ public enum InteractionKind : byte
 /// <summary>A creature is caught in a snare: it cannot move until a player frees it (M1-23 Memory Grove).</summary>
 /// <param name="Since">Tick it was snared.</param>
 public record struct Snared(ulong Since);
-
-/// <summary>Hits a creature has taken (not saved; a wounded creature heals when the server restarts).</summary>
-/// <param name="Count">Hits so far.</param>
-public record struct Wounds(int Count);
 
 /// <summary>Published when a player interaction is applied (telemetry, M1-23).</summary>
 /// <param name="Account">The player.</param>
@@ -58,14 +55,11 @@ public readonly record struct MemoryFormed(StableId Creature, ushort EventType, 
 /// </summary>
 public static class PlayerInteractions
 {
-    /// <summary>Farthest distance for feeding, hitting and helping, in metres (ground plane, between body edges).</summary>
+    /// <summary>Farthest distance for feeding and helping, in metres (ground plane, between body edges).</summary>
     public const float TouchRange = 3f;
 
     /// <summary>Radius a shout reaches, in metres.</summary>
     public const float ScareRadius = 12f;
-
-    /// <summary>Hits that kill a creature.</summary>
-    public const int HitsToKill = 3;
 
     /// <summary>Same-species creatures this close to a kill witness it, in metres.</summary>
     public const float WitnessRadius = 30f;
@@ -179,57 +173,49 @@ public record struct FeedTransaction(CreatureWorld Creatures, CooldownTracker Co
 }
 
 /// <summary>
-/// A player hits a creature: <c>AttackedBy</c>, fear (timid) or anger (bold). The <see cref="PlayerInteractions.HitsToKill"/>th hit
-/// kills it: every same-species creature within <see cref="PlayerInteractions.WitnessRadius"/> remembers <c>KilledKin</c> (rumours
-/// carry it further, AI Bible §4.5) and the creature is removed. Detail 1 when it died.
+/// A player attacks a creature with their basic move (combat spec §3, the first of the player's moves), aimed at it. The hit
+/// itself lands, or misses if the creature moved away, during the move's active ticks (<see cref="CombatSystem"/>); damage, yield,
+/// <c>AttackedBy</c> and a kill's <c>KilledKin</c> follow from there. Rejected when out of the move's reach, or when the player is
+/// still in a move (<see cref="IntentRejectReason.OnCooldown"/>) or too tired.
 /// </summary>
 /// <param name="Creatures">The world.</param>
-/// <param name="Cooldowns">Per-player cooldowns.</param>
 /// <param name="Avatar">The player's avatar.</param>
 /// <param name="Creature">The creature.</param>
-public record struct HitTransaction(CreatureWorld Creatures, CooldownTracker Cooldowns, Entity Avatar, StableId Creature) : ITransaction
+public record struct HitTransaction(CreatureWorld Creatures, Entity Avatar, StableId Creature) : ITransaction
 {
-    /// <summary>Cooldown kind id.</summary>
-    public const ushort Kind = 3;
-
-    /// <summary>One hit per 0.7 s per player.</summary>
-    public const ulong CooldownTicks = 21;
-
     /// <inheritdoc />
-    public readonly IntentResult Validate(ulong now) => PlayerInteractions.ValidateTouch(Creatures, Cooldowns, Avatar, Creature, Kind, now, out _);
+    public readonly IntentResult Validate(ulong now)
+    {
+        ArgumentNullException.ThrowIfNull(Creatures);
+        if (!Creatures.World.Store<PlayerAvatar>().Has(Avatar) || !Creatures.TryFindCreature(Creature, out Entity creature))
+        {
+            return IntentResult.Reject(IntentRejectReason.InvalidTarget);
+        }
+
+        int move = BasicMove(Creatures);
+        float reach = (Creatures.Data.Moves[move].Shape.ReachCm / 100f) - BodySizes.PlayerRadius;
+        return PlayerInteractions.InReach(Creatures, Avatar, creature, reach, Creatures.Sizes)
+            ? CombatRules.CanStart(Creatures.World, Creatures.Data, Avatar, move)
+            : IntentResult.Reject(IntentRejectReason.OutOfRange);
+    }
 
     /// <inheritdoc />
     public readonly IntentResult Commit(ulong now)
     {
         Creatures.TryFindCreature(Creature, out Entity creature);
         EcsWorld world = Creatures.World;
-        ulong account = world.GetComponent<PlayerAvatar>(Avatar).AccountId;
-        ushort species = world.GetComponent<SpeciesRef>(creature).Index;
-        PlayerInteractions.Remember(Creatures, creature, "AttackedBy", account, now);
-        PlayerInteractions.Startle(Creatures, creature, PlayerInteractions.EmotionNudge, now);
-        Cooldowns.Start(account, Kind, now, CooldownTicks);
-
-        int wounds = world.Has<Wounds>(creature) ? world.GetComponent<Wounds>(creature).Count + 1 : 1;
-        if (wounds < PlayerInteractions.HitsToKill)
+        Vector3 aim = world.GetComponent<Position>(creature).Value - world.GetComponent<Position>(Avatar).Value;
+        CombatRules.Start(world, Creatures.Data, Avatar, BasicMove(Creatures), aim, now);
+        Vector3 flat = aim with { Y = 0 };
+        if (flat.LengthSquared() > 0)
         {
-            if (world.Has<Wounds>(creature))
-            {
-                world.GetComponent<Wounds>(creature) = new Wounds(wounds);
-            }
-            else
-            {
-                world.Add(creature, new Wounds(wounds));
-            }
-
-            Creatures.Events.Publish(new PlayerInteracted(account, InteractionKind.Hit, species, 1));
-            return IntentResult.Applied();
+            world.GetComponent<Facing>(Avatar) = new Facing(Vector3.Normalize(flat));
         }
-
-        int witnesses = Creatures.WitnessKill(creature, species, account, now);
-        Creatures.DespawnCreature(creature);
-        Creatures.Events.Publish(new PlayerInteracted(account, InteractionKind.Hit, species, 1 + witnesses));
-        return IntentResult.Applied(1);
+        Creatures.Events.Publish(new PlayerInteracted(world.GetComponent<PlayerAvatar>(Avatar).AccountId, InteractionKind.Hit, world.GetComponent<SpeciesRef>(creature).Index, 1));
+        return IntentResult.Applied();
     }
+
+    private static int BasicMove(CreatureWorld creatures) => creatures.Data.MoveIndex(creatures.Data.Combat.Player.Moves[0]);
 }
 
 /// <summary>A player frees a snared creature: <c>SavedLifeOf</c> (a core memory, Loyalty +3), joy. Rejected if it is not snared.</summary>

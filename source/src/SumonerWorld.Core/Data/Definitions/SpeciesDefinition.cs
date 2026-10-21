@@ -141,6 +141,9 @@ public sealed record SpeciesDefinition
     /// <summary>The species' senses.</summary>
     public required PerceptionDefinition Perception { get; init; }
 
+    /// <summary>Combat stats and moves (combat spec §2).</summary>
+    public required CombatStatsDefinition Combat { get; init; }
+
     /// <summary>Keys of the goals this species can choose (AI Bible §7.1: species enable a subset).</summary>
     public required IReadOnlyList<string> Goals { get; init; }
 }

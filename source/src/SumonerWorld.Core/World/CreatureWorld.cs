@@ -8,6 +8,7 @@ using SumonerWorld.Core.Cognition.Lod;
 using SumonerWorld.Core.Cognition.Memory;
 using SumonerWorld.Core.Cognition.Opinions;
 using SumonerWorld.Core.Cognition.Perception;
+using SumonerWorld.Core.Combat;
 using SumonerWorld.Core.Data;
 using SumonerWorld.Core.Data.Definitions;
 using SumonerWorld.Core.Diagnostics;
@@ -70,6 +71,8 @@ public sealed record CreatureServices(AiLodPolicy Lod, CreatureSubjectResolver R
 /// <param name="Intents">Creature intents.</param>
 /// <param name="Movement">Movement.</param>
 /// <param name="Separation">Keeps bodies apart after movement.</param>
+/// <param name="Combat">Moves and hits (combat spec §4).</param>
+/// <param name="Vitals">Regeneration, yield, defeat (combat spec §5, §6).</param>
 /// <param name="ReputationFlush">Reputation aggregation.</param>
 public sealed record CreatureSystems(
     JobApplySystem JobApply,
@@ -80,6 +83,8 @@ public sealed record CreatureSystems(
     CreatureIntentSystem Intents,
     MovementSystem Movement,
     SeparationSystem Separation,
+    CombatSystem Combat,
+    VitalsSystem Vitals,
     ReputationFlushSystem ReputationFlush)
 {
     /// <summary>Builds the systems for <paramref name="world"/> (wires the path planner to the movement system).</summary>
@@ -98,6 +103,8 @@ public sealed record CreatureSystems(
             intents,
             movement,
             new SeparationSystem(world.World, world.Grid, sizes, world.Settings.Ground),
+            new CombatSystem(world),
+            new VitalsSystem(world),
             new ReputationFlushSystem(world.Reputation));
     }
 
@@ -132,6 +139,8 @@ public sealed record CreatureSystems(
         scheduler.Register(Intents);
         scheduler.Register(Movement);
         scheduler.Register(Separation);
+        scheduler.Register(Combat);
+        scheduler.Register(Vitals);
         scheduler.Register(ReputationFlush);
     }
 }
@@ -147,6 +156,7 @@ public sealed class CreatureWorld : IDisposable
     private const int JobCapacity = 16;
     private const int ReputationCapacity = 256;
     private const int InteractionEventCapacity = 256;
+    private const int CombatEventCapacity = 512;
     private const int ScaredFear = 60;
 
     private readonly CreatureWorldSettings _settings;
@@ -185,6 +195,8 @@ public sealed class CreatureWorld : IDisposable
         Events.Register<CreatureIntent>(settings.IntentCapacity);
         Events.Register<PlayerInteracted>(InteractionEventCapacity);
         Events.Register<MemoryFormed>(InteractionEventCapacity);
+        Events.Register<CombatHit>(CombatEventCapacity);
+        Events.Register<CombatantDefeated>(InteractionEventCapacity);
         Clock = new SimulationClock(SimulationSettings.Default, startTick);
         Services = CreateServices();
         Paths = new PathPlanner(settings.Navigation ?? StraightLineNavigation.Instance, World, settings.EntityCapacity);
@@ -292,6 +304,7 @@ public sealed class CreatureWorld : IDisposable
         World.Add(creature, new MindRef(mind));
         World.Add(creature, new GroupRef(group));
         World.Add(creature, new SpeciesRef(species));
+        AddCombatant(creature, species);
         Reputation.SeedOpinions(Minds, mind, species, RegionOf(position));
         return creature;
     }
@@ -380,6 +393,7 @@ public sealed class CreatureWorld : IDisposable
         Entity avatar = World.Create();
         World.Add(avatar, new PlayerAvatar(accountId));
         AddBody(avatar, position);
+        World.Add(avatar, CombatRules.Create(Data.Combat.Player, CombatRules.PlayerSource));
         return avatar;
     }
 
@@ -412,6 +426,12 @@ public sealed class CreatureWorld : IDisposable
         hash.Add<CurrentEmote>(World.Store<CurrentEmote>().Components);
         hash.Add<CurrentGoal>(World.Store<CurrentGoal>().Components);
         hash.Add<GroupRef>(World.Store<GroupRef>().Components);
+        hash.Add<Entity>(World.Store<Combatant>().Entities);
+        hash.Add<Combatant>(World.Store<Combatant>().Components);
+        hash.Add<Entity>(World.Store<ActiveMove>().Entities);
+        hash.Add<ActiveMove>(World.Store<ActiveMove>().Components);
+        hash.Add<Entity>(World.Store<Yielding>().Entities);
+        hash.Add<Yielding>(World.Store<Yielding>().Components);
         Minds.AddTo(ref hash);
         bonding.AddTo(ref hash);
         Reputation.AddTo(ref hash);
@@ -436,7 +456,10 @@ public sealed class CreatureWorld : IDisposable
         world.Register<SpeciesRef>();
         world.Register<PlayerAvatar>();
         world.Register<Snared>();
-        world.Register<Wounds>();
+        world.Register<Combatant>();
+        world.Register<ActiveMove>();
+        world.Register<Yielding>();
+        world.Register<Downed>();
         return world;
     }
 
@@ -457,6 +480,10 @@ public sealed class CreatureWorld : IDisposable
                 Data.PactTerms.Count,
                 SimulationSettings.DefaultTicksPerDay));
     }
+
+    /// <summary>Gives a creature its species' combat stats at full health (health is not saved yet: M2-15).</summary>
+    internal void AddCombatant(Entity creature, ushort species) =>
+        World.Add(creature, CombatRules.Create(Data.Species[species].Combat, species));
 
     /// <summary>Adds a creature with a saved id and mind (see <see cref="WorldSnapshots"/>).</summary>
     internal Entity AddRestoredCreature(StableId id, Vector3 position, MindHandle mind)

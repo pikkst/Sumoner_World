@@ -493,7 +493,7 @@ public sealed class GameServer : IServerSessionHandler
                 var feed = new FeedTransaction(_world, _cooldowns, player.Avatar, new StableId(request.Target));
                 return Changed(Transactions.Execute(id, ref feed, now), request.Target, out changed);
             case IntentKind.Hit:
-                var hit = new HitTransaction(_world, _cooldowns, player.Avatar, new StableId(request.Target));
+                var hit = new HitTransaction(_world, player.Avatar, new StableId(request.Target));
                 return Changed(Transactions.Execute(id, ref hit, now), request.Target, out changed);
             case IntentKind.Help:
                 var help = new HelpTransaction(_world, _cooldowns, player.Avatar, new StableId(request.Target));
