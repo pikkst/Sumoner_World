@@ -55,7 +55,9 @@ public class DataRegistryLoaderTests
           "player": { "health": 100, "stamina": 100, "mana": 60, "power": 100, "guard": 0, "poise": 20,
             "resist": { "physical": 0, "primal": 0 }, "moves": ["bite"] },
           "staminaRegenPerSecond": 20, "staminaRegenDelayTicks": 15, "manaRegenPerSecond": 3, "healthRegenPerMillePerSecond": 20,
-          "healthRegenDelayTicks": 300, "yieldBelowPerMille": 200, "yieldMaxBoldness": 50, "spareAfterTicks": 150, "playerDownTicks": 150 } ] }
+          "healthRegenDelayTicks": 300, "yieldBelowPerMille": 200, "yieldMaxBoldness": 50, "spareAfterTicks": 150, "playerDownTicks": 150,
+          "blockDamagePerMille": 300, "blockArcDeg": 120, "parryWindowTicks": 6, "dodgeTicks": 9, "dodgeStamina": 25,
+          "dodgeCooldownTicks": 15, "dodgeSpeedPercent": 250, "staggerTicks": 12 } ] }
         """;
 
     private const string ValidBondLevels = """

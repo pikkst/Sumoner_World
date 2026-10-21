@@ -83,7 +83,7 @@ public enum IntentKind : byte
     /// <summary>Feed a creature: target = stable id (since protocol 6).</summary>
     Feed = 2,
 
-    /// <summary>Hit a creature: target = stable id; detail 1 when it died.</summary>
+    /// <summary>Attack a creature with the basic move, aimed at it: target = stable id (since protocol 7, no detail).</summary>
     Hit = 3,
 
     /// <summary>Free a snared creature: target = stable id.</summary>
@@ -91,6 +91,22 @@ public enum IntentKind : byte
 
     /// <summary>Shout at nearby predators: no target; detail = predators scared.</summary>
     Scare = 5,
+
+    /// <summary>
+    /// Start one of the player's moves (since protocol 7): target = aim heading in 1/256 turns (0 = +Z, as snapshot facing),
+    /// argument = move slot (0 basic, 1 heavy).
+    /// </summary>
+    Attack = 6,
+}
+
+/// <summary>Bits of <see cref="PlayerInput.Buttons"/> (since protocol 7). Values are part of the protocol.</summary>
+public static class PlayerButtons
+{
+    /// <summary>Guard held up (combat spec §5).</summary>
+    public const byte Block = 1;
+
+    /// <summary>Dodge pressed (the server reacts to it turning on).</summary>
+    public const byte Dodge = 2;
 }
 
 /// <summary>Client → server, reliable: a state-changing intent (TDD §3.2, §3.4). The server pairs the sequence with the session.</summary>
@@ -180,12 +196,20 @@ public enum SnapshotEntityKind : byte
     Player = 2,
 }
 
+/// <summary>The receiver's own vitals as fractions (0–255 of full; never 0 while above 0) and combat action (since protocol 7).</summary>
+/// <param name="Health">Health.</param>
+/// <param name="Stamina">Stamina.</param>
+/// <param name="Mana">Mana.</param>
+/// <param name="Action">What they are doing (<c>CombatAction</c>).</param>
+public readonly record struct SnapshotVitals(byte Health, byte Stamina, byte Mana, byte Action);
+
 /// <summary>One part's header: the tick, the receiver's own avatar (exact, for reconciliation) and how many entities follow.</summary>
 /// <param name="ServerTick">Tick the state is from.</param>
 /// <param name="AckedInput">Last input sequence of the receiver the server has applied.</param>
 /// <param name="OwnPosition">The receiver's avatar position after that input (full precision).</param>
 /// <param name="EntityCount">Entities in this part.</param>
-public readonly record struct SnapshotHeader(ulong ServerTick, uint AckedInput, Vector3 OwnPosition, int EntityCount);
+/// <param name="Own">The receiver's own vitals.</param>
+public readonly record struct SnapshotHeader(ulong ServerTick, uint AckedInput, Vector3 OwnPosition, int EntityCount, SnapshotVitals Own = default);
 
 /// <summary>One entity in a snapshot, quantized: position to 1 cm, facing to 1/256 of a turn.</summary>
 /// <param name="Kind">Creature or player.</param>
@@ -194,7 +218,11 @@ public readonly record struct SnapshotHeader(ulong ServerTick, uint AckedInput, 
 /// <param name="Facing">Heading in 1/256 turns (0 = +Z).</param>
 /// <param name="Emote">Emote it shows (0 = none; AI Bible §6.2).</param>
 /// <param name="Species">Creatures: index in the species data both sides load (picks the model); players: 0. Since protocol 4.</param>
-public readonly record struct SnapshotEntity(SnapshotEntityKind Kind, ulong Id, Vector3 Position, byte Facing, byte Emote, byte Species = 0);
+/// <param name="Health">Health as a fraction, 255 = full (since protocol 7).</param>
+/// <param name="Action">What it is doing (<c>CombatAction</c>, since protocol 7).</param>
+/// <param name="Move">The move in progress: index in the move data + 1; 0 = none (since protocol 7).</param>
+public readonly record struct SnapshotEntity(
+    SnapshotEntityKind Kind, ulong Id, Vector3 Position, byte Facing, byte Emote, byte Species = 0, byte Health = 255, byte Action = 0, byte Move = 0);
 
 /// <summary>
 /// Server → client, unreliable, 20 Hz (TDD §3.2): entities within the interest radius. A tick's state can span several parts, each
@@ -203,7 +231,7 @@ public readonly record struct SnapshotEntity(SnapshotEntityKind Kind, ulong Id, 
 public static class Snapshot
 {
     /// <summary>Largest encoded entity, in bytes.</summary>
-    public const int MaxEntityBytes = 1 + 10 + (3 * 5) + 1 + 1 + 1;
+    public const int MaxEntityBytes = 1 + 10 + (3 * 5) + 1 + 1 + 1 + 3;
 
     /// <summary>Most entities per part.</summary>
     public const int MaxEntitiesPerPart = 64;
@@ -211,7 +239,7 @@ public static class Snapshot
     private const float CentimetresPerMetre = 100f;
 
     /// <summary>Byte offset of the entity count (patched by <see cref="SetEntityCount"/>).</summary>
-    public static int WriteHeader(ref MessageWriter writer, ulong serverTick, uint ackedInput, Vector3 ownPosition)
+    public static int WriteHeader(ref MessageWriter writer, ulong serverTick, uint ackedInput, Vector3 ownPosition, SnapshotVitals own = default)
     {
         Protocol.WriteHeader(ref writer, MessageType.Snapshot);
         writer.WriteVarUInt(serverTick);
@@ -219,6 +247,10 @@ public static class Snapshot
         writer.WriteSingle(ownPosition.X);
         writer.WriteSingle(ownPosition.Y);
         writer.WriteSingle(ownPosition.Z);
+        writer.WriteByte(own.Health);
+        writer.WriteByte(own.Stamina);
+        writer.WriteByte(own.Mana);
+        writer.WriteByte(own.Action);
         writer.WriteByte(0);
         return writer.Written - 1;
     }
@@ -241,7 +273,14 @@ public static class Snapshot
         writer.WriteByte(entity.Facing);
         writer.WriteByte(entity.Emote);
         writer.WriteByte(entity.Species);
+        writer.WriteByte(entity.Health);
+        writer.WriteByte(entity.Action);
+        writer.WriteByte(entity.Move);
     }
+
+    /// <summary>A value as a fraction of its full value in 0–255, never 0 unless the value is 0 (a sliver of health still shows).</summary>
+    public static byte Fraction(int value, int full) =>
+        full <= 0 || value <= 0 ? (byte)0 : (byte)Math.Clamp((long)value * 255 / full, 1, 255);
 
     /// <summary>Reads the header (after the message header); <see cref="ReadEntity"/> must then be called EntityCount times.</summary>
     public static SnapshotHeader ReadHeader(ref MessageReader reader)
@@ -254,10 +293,11 @@ public static class Snapshot
         }
 
         var own = new Vector3(reader.ReadSingle(), reader.ReadSingle(), reader.ReadSingle());
+        var vitals = new SnapshotVitals(reader.ReadByte(), reader.ReadByte(), reader.ReadByte(), reader.ReadByte());
         int count = reader.ReadByte();
         return count > MaxEntitiesPerPart
             ? throw new MalformedMessageException($"Snapshot part with {count} entities (max {MaxEntitiesPerPart}).")
-            : new SnapshotHeader(tick, (uint)acked, own, count);
+            : new SnapshotHeader(tick, (uint)acked, own, count, vitals);
     }
 
     /// <summary>Reads one entity.</summary>
@@ -271,7 +311,8 @@ public static class Snapshot
 
         ulong id = reader.ReadVarUInt();
         var position = new Vector3(Dequantize(ref reader), Dequantize(ref reader), Dequantize(ref reader));
-        return new SnapshotEntity(kind, id, position, reader.ReadByte(), reader.ReadByte(), reader.ReadByte());
+        return new SnapshotEntity(
+            kind, id, position, reader.ReadByte(), reader.ReadByte(), reader.ReadByte(), reader.ReadByte(), reader.ReadByte(), reader.ReadByte());
     }
 
     /// <summary>Heading of a direction in 1/256 turns (0 = +Z, clockwise seen from above).</summary>

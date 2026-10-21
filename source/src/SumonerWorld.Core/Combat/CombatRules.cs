@@ -60,13 +60,72 @@ public record struct Yielding(ulong Since, ulong LastHurt, ulong Account);
 /// <param name="Since">Tick of the defeat.</param>
 public record struct Downed(ulong Since);
 
+/// <summary>A combatant holding its guard up (combat spec §5).</summary>
+/// <param name="Since">Tick the block started (a hit soon after is a parry).</param>
+public record struct Blocking(ulong Since);
+
+/// <summary>A dodge (combat spec §5): no hit lands for the first ticks; the next dodge waits for the cooldown.</summary>
+/// <param name="Since">Tick the dodge started.</param>
+/// <param name="DirX">Dash direction, X.</param>
+/// <param name="DirZ">Dash direction, Z.</param>
+public record struct Dodging(ulong Since, float DirX, float DirZ);
+
+/// <summary>Knocked off balance (poise break, parried, guard broken): cannot act until <paramref name="Until"/>.</summary>
+/// <param name="Until">First tick it can act again.</param>
+public record struct Staggered(ulong Until);
+
+/// <summary>How a hit met its target.</summary>
+public enum HitOutcome : byte
+{
+    /// <summary>Full damage.</summary>
+    Hit,
+
+    /// <summary>Blocked: reduced damage, paid with stamina.</summary>
+    Blocked,
+
+    /// <summary>Parried: no damage, the attacker is staggered.</summary>
+    Parried,
+}
+
+/// <summary>What a combatant is doing, for animation and feedback (sent in snapshots). Values are part of the protocol.</summary>
+public enum CombatAction : byte
+{
+    /// <summary>Nothing combat-related.</summary>
+    None = 0,
+
+    /// <summary>A move's wind-up (the telegraph).</summary>
+    Windup = 1,
+
+    /// <summary>A move's active part.</summary>
+    Strike = 2,
+
+    /// <summary>A move's recovery.</summary>
+    Recover = 3,
+
+    /// <summary>Blocking.</summary>
+    Block = 4,
+
+    /// <summary>Dodging (the invulnerable part).</summary>
+    Dodge = 5,
+
+    /// <summary>Staggered.</summary>
+    Stagger = 6,
+
+    /// <summary>A defeated player, down.</summary>
+    Down = 7,
+
+    /// <summary>A creature that yielded.</summary>
+    Yield = 8,
+}
+
 /// <summary>Published for every hit that lands (feedback, telemetry, AI).</summary>
 /// <param name="Attacker">Who hit.</param>
 /// <param name="Target">Who was hit.</param>
 /// <param name="Move">Move index.</param>
 /// <param name="Damage">Health removed.</param>
 /// <param name="HealthLeft">The target's health afterwards.</param>
-public readonly record struct CombatHit(Entity Attacker, Entity Target, int Move, int Damage, int HealthLeft);
+/// <param name="Outcome">Hit, blocked or parried.</param>
+public readonly record struct CombatHit(Entity Attacker, Entity Target, int Move, int Damage, int HealthLeft, HitOutcome Outcome = HitOutcome.Hit);
 
 /// <summary>Published when a combatant is defeated.</summary>
 /// <param name="Target">The defeated entity (destroyed right after for wild creatures).</param>
@@ -143,7 +202,7 @@ public static class CombatRules
             return IntentResult.Reject(IntentRejectReason.OnCooldown);
         }
 
-        if (combatant.Health == 0 || world.Has<Yielding>(actor) || world.Has<Downed>(actor))
+        if (combatant.Health == 0 || world.Has<Yielding>(actor) || world.Has<Downed>(actor) || world.Has<Staggered>(actor) || world.Has<Dodging>(actor))
         {
             return IntentResult.Reject(IntentRejectReason.WrongState);
         }
@@ -166,8 +225,122 @@ public static class CombatRules
         combatant.LastSpendTick = definition.Stamina > 0 ? now : combatant.LastSpendTick;
         var flat = new Vector2(aim.X, aim.Z);
         flat = flat.LengthSquared() > 0 ? Vector2.Normalize(flat) : Vector2.UnitY;
+        world.Remove<Blocking>(actor);
         world.Add(actor, new ActiveMove(now, flat.X, flat.Y, move, 0));
     }
+
+    /// <summary>Raises or lowers the guard (held button). Raising is refused while in a move, dodging, staggered or down.</summary>
+    public static void SetBlock(EcsWorld world, Entity actor, bool raise, ulong now)
+    {
+        ArgumentNullException.ThrowIfNull(world);
+        if (!raise)
+        {
+            world.Remove<Blocking>(actor);
+            return;
+        }
+
+        if (!world.Has<Blocking>(actor) && CanDefend(world, actor) && !world.Has<ActiveMove>(actor) && !world.Has<Dodging>(actor))
+        {
+            world.Add(actor, new Blocking(now));
+        }
+    }
+
+    /// <summary>
+    /// Starts a dodge along <paramref name="direction"/> (ground plane) if allowed: not in a move, not staggered or down, the last
+    /// dodge's cooldown over, and enough stamina. Returns whether it started.
+    /// </summary>
+    public static bool TryDodge(EcsWorld world, IDataRegistry data, Entity actor, Vector3 direction, ulong now)
+    {
+        ArgumentNullException.ThrowIfNull(world);
+        ArgumentNullException.ThrowIfNull(data);
+        CombatDefinition rules = data.Combat;
+        if (!CanDefend(world, actor) || world.Has<ActiveMove>(actor) || world.Has<Dodging>(actor))
+        {
+            return false;
+        }
+
+        ref Combatant combatant = ref world.GetComponent<Combatant>(actor);
+        if (combatant.Stamina < rules.DodgeStamina)
+        {
+            return false;
+        }
+
+        combatant.Stamina -= rules.DodgeStamina;
+        combatant.LastSpendTick = now;
+        var flat = new Vector2(direction.X, direction.Z);
+        flat = flat.LengthSquared() > 0 ? Vector2.Normalize(flat) : Vector2.UnitY;
+        world.Remove<Blocking>(actor);
+        world.Add(actor, new Dodging(now, flat.X, flat.Y));
+        return true;
+    }
+
+    /// <summary>True during a dodge's invulnerable ticks.</summary>
+    public static bool IsEvading(EcsWorld world, IDataRegistry data, Entity actor, ulong now)
+    {
+        ArgumentNullException.ThrowIfNull(world);
+        ArgumentNullException.ThrowIfNull(data);
+        return world.Has<Dodging>(actor) && now - world.GetComponent<Dodging>(actor).Since < (ulong)data.Combat.DodgeTicks;
+    }
+
+    /// <summary>Knocks an entity off balance for the stagger time (refreshes a running stagger).</summary>
+    public static void Stagger(EcsWorld world, IDataRegistry data, Entity actor, ulong now)
+    {
+        ArgumentNullException.ThrowIfNull(world);
+        ArgumentNullException.ThrowIfNull(data);
+        var until = new Staggered(now + (ulong)data.Combat.StaggerTicks);
+        world.Remove<Blocking>(actor);
+        if (world.Has<Staggered>(actor))
+        {
+            world.GetComponent<Staggered>(actor) = until;
+        }
+        else
+        {
+            world.Add(actor, until);
+        }
+    }
+
+    /// <summary>What a combatant is doing now and which move (index, or −1), for animation and feedback.</summary>
+    public static (CombatAction Action, int Move) ActionOf(EcsWorld world, IDataRegistry data, Entity entity, ulong now)
+    {
+        ArgumentNullException.ThrowIfNull(world);
+        ArgumentNullException.ThrowIfNull(data);
+        if (world.Has<Downed>(entity))
+        {
+            return (CombatAction.Down, -1);
+        }
+
+        if (world.Has<Staggered>(entity))
+        {
+            return (CombatAction.Stagger, -1);
+        }
+
+        if (world.Has<Yielding>(entity))
+        {
+            return (CombatAction.Yield, -1);
+        }
+
+        if (IsEvading(world, data, entity, now))
+        {
+            return (CombatAction.Dodge, -1);
+        }
+
+        if (world.Has<ActiveMove>(entity))
+        {
+            ActiveMove move = world.GetComponent<ActiveMove>(entity);
+            MoveDefinition definition = data.Moves[move.Move];
+            ulong age = now - move.StartTick;
+            CombatAction phase = age < (ulong)definition.WindupTicks ? CombatAction.Windup
+                : age < (ulong)(definition.WindupTicks + definition.ActiveTicks) ? CombatAction.Strike
+                : CombatAction.Recover;
+            return (phase, move.Move);
+        }
+
+        return world.Has<Blocking>(entity) ? (CombatAction.Block, -1) : (CombatAction.None, -1);
+    }
+
+    private static bool CanDefend(EcsWorld world, Entity actor) =>
+        world.Has<Combatant>(actor) && world.GetComponent<Combatant>(actor).Health > 0
+        && !world.Has<Downed>(actor) && !world.Has<Staggered>(actor) && !world.Has<Yielding>(actor);
 
     private static bool Knows(CombatStatsDefinition stats, string moveId)
     {

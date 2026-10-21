@@ -155,4 +155,28 @@ public sealed record CombatDefinition
 
     /// <summary>Ticks a defeated player stays down before getting up with full health.</summary>
     public required int PlayerDownTicks { get; init; }
+
+    /// <summary>Share of a blocked hit's damage that still gets through, per mille (combat spec §5: 300).</summary>
+    public required int BlockDamagePerMille { get; init; }
+
+    /// <summary>Whole angle in front of the blocker that a block covers, in degrees.</summary>
+    public required int BlockArcDeg { get; init; }
+
+    /// <summary>A block started at most this many ticks before the hit is a parry.</summary>
+    public required int ParryWindowTicks { get; init; }
+
+    /// <summary>Ticks of a dodge in which no hit lands.</summary>
+    public required int DodgeTicks { get; init; }
+
+    /// <summary>Stamina a dodge costs.</summary>
+    public required int DodgeStamina { get; init; }
+
+    /// <summary>Ticks from one dodge's start before the next may start.</summary>
+    public required int DodgeCooldownTicks { get; init; }
+
+    /// <summary>Movement speed during a dodge, in percent of walking speed.</summary>
+    public required int DodgeSpeedPercent { get; init; }
+
+    /// <summary>Ticks a stagger (poise break, parry, guard break) lasts.</summary>
+    public required int StaggerTicks { get; init; }
 }

@@ -1,4 +1,5 @@
 using System.Numerics;
+using SumonerWorld.Core.Combat;
 using SumonerWorld.Core.Ecs;
 using SumonerWorld.Core.World;
 using SumonerWorld.Net.Messages;
@@ -20,14 +21,16 @@ internal sealed class SnapshotSender(CreatureWorld world, ITransport transport, 
     private readonly ComponentStore<StableId> _ids = world.World.Store<StableId>();
     private readonly ComponentStore<CurrentEmote> _emotes = world.World.Store<CurrentEmote>();
     private readonly ComponentStore<SpeciesRef> _species = world.World.Store<SpeciesRef>();
+    private readonly ComponentStore<Combatant> _combatants = world.World.Store<Combatant>();
 
     public int PartsSent { get; private set; }
 
     public void Send(ConnectionId connection, Entity avatar, uint ackedInput, ulong tick)
     {
         Vector3 own = _positions.Get(avatar).Value;
+        SnapshotVitals vitals = Vitals(avatar, tick);
         var writer = new MessageWriter(_buffer);
-        int countOffset = Snapshot.WriteHeader(ref writer, tick, ackedInput, own);
+        int countOffset = Snapshot.WriteHeader(ref writer, tick, ackedInput, own, vitals);
         int count = 0;
 
         ReadOnlySpan<Entity> entities = _positions.Entities;
@@ -44,23 +47,36 @@ internal sealed class SnapshotSender(CreatureWorld world, ITransport transport, 
             {
                 Flush(connection, ref writer, countOffset, count);
                 writer = new MessageWriter(_buffer);
-                countOffset = Snapshot.WriteHeader(ref writer, tick, ackedInput, own);
+                countOffset = Snapshot.WriteHeader(ref writer, tick, ackedInput, own, vitals);
                 count = 0;
             }
 
-            Snapshot.WriteEntity(ref writer, Describe(entity, positions[i].Value));
+            Snapshot.WriteEntity(ref writer, Describe(entity, positions[i].Value, tick));
             count++;
         }
 
         Flush(connection, ref writer, countOffset, count);
     }
 
-    private SnapshotEntity Describe(Entity entity, Vector3 position)
+    private SnapshotEntity Describe(Entity entity, Vector3 position, ulong tick)
     {
         byte facing = Snapshot.EncodeFacing(_facings.Get(entity).Value);
+        Combatant c = _combatants.Has(entity) ? _combatants.Get(entity) : default;
+        byte health = _combatants.Has(entity) ? Snapshot.Fraction(c.Health, c.MaxHealth) : byte.MaxValue;
+        (CombatAction action, int move) = CombatRules.ActionOf(world.World, world.Data, entity, tick);
         return _players.Has(entity)
-            ? new SnapshotEntity(SnapshotEntityKind.Player, _players.Get(entity).AccountId, position, facing, 0)
-            : new SnapshotEntity(SnapshotEntityKind.Creature, _ids.Get(entity).Value, position, facing, (byte)_emotes.Get(entity).Value, (byte)_species.Get(entity).Index);
+            ? new SnapshotEntity(SnapshotEntityKind.Player, _players.Get(entity).AccountId, position, facing, 0, 0, health, (byte)action, (byte)(move + 1))
+            : new SnapshotEntity(
+                SnapshotEntityKind.Creature, _ids.Get(entity).Value, position, facing, (byte)_emotes.Get(entity).Value, (byte)_species.Get(entity).Index,
+                health, (byte)action, (byte)(move + 1));
+    }
+
+    private SnapshotVitals Vitals(Entity avatar, ulong tick)
+    {
+        Combatant c = _combatants.Get(avatar);
+        CombatAction action = CombatRules.ActionOf(world.World, world.Data, avatar, tick).Action;
+        return new SnapshotVitals(
+            Snapshot.Fraction(c.Health, c.MaxHealth), Snapshot.Fraction(c.Stamina, c.MaxStamina), Snapshot.Fraction(c.Mana, c.MaxMana), (byte)action);
     }
 
     private void Flush(ConnectionId connection, ref MessageWriter writer, int countOffset, int count)

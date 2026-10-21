@@ -12,6 +12,7 @@ using SumonerWorld.Scenarios;
 
 namespace SumonerWorld.Tests.Core.Combat;
 
+[Collection(AllocationMeasurements.Name)]
 public class CombatTests
 {
     private const ulong Alice = 1001;
@@ -134,6 +135,62 @@ public class CombatTests
 
         Assert.False(arena.World.World.Has<Downed>(arena.Avatar));
         Assert.Equal(100, arena.Health(arena.Avatar));
+    }
+
+    [Fact]
+    public void A_raised_guard_takes_a_share_of_the_damage_as_stamina_and_a_late_block_is_no_parry()
+    {
+        using var arena = new Arena();
+        Entity fox = arena.Creature("bogfox", new Vector3(100, 0, 101.2f), boldness: 90);
+        CombatRules.SetBlock(arena.World.World, arena.Avatar, raise: true, arena.Now);
+        CombatRules.Start(arena.World.World, arena.World.Data, fox, arena.World.Data.MoveIndex("bite"), -Vector3.UnitZ, arena.Now);
+
+        arena.Run(14);
+
+        int full = CombatRules.Damage(7, 110, 0, 0);
+        int blocked = full * arena.World.Data.Combat.BlockDamagePerMille / 1000;
+        Assert.Equal(100 - blocked, arena.Health(arena.Avatar));
+        Assert.Equal(100 - blocked, arena.World.World.GetComponent<Combatant>(arena.Avatar).Stamina);
+        Assert.False(arena.World.World.Has<Staggered>(fox));
+    }
+
+    [Fact]
+    public void A_block_just_before_the_hit_parries_and_staggers_the_attacker()
+    {
+        using var arena = new Arena();
+        Entity fox = arena.Creature("bogfox", new Vector3(100, 0, 101.2f), boldness: 90);
+        CombatRules.Start(arena.World.World, arena.World.Data, fox, arena.World.Data.MoveIndex("bite"), -Vector3.UnitZ, arena.Now);
+        arena.Run(5);
+        CombatRules.SetBlock(arena.World.World, arena.Avatar, raise: true, arena.Now);
+        arena.Run(6);
+
+        Assert.Equal(100, arena.Health(arena.Avatar));
+        Assert.True(arena.World.World.Has<Staggered>(fox));
+        Assert.Equal(CombatAction.Stagger, CombatRules.ActionOf(arena.World.World, arena.World.Data, fox, arena.Now).Action);
+    }
+
+    [Fact]
+    public void A_dodge_lets_the_bite_pass_and_a_heavy_blow_staggers_a_light_body()
+    {
+        using var arena = new Arena();
+        Entity fox = arena.Creature("bogfox", new Vector3(100, 0, 101.2f), boldness: 90);
+        CombatRules.Start(arena.World.World, arena.World.Data, fox, arena.World.Data.MoveIndex("bite"), -Vector3.UnitZ, arena.Now);
+        arena.Run(8);
+        Assert.True(CombatRules.TryDodge(arena.World.World, arena.World.Data, arena.Avatar, Vector3.UnitX, arena.Now));
+        arena.Run(20);
+        Assert.Equal(100, arena.Health(arena.Avatar));
+
+        var heavy = new AttackTransaction(arena.World, arena.Avatar, Slot: 1, Heading: 0); // heading 0 = +Z, at the fox
+        Assert.True(heavy.Validate(arena.Now).IsApplied);
+        heavy.Commit(arena.Now);
+        arena.Run(5);
+        (CombatAction action, int move) = CombatRules.ActionOf(arena.World.World, arena.World.Data, arena.Avatar, arena.Now);
+        Assert.Equal((CombatAction.Windup, arena.World.Data.MoveIndex("heavy")), (action, move));
+        arena.Run(17);
+
+        Assert.True(arena.World.World.Has<Staggered>(fox));
+        Assert.True(arena.Health(fox) < 60);
+        Assert.Equal(IntentRejectReason.InvalidArguments, new AttackTransaction(arena.World, arena.Avatar, Slot: 5, Heading: 0).Validate(arena.Now).Reason);
     }
 
     [Fact]

@@ -29,6 +29,9 @@ public sealed class CombatSystem : ISimulationSystem
     private readonly ComponentStore<PlayerAvatar> _players;
     private readonly ComponentStore<GroupRef> _groups;
     private readonly ComponentStore<Yielding> _yielding;
+    private readonly ComponentStore<Blocking> _blocking;
+    private readonly ComponentStore<Staggered> _staggered;
+    private readonly ComponentStore<Facing> _facings;
     private readonly Entity[] _hits;
     private readonly Entity[] _candidates = new Entity[MaxCandidates];
 
@@ -44,6 +47,9 @@ public sealed class CombatSystem : ISimulationSystem
         _players = _ecs.Store<PlayerAvatar>();
         _groups = _ecs.Store<GroupRef>();
         _yielding = _ecs.Store<Yielding>();
+        _blocking = _ecs.Store<Blocking>();
+        _staggered = _ecs.Store<Staggered>();
+        _facings = _ecs.Store<Facing>();
         _hits = new Entity[world.Settings.EntityCapacity * MaxHitsPerMove];
     }
 
@@ -93,7 +99,7 @@ public sealed class CombatSystem : ISimulationSystem
             }
 
             bool active = age >= (ulong)definition.WindupTicks && age < (ulong)(definition.WindupTicks + definition.ActiveTicks);
-            if (active && _combatants.Get(attacker).Health > 0 && !_yielding.Has(attacker))
+            if (active && _combatants.Get(attacker).Health > 0 && !_yielding.Has(attacker) && !_staggered.Has(attacker))
             {
                 Resolve(attacker, ref move, definition, now);
             }
@@ -116,6 +122,12 @@ public sealed class CombatSystem : ISimulationSystem
                 continue;
             }
 
+            // A dodge's invulnerable ticks let the move pass; it can still land later in its active part.
+            if (CombatRules.IsEvading(_ecs, _world.Data, target, now))
+            {
+                continue;
+            }
+
             _hits[(attacker.Index * MaxHitsPerMove) + move.Hits] = target;
             move.Hits++;
             Hit(attacker, target, move.Move, definition, now);
@@ -124,14 +136,39 @@ public sealed class CombatSystem : ISimulationSystem
 
     private void Hit(Entity attacker, Entity target, int moveIndex, MoveDefinition definition, ulong now)
     {
+        CombatDefinition rules = _world.Data.Combat;
         ref Combatant victim = ref _combatants.Get(target);
+        bool guarded = _blocking.Has(target) && Faces(target, attacker, rules.BlockArcDeg);
+        ulong account = _players.Has(attacker) ? _players.Get(attacker).AccountId : 0;
+        if (guarded && now - _blocking.Get(target).Since <= (ulong)rules.ParryWindowTicks)
+        {
+            CombatRules.Stagger(_ecs, _world.Data, attacker, now);
+            _world.Events.Publish(new CombatHit(attacker, target, moveIndex, 0, victim.Health, HitOutcome.Parried));
+            return;
+        }
+
         int damage = CombatRules.Damage(definition.Damage, _combatants.Get(attacker).Power, CombatRules.ResistTo(victim, definition.DamageType), victim.Guard);
+        if (guarded)
+        {
+            damage = damage * rules.BlockDamagePerMille / PerMille;
+            victim.Stamina -= Math.Max(1, damage);
+            victim.LastSpendTick = now;
+            if (victim.Stamina <= 0)
+            {
+                victim.Stamina = 0;
+                CombatRules.Stagger(_ecs, _world.Data, target, now); // guard broken
+            }
+        }
+        else if (definition.Poise > victim.Poise)
+        {
+            CombatRules.Stagger(_ecs, _world.Data, target, now);
+        }
+
         damage = Math.Min(damage, victim.Health);
         victim.Health -= damage;
         victim.LastHurtTick = now;
-        ulong account = _players.Has(attacker) ? _players.Get(attacker).AccountId : 0;
         victim.LastAttacker = account;
-        _world.Events.Publish(new CombatHit(attacker, target, moveIndex, damage, victim.Health));
+        _world.Events.Publish(new CombatHit(attacker, target, moveIndex, damage, victim.Health, guarded ? HitOutcome.Blocked : HitOutcome.Hit));
         if (!_ecs.Has<MindRef>(target))
         {
             return;
@@ -164,6 +201,20 @@ public sealed class CombatSystem : ISimulationSystem
         CombatDefinition rules = _world.Data.Combat;
         return (long)combatant.Health * PerMille < (long)combatant.MaxHealth * rules.YieldBelowPerMille
             && _world.Minds.GetPersonality(_ecs.GetComponent<MindRef>(creature).Handle).Boldness <= rules.YieldMaxBoldness;
+    }
+
+    // A block covers the arc in front of the blocker's facing.
+    private bool Faces(Entity blocker, Entity attacker, int arcDeg)
+    {
+        Vector3 toAttacker = _positions.Get(attacker).Value - _positions.Get(blocker).Value;
+        var flat = new Vector2(toAttacker.X, toAttacker.Z);
+        if (flat.LengthSquared() == 0)
+        {
+            return true;
+        }
+
+        Vector3 facing = _facings.Get(blocker).Value;
+        return Vector2.Dot(Vector2.Normalize(flat), Vector2.Normalize(new Vector2(facing.X, facing.Z))) >= MathF.Cos(arcDeg * MathF.PI / 360f);
     }
 
     // PvE: players do not hurt players; a herd or pack does not hurt its own members (companions come with M2-07).
@@ -199,6 +250,9 @@ public sealed class VitalsSystem : ISimulationSystem
     private readonly ComponentStore<Yielding> _yielding;
     private readonly ComponentStore<Downed> _downed;
     private readonly ComponentStore<PlayerAvatar> _players;
+    private readonly ComponentStore<Blocking> _blocking;
+    private readonly ComponentStore<Staggered> _staggered;
+    private readonly ComponentStore<Dodging> _dodging;
     private readonly Entity[] _defeated;
     private readonly int _ticksPerSecond;
 
@@ -212,6 +266,9 @@ public sealed class VitalsSystem : ISimulationSystem
         _yielding = _ecs.Store<Yielding>();
         _downed = _ecs.Store<Downed>();
         _players = _ecs.Store<PlayerAvatar>();
+        _blocking = _ecs.Store<Blocking>();
+        _staggered = _ecs.Store<Staggered>();
+        _dodging = _ecs.Store<Dodging>();
         _defeated = new Entity[world.Settings.EntityCapacity];
         _ticksPerSecond = world.Clock.TicksPerSecond;
     }
@@ -251,9 +308,10 @@ public sealed class VitalsSystem : ISimulationSystem
                 continue;
             }
 
-            Regenerate(ref c, rules, now);
+            Regenerate(ref c, rules, now, _blocking.Has(entities[i]));
         }
 
+        Expire(rules, now);
         Spare(rules, now);
         for (int i = 0; i < defeated; i++)
         {
@@ -261,10 +319,10 @@ public sealed class VitalsSystem : ISimulationSystem
         }
     }
 
-    private void Regenerate(ref Combatant c, CombatDefinition rules, ulong now)
+    private void Regenerate(ref Combatant c, CombatDefinition rules, ulong now, bool blocking)
     {
         ulong staminaFrom = c.LastSpendTick + (ulong)rules.StaminaRegenDelayTicks;
-        if (c.Stamina < c.MaxStamina && now > staminaFrom)
+        if (c.Stamina < c.MaxStamina && now > staminaFrom && !blocking)
         {
             c.Stamina = Math.Min(c.MaxStamina, c.Stamina + Gain(rules.StaminaRegenPerSecond, now - staminaFrom, _ticksPerSecond));
         }
@@ -279,6 +337,28 @@ public sealed class VitalsSystem : ISimulationSystem
         {
             long perSecond = (long)c.MaxHealth * rules.HealthRegenPerMillePerSecond / 1000;
             c.Health = Math.Min(c.MaxHealth, c.Health + Gain(perSecond, now - healthFrom, _ticksPerSecond));
+        }
+    }
+
+    // Ends staggers and dodges whose time is up (back to front: removal moves the last entry into the slot).
+    private void Expire(CombatDefinition rules, ulong now)
+    {
+        ReadOnlySpan<Entity> staggered = _staggered.Entities;
+        for (int i = staggered.Length - 1; i >= 0; i--)
+        {
+            if (now >= _staggered.Components[i].Until)
+            {
+                _ecs.Remove<Staggered>(staggered[i]);
+            }
+        }
+
+        ReadOnlySpan<Entity> dodging = _dodging.Entities;
+        for (int i = dodging.Length - 1; i >= 0; i--)
+        {
+            if (now - _dodging.Components[i].Since >= (ulong)rules.DodgeCooldownTicks)
+            {
+                _ecs.Remove<Dodging>(dodging[i]);
+            }
         }
     }
 

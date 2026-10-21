@@ -1,6 +1,7 @@
 using System.Numerics;
 using SumonerWorld.Core.Bonding;
 using SumonerWorld.Core.Cognition;
+using SumonerWorld.Core.Combat;
 using SumonerWorld.Core.Diagnostics;
 using SumonerWorld.Core.Ecs;
 using SumonerWorld.Core.Intents;
@@ -390,10 +391,8 @@ public sealed class GameServer : IServerSessionHandler
         return tick > 0 && (tick * rate / ticksPerSecond) != ((tick - 1) * rate / ticksPerSecond);
     }
 
-    private void ApplyInputs()
+    private void ApplyInputs(ulong now)
     {
-        ComponentStore<Position> positions = _world.World.Store<Position>();
-        ComponentStore<Facing> facings = _world.World.Store<Facing>();
         foreach (PlayerSlot player in _players)
         {
             if (player.Connection is null || !player.InWorld)
@@ -404,18 +403,46 @@ public sealed class GameServer : IServerSessionHandler
             int steps = player.Inputs.Buffered > PlayerInputBuffer.CatchUpThreshold ? 2 : 1;
             for (int i = 0; i < steps && player.Inputs.TryTakeNext(out PlayerInput input); i++)
             {
-                var move = new MoveInput(input.MoveX, input.MoveZ);
-                ref Position position = ref positions.Get(player.Avatar);
-                position = new Position(Movement.Advance(position.Value, move));
-                Vector3 direction = MovementModel.Direction(move);
-                if (direction != Vector3.Zero)
-                {
-                    facings.Get(player.Avatar) = new Facing(Vector3.Normalize(direction));
-                }
-
-                _world.Grid.Move(player.Avatar, position.Value);
+                ApplyInput(player, input, now);
             }
         }
+    }
+
+    // Buttons first (block held, dodge on press), then movement: none while down or staggered, a dash while dodging (combat spec §5).
+    private void ApplyInput(PlayerSlot player, PlayerInput input, ulong now)
+    {
+        EcsWorld world = _world.World;
+        var move = new MoveInput(input.MoveX, input.MoveZ);
+        Vector3 direction = MovementModel.Direction(move);
+        CombatRules.SetBlock(world, player.Avatar, (input.Buttons & PlayerButtons.Block) != 0, now);
+        bool dodgePressed = (input.Buttons & PlayerButtons.Dodge) != 0 && (player.LastButtons & PlayerButtons.Dodge) == 0;
+        player.LastButtons = input.Buttons;
+        if (dodgePressed)
+        {
+            CombatRules.TryDodge(world, _world.Data, player.Avatar, direction != Vector3.Zero ? direction : world.GetComponent<Facing>(player.Avatar).Value, now);
+        }
+
+        if (world.Has<Downed>(player.Avatar) || world.Has<Staggered>(player.Avatar))
+        {
+            return;
+        }
+
+        ref Position position = ref world.GetComponent<Position>(player.Avatar);
+        if (CombatRules.IsEvading(world, _world.Data, player.Avatar, now))
+        {
+            Dodging dodge = world.GetComponent<Dodging>(player.Avatar);
+            position = new Position(Movement.Dash(position.Value, new Vector3(dodge.DirX, 0, dodge.DirZ), _world.Data.Combat.DodgeSpeedPercent));
+        }
+        else
+        {
+            position = new Position(Movement.Advance(position.Value, move));
+            if (direction != Vector3.Zero && !world.Has<ActiveMove>(player.Avatar))
+            {
+                world.GetComponent<Facing>(player.Avatar) = new Facing(Vector3.Normalize(direction));
+            }
+        }
+
+        _world.Grid.Move(player.Avatar, position.Value);
     }
 
     private void ApplyIntents(ulong now)
@@ -501,6 +528,9 @@ public sealed class GameServer : IServerSessionHandler
             case IntentKind.Scare:
                 var scare = new ScareTransaction(_world, _cooldowns, player.Avatar);
                 return Transactions.Execute(id, ref scare, now);
+            case IntentKind.Attack when request.Target <= byte.MaxValue:
+                var attack = new AttackTransaction(_world, player.Avatar, request.Argument, (byte)request.Target);
+                return Transactions.Execute(id, ref attack, now);
             default:
                 return IntentResult.Reject(IntentRejectReason.InvalidArguments);
         }
@@ -534,13 +564,15 @@ public sealed class GameServer : IServerSessionHandler
         public PlayerInputBuffer Inputs { get; } = new();
 
         public Queue<IntentRequest> Intents { get; } = new(MaxQueuedIntents);
+
+        public byte LastButtons { get; set; }
     }
 
     private sealed class PlayerInputSystem(GameServer server) : ISimulationSystem
     {
         public SimulationStage Stage => SimulationStage.ApplyInputs;
 
-        public void Execute(in SimulationTick tick) => server.ApplyInputs();
+        public void Execute(in SimulationTick tick) => server.ApplyInputs(tick.Index);
     }
 
     private sealed class IntentSystem(GameServer server) : ISimulationSystem
