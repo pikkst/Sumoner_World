@@ -2,6 +2,7 @@ using SumonerWorld.Core.Bonding;
 using SumonerWorld.Core.Intents;
 using SumonerWorld.Net.Client;
 using SumonerWorld.Net.Messages;
+using SumonerWorld.Scenarios;
 
 namespace SumonerWorld.Tests.Net;
 
@@ -37,9 +38,25 @@ public class InteractionTextTests
             .. Enum.GetValues<IntentKind>().SelectMany(kind => Details.Select(detail => InteractionText.Result(kind, IntentResult.Applied((byte)detail), "x"))),
             InteractionText.Hints,
             InteractionText.ShoutHint,
+            InteractionText.PactMenuHints,
+            InteractionText.PactMenuTitle("x"),
+            .. ShippedData.Current.PactTerms.Select(term => InteractionText.PactTerm(term.Key)),
         ];
         string[] forbidden = ["remember", "memory", "trust", "fear", "opinion", "likes", "hates", "angry", "scared"];
         Assert.DoesNotContain(lines, line => forbidden.Any(word => line.Contains(word, StringComparison.OrdinalIgnoreCase)));
         Assert.Equal("hollow owl", InteractionText.DisplayName("hollow_owl"));
+    }
+
+    [Fact]
+    public void Every_shipped_Pact_term_has_a_promise_line_and_none_shows_a_chance()
+    {
+        foreach (var term in ShippedData.Current.PactTerms)
+        {
+            string line = InteractionText.PactTerm(term.Key);
+            Assert.NotEqual(term.Key, line);
+            Assert.DoesNotContain("%", line, StringComparison.Ordinal);
+        }
+
+        Assert.DoesNotContain("chance", InteractionText.PactMenuTitle("mossback") + InteractionText.PactMenuHints, StringComparison.OrdinalIgnoreCase);
     }
 }

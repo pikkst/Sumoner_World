@@ -13,8 +13,8 @@ namespace SumonerWorld.Core.World;
 /// A player offers a Pact to a wild creature (AI Bible §10.2), run through the <see cref="ITransactionProcessor"/>. Validation: the
 /// player's avatar exists, the terms are in the catalogue, the creature exists and is wild, it is within <see cref="Range"/> and the
 /// player's offer cooldown has passed. The commit asks the creature (acceptance uses the player's reputation with its kind in the
-/// region); a refusal is still applied, because the creature remembers being asked. <see cref="IntentResult.Detail"/> is the
-/// <see cref="BondingOutcome"/>.
+/// region); a refusal is still applied, because the creature remembers being asked. Either way the creature then answers with its
+/// body (<see cref="PactAnswerSystem"/>, M2-05). <see cref="IntentResult.Detail"/> is the <see cref="BondingOutcome"/>.
 /// </summary>
 /// <param name="Creatures">The world.</param>
 /// <param name="Cooldowns">Per-player cooldowns.</param>
@@ -88,6 +88,11 @@ public record struct OfferPactTransaction(CreatureWorld Creatures, CooldownTrack
             now,
             out _);
         Cooldowns.Start(account, Kind, now, CooldownTicks);
+        if (outcome is BondingOutcome.Accepted or BondingOutcome.Refused)
+        {
+            PactAnswerSystem.Begin(world, creature, Avatar, outcome == BondingOutcome.Accepted, now);
+        }
+
         PublishMemories(creature, account, outcome, now);
         Creatures.Events.Publish(new PlayerInteracted(account, InteractionKind.Pact, species, 1));
         return IntentResult.Applied((byte)outcome);

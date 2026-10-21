@@ -10,19 +10,21 @@ namespace SumonerWorld.Game.Playtest;
 /// Plays the start of a Memory Grove session through the real controls (<c>--self-test</c>, M1-23, M2-02b): queues input events,
 /// so input goes the same way as a tester's. Holds W until a creature is within 3 m (the snared calf 12 m ahead), then, one step
 /// apart: a left click (a basic attack at the calf while it is still snared, so its health bar shows), T (lock on to it), a right-drag that the
-/// lock ignores, T again (let go), R (free it), E (feed it), Q (shout), a right-button drag that turns the camera a quarter round, and Space held for a
-/// dodge. It logs the interaction line, the attack's
-/// result and the calf's health, and the own stamina, then watches for <see cref="WatchSeconds"/> so the creature can react. <see cref="Done"/> lets the host take
-/// its screenshot afterwards.
+/// lock ignores, T again (let go), a Pact while it is still snared (M2-05: P opens the menu, 1 and 2 choose two promises,
+/// <paramref name="capture"/> saves frames of the menu and of the answer, Enter offers it), R (free it), E (feed it), Q (shout), a
+/// right-button drag that turns the camera a quarter round, and Space held for a dodge. It logs the interaction lines, the attack's result and the calf's health, the own stamina, the calf's
+/// emote while it answers and the answer line, then watches for <see cref="WatchSeconds"/> so the creature can react.
+/// <see cref="Done"/> lets the host take its screenshot afterwards.
 /// </summary>
 public sealed partial class PlaytestSelfTest(
-    InteractionControls controls, CombatControls combat, LockOn lockOn, GameClient client, OrbitCamera camera, Func<bool> worldShown, ILog log) : Node
+    InteractionControls controls, CombatControls combat, LockOn lockOn, GameClient client, OrbitCamera camera, Func<bool> worldShown, ILog log, Action<string> capture)
+    : Node
 {
     private const double WalkLimitSeconds = 8;
     private const float CloseMetres = 3f; // inside the basic attack's reach of a mossback (2 m + its 1.6 m body)
     private const double StepSeconds = 1.2;
     private const double WatchSeconds = 6;
-    private static readonly Key[] Interactions = [Key.R, Key.E, Key.Q];
+    private const int LastStep = 12;
 
     private double _clock;
     private double _walking;
@@ -46,7 +48,7 @@ public sealed partial class PlaytestSelfTest(
         }
 
         _clock += delta;
-        if (_clock < (_step <= 8 ? StepSeconds : WatchSeconds))
+        if (_clock < (_step <= LastStep ? StepSeconds : WatchSeconds))
         {
             return;
         }
@@ -89,21 +91,43 @@ public sealed partial class PlaytestSelfTest(
             case 3:
                 log.Write(LogLevel.Info, "selftest.lock", $"after a drag while locked the camera is at {Mathf.RadToDeg(camera.Yaw):F0}° (target #{lockOn.Target})");
                 PressKey(Key.T);
-                PressKey(Interactions[0]);
+                PressKey(Key.P);
                 break;
-            case <= 5:
-                log.Write(LogLevel.Info, "selftest.feedback", controls.Feedback);
-                PressKey(Interactions[_step - 3]);
+            case 4:
+                log.Write(LogLevel.Info, "selftest.pact", $"menu open {controls.Menu.IsOpen} for {controls.Target.Name} #{controls.Target.Id} at {controls.TargetDistance:F1} m");
+                PressKey(Key.Key1);
+                PressKey(Key.Key2);
+                break;
+            case 5:
+                log.Write(LogLevel.Info, "selftest.pact", $"chosen terms {controls.Menu.Chosen.Mask:b6}");
+                capture("pact");
+                PressKey(Key.Enter);
                 break;
             case 6:
+                log.Write(LogLevel.Info, "selftest.pact", $"menu open {controls.Menu.IsOpen}; the {controls.Target.Name} shows {TargetEmote()}; line so far: '{controls.Feedback}'");
+                capture("answer");
+                break;
+            case 7:
+                log.Write(LogLevel.Info, "selftest.pact", $"the {controls.Target.Name} shows {TargetEmote()}; answer: {controls.Feedback}");
+                PressKey(Key.R);
+                break;
+            case 8:
+                log.Write(LogLevel.Info, "selftest.feedback", controls.Feedback);
+                PressKey(Key.E);
+                break;
+            case 9:
+                log.Write(LogLevel.Info, "selftest.feedback", controls.Feedback);
+                PressKey(Key.Q);
+                break;
+            case 10:
                 log.Write(LogLevel.Info, "selftest.feedback", controls.Feedback);
                 OrbitCamera.DragForTest(Mathf.Pi / 2 / OrbitCamera.Sensitivity);
                 break;
-            case 7:
+            case 11:
                 log.Write(LogLevel.Info, "selftest.camera", $"after the right-drag the camera is at {Mathf.RadToDeg(camera.Yaw):F0}° around the character");
                 Press(Key.Space, pressed: true);
                 break;
-            case 8:
+            case 12:
                 Press(Key.Space, pressed: false);
                 log.Write(LogLevel.Info, "selftest.dodge", $"after the dodge: stamina {client.OwnVitals.Stamina}/255, health {client.OwnVitals.Health}/255");
                 break;
@@ -118,6 +142,11 @@ public sealed partial class PlaytestSelfTest(
         Press(key, pressed: true);
         Press(key, pressed: false);
     }
+
+    private string TargetEmote() =>
+        client.Entities.TryGetValue((SumonerWorld.Net.Messages.SnapshotEntityKind.Creature, controls.Target.Id), out SumonerWorld.Net.Messages.SnapshotEntity entity)
+            ? ((SumonerWorld.Core.Cognition.Appraisal.Emote)entity.Emote).ToString()
+            : "nothing (out of reach)";
 
     private int TargetHealth() =>
         client.Entities.TryGetValue((SumonerWorld.Net.Messages.SnapshotEntityKind.Creature, controls.Target.Id), out SumonerWorld.Net.Messages.SnapshotEntity entity) ? entity.Health : -1;

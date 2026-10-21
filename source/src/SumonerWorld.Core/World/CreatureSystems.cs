@@ -240,7 +240,10 @@ public sealed class DecisionSystem(
     }
 }
 
-/// <summary>Behaviour trees (AI Bible §7.3) at each creature's tier rate, with its current focus.</summary>
+/// <summary>
+/// Behaviour trees (AI Bible §7.3) at each creature's tier rate, with its current focus; paused while the creature answers a Pact
+/// offer (<see cref="Bonding.PactAnswerSystem"/>).
+/// </summary>
 public sealed class BehaviourSystem(IEcsWorld world, IBehaviourTreeRunner runner, IAiLodPolicy policy, CreatureSubjectResolver resolver) : ISimulationSystem
 {
     private readonly ComponentStore<Combatant> _combatants = world.Store<Combatant>();
@@ -249,6 +252,7 @@ public sealed class BehaviourSystem(IEcsWorld world, IBehaviourTreeRunner runner
     private readonly ComponentStore<AiTier> _tiers = world.Store<AiTier>();
     private readonly ComponentStore<FocusRef> _focus = world.Store<FocusRef>();
     private readonly ComponentStore<MindRef> _minds = world.Store<MindRef>();
+    private readonly ComponentStore<Bonding.PactAnswer> _answers = world.Store<Bonding.PactAnswer>();
 
     /// <inheritdoc />
     public SimulationStage Stage => SimulationStage.Behaviour;
@@ -260,7 +264,7 @@ public sealed class BehaviourSystem(IEcsWorld world, IBehaviourTreeRunner runner
         Span<CurrentGoal> goals = _goals.Components;
         for (int i = 0; i < entities.Length; i++)
         {
-            if (!policy.IsDue(_tiers.Get(entities[i]).Tier, AiActivity.Behaviour, entities[i].Index, tick.Index))
+            if (!policy.IsDue(_tiers.Get(entities[i]).Tier, AiActivity.Behaviour, entities[i].Index, tick.Index) || _answers.Has(entities[i]))
             {
                 continue;
             }

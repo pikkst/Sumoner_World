@@ -68,6 +68,7 @@ public sealed record CreatureServices(AiLodPolicy Lod, CreatureSubjectResolver R
 /// <param name="Perception">Senses, focus, rumours.</param>
 /// <param name="Decision">Utility AI.</param>
 /// <param name="Behaviour">Behaviour trees.</param>
+/// <param name="PactAnswers">Creatures answering a Pact offer with their body (M2-05), in place of their trees.</param>
 /// <param name="Intents">Creature intents.</param>
 /// <param name="Movement">Movement.</param>
 /// <param name="Separation">Keeps bodies apart after movement.</param>
@@ -81,6 +82,7 @@ public sealed record CreatureSystems(
     PerceptionSystem Perception,
     DecisionSystem Decision,
     BehaviourSystem Behaviour,
+    PactAnswerSystem PactAnswers,
     CreatureIntentSystem Intents,
     MovementSystem Movement,
     SeparationSystem Separation,
@@ -102,6 +104,7 @@ public sealed record CreatureSystems(
             perception,
             decision,
             new BehaviourSystem(world.World, world.Services.Runner, world.Services.Lod, world.Services.Resolver),
+            new PactAnswerSystem(world),
             intents,
             movement,
             new SeparationSystem(world.World, world.Grid, sizes, world.Settings.Ground),
@@ -139,6 +142,7 @@ public sealed record CreatureSystems(
         scheduler.Register(Perception);
         scheduler.Register(Decision);
         scheduler.Register(Behaviour);
+        scheduler.Register(PactAnswers);
         scheduler.Register(Intents);
         scheduler.Register(Movement);
         scheduler.Register(Separation);
@@ -432,16 +436,9 @@ public sealed class CreatureWorld : IDisposable
         hash.Add<GroupRef>(World.Store<GroupRef>().Components);
         hash.Add<Entity>(World.Store<Combatant>().Entities);
         hash.Add<Combatant>(World.Store<Combatant>().Components);
-        hash.Add<Entity>(World.Store<ActiveMove>().Entities);
-        hash.Add<ActiveMove>(World.Store<ActiveMove>().Components);
-        hash.Add<Entity>(World.Store<Yielding>().Entities);
-        hash.Add<Yielding>(World.Store<Yielding>().Components);
-        hash.Add<Entity>(World.Store<Blocking>().Entities);
-        hash.Add<Blocking>(World.Store<Blocking>().Components);
-        hash.Add<Entity>(World.Store<Dodging>().Entities);
-        hash.Add<Dodging>(World.Store<Dodging>().Components);
-        hash.Add<Entity>(World.Store<Staggered>().Entities);
-        hash.Add<Staggered>(World.Store<Staggered>().Components);
+        CombatState.AddTo(ref hash, World);
+        hash.Add<Entity>(World.Store<PactAnswer>().Entities);
+        hash.Add<PactAnswer>(World.Store<PactAnswer>().Components);
         Minds.AddTo(ref hash);
         bonding.AddTo(ref hash);
         Reputation.AddTo(ref hash);
@@ -466,13 +463,9 @@ public sealed class CreatureWorld : IDisposable
         world.Register<SpeciesRef>();
         world.Register<PlayerAvatar>();
         world.Register<Snared>();
+        world.Register<PactAnswer>();
         world.Register<Combatant>();
-        world.Register<ActiveMove>();
-        world.Register<Yielding>();
-        world.Register<Downed>();
-        world.Register<Blocking>();
-        world.Register<Dodging>();
-        world.Register<Staggered>();
+        CombatState.Register(world);
         return world;
     }
 
