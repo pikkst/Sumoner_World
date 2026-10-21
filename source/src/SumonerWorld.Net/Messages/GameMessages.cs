@@ -118,7 +118,9 @@ public enum IntentKind : byte
 /// <param name="Id">Stable id.</param>
 /// <param name="Species">Species index.</param>
 /// <param name="Summoned">At the player's side.</param>
-public readonly record struct CompanionEntry(ulong Id, byte Species, bool Summoned);
+/// <param name="Level">Its level (since protocol 11).</param>
+/// <param name="Stage">Its life stage (<c>LifeStage</c>, since protocol 11).</param>
+public readonly record struct CompanionEntry(ulong Id, byte Species, bool Summoned, byte Level = 1, byte Stage = 0);
 
 /// <summary>Server → client, reliable (since protocol 9): the receiver's pacted creatures, oldest Pact first by id.</summary>
 /// <param name="Entries">At most <see cref="MaxEntries"/>.</param>
@@ -146,6 +148,8 @@ public sealed class CompanionListCodec : IMessageCodec<CompanionList>
             writer.WriteVarUInt(entry.Id);
             writer.WriteByte(entry.Species);
             writer.WriteByte(entry.Summoned ? (byte)1 : (byte)0);
+            writer.WriteByte(entry.Level);
+            writer.WriteByte(entry.Stage);
         }
     }
 
@@ -169,7 +173,7 @@ public sealed class CompanionListCodec : IMessageCodec<CompanionList>
                 throw new MalformedMessageException($"Companion {id} has summoned flag {summoned}.");
             }
 
-            entries[i] = new CompanionEntry(id, species, summoned == 1);
+            entries[i] = new CompanionEntry(id, species, summoned == 1, reader.ReadByte(), reader.ReadByte());
         }
 
         reader.EnsureEnd();
@@ -299,8 +303,11 @@ public readonly record struct SnapshotHeader(ulong ServerTick, uint AckedInput, 
 /// <param name="Health">Health as a fraction, 255 = full (since protocol 7).</param>
 /// <param name="Action">What it is doing (<c>CombatAction</c>, since protocol 7).</param>
 /// <param name="Move">The move in progress: index in the move data + 1; 0 = none (since protocol 7).</param>
+/// <param name="Stage">Creatures: life stage (<c>LifeStage</c>, since protocol 11).</param>
+/// <param name="Level">Creatures: level, 0 for players (since protocol 11).</param>
 public readonly record struct SnapshotEntity(
-    SnapshotEntityKind Kind, ulong Id, Vector3 Position, byte Facing, byte Emote, byte Species = 0, byte Health = 255, byte Action = 0, byte Move = 0);
+    SnapshotEntityKind Kind, ulong Id, Vector3 Position, byte Facing, byte Emote, byte Species = 0, byte Health = 255, byte Action = 0, byte Move = 0,
+    byte Stage = 0, byte Level = 0);
 
 /// <summary>
 /// Server → client, unreliable, 20 Hz (TDD §3.2): entities within the interest radius. A tick's state can span several parts, each
@@ -309,7 +316,7 @@ public readonly record struct SnapshotEntity(
 public static class Snapshot
 {
     /// <summary>Largest encoded entity, in bytes.</summary>
-    public const int MaxEntityBytes = 1 + 10 + (3 * 5) + 1 + 1 + 1 + 3;
+    public const int MaxEntityBytes = 1 + 10 + (3 * 5) + 1 + 1 + 1 + 3 + 2;
 
     /// <summary>Most entities per part.</summary>
     public const int MaxEntitiesPerPart = 64;
@@ -354,6 +361,8 @@ public static class Snapshot
         writer.WriteByte(entity.Health);
         writer.WriteByte(entity.Action);
         writer.WriteByte(entity.Move);
+        writer.WriteByte(entity.Stage);
+        writer.WriteByte(entity.Level);
     }
 
     /// <summary>A value as a fraction of its full value in 0–255, never 0 unless the value is 0 (a sliver of health still shows).</summary>
@@ -390,7 +399,7 @@ public static class Snapshot
         ulong id = reader.ReadVarUInt();
         var position = new Vector3(Dequantize(ref reader), Dequantize(ref reader), Dequantize(ref reader));
         return new SnapshotEntity(
-            kind, id, position, reader.ReadByte(), reader.ReadByte(), reader.ReadByte(), reader.ReadByte(), reader.ReadByte(), reader.ReadByte());
+            kind, id, position, reader.ReadByte(), reader.ReadByte(), reader.ReadByte(), reader.ReadByte(), reader.ReadByte(), reader.ReadByte(), reader.ReadByte(), reader.ReadByte());
     }
 
     /// <summary>Heading of a direction in 1/256 turns (0 = +Z, clockwise seen from above).</summary>

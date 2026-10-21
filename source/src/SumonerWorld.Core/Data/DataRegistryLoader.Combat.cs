@@ -103,6 +103,22 @@ public static partial class DataRegistryLoader
         CheckRange(entry.SummonManaCost, 0, MaxStat, "summonManaCost", where, errors);
         CheckRange(entry.SummonCastTicks, 1, MaxStat, "summonCastTicks", where, errors);
         CheckRange(entry.BondCapacity, 1, Bonding.BondingRules.MaxBondCapacity, "bondCapacity", where, errors);
+        GrowthDefinition growth = entry.Growth ?? new GrowthDefinition();
+        CheckRange(growth.XpFactor, 1, MaxStat, "growth.xpFactor", where, errors);
+        CheckRange(growth.XpExponentPercent, 100, 300, "growth.xpExponentPercent", where, errors);
+        CheckRange(growth.DamagePerCombatXp, 1, MaxStat, "growth.damagePerCombatXp", where, errors);
+        CheckRange(growth.DefeatXp, 0, MaxStat, "growth.defeatXp", where, errors);
+        CheckRange(growth.MetresPerTravelXp, 1, MaxStat, "growth.metresPerTravelXp", where, errors);
+        CheckRange(growth.WorkTaskXp, 0, MaxStat, "growth.workTaskXp", where, errors);
+        CheckRange(growth.HealthPercentPerLevel, 0, MaxPower, "growth.healthPercentPerLevel", where, errors);
+        CheckRange(growth.PowerPercentPerLevel, 0, MaxPower, "growth.powerPercentPerLevel", where, errors);
+        CheckRange(growth.GrownAtCapPercent, 1, 100, "growth.grownAtCapPercent", where, errors);
+        CheckRange(growth.ElderAtCapPercent, growth.GrownAtCapPercent, 100, "growth.elderAtCapPercent", where, errors);
+        CheckRange(growth.GrownBondLevel, 0, MaxMoveTicks, "growth.grownBondLevel", where, errors);
+        CheckRange(growth.ElderBondLevel, growth.GrownBondLevel, MaxMoveTicks, "growth.elderBondLevel", where, errors);
+        CheckRange(growth.GrownHealthPercent, 0, MaxPower, "growth.grownHealthPercent", where, errors);
+        CheckRange(growth.ElderPowerPercent, 0, MaxPower, "growth.elderPowerPercent", where, errors);
+        CheckRange(growth.RestTicks, 1, MaxStat, "growth.restTicks", where, errors);
     }
 
     private static void ValidateMoveReferences(

@@ -88,6 +88,7 @@ public class HostOptionsTests
         HostOptions showcase = HostOptions.Parse(["--showcase=predator", "--showcase-distance=12"], NoEnvironment);
         Assert.Equal((HostMode.Region, "predator", 12), (showcase.Mode, showcase.Showcase, showcase.ShowcaseDistance));
         Assert.Equal("player", HostOptions.Parse(["--showcase=player"], NoEnvironment).Showcase);
+        Assert.Equal("stages", HostOptions.Parse(["--showcase=stages"], NoEnvironment).Showcase);
         Assert.Throws<ArgumentException>(() => HostOptions.Parse(["--showcase=dragon"], NoEnvironment));
     }
 

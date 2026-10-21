@@ -1,5 +1,6 @@
 using SumonerWorld.Core.Bonding;
 using SumonerWorld.Core.Intents;
+using SumonerWorld.Core.Progression;
 using SumonerWorld.Net.Messages;
 
 namespace SumonerWorld.Net.Client;
@@ -35,8 +36,9 @@ public static class InteractionText
         _ => string.Empty,
     };
 
-    /// <summary>A companion's line in the list: its name and whether it is at the player's side.</summary>
-    public static string CompanionLine(string creature, bool summoned) => summoned ? $"{creature}: with you" : $"{creature}: away";
+    /// <summary>A companion's line in the list: its name, level and life stage, and whether it is at the player's side.</summary>
+    public static string CompanionLine(string creature, int level, LifeStage stage, bool summoned) =>
+        $"{creature} Lv {level} ({stage.ToString().ToLowerInvariant()}): {(summoned ? "with you" : "away")}";
 
     /// <summary>The keys shown at the bottom of the Pact menu.</summary>
     public const string PactMenuHints = "[1-6] choose up to 3 promises   [Enter] offer   [Esc] cancel";

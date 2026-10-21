@@ -40,8 +40,8 @@ public class InteractionTextTests
             InteractionText.ShoutHint,
             InteractionText.PactMenuHints,
             InteractionText.CompanionHints,
-            InteractionText.CompanionLine("x", true),
-            InteractionText.CompanionLine("x", false),
+            InteractionText.CompanionLine("x", 1, SumonerWorld.Core.Progression.LifeStage.Young, true),
+            InteractionText.CompanionLine("x", 9, SumonerWorld.Core.Progression.LifeStage.Elder, false),
             .. Enum.GetValues<SummonRefusal>().Select(refusal => InteractionText.Result(IntentKind.Summon, new IntentResult(IntentStatus.Rejected, IntentRejectReason.WrongState, (byte)refusal), "x")),
             InteractionText.PactMenuTitle("x"),
             .. ShippedData.Current.PactTerms.Select(term => InteractionText.PactTerm(term.Key)),
@@ -49,6 +49,13 @@ public class InteractionTextTests
         string[] forbidden = ["remember", "memory", "trust", "fear", "opinion", "likes", "hates", "angry", "scared"];
         Assert.DoesNotContain(lines, line => forbidden.Any(word => line.Contains(word, StringComparison.OrdinalIgnoreCase)));
         Assert.Equal("hollow owl", InteractionText.DisplayName("hollow_owl"));
+    }
+
+    [Fact]
+    public void A_companion_line_shows_level_stage_and_where_it_is()
+    {
+        Assert.Equal("hollow owl Lv 3 (young): with you", InteractionText.CompanionLine("hollow owl", 3, SumonerWorld.Core.Progression.LifeStage.Young, summoned: true));
+        Assert.Equal("bogfox Lv 8 (elder): away", InteractionText.CompanionLine("bogfox", 8, SumonerWorld.Core.Progression.LifeStage.Elder, summoned: false));
     }
 
     [Theory]

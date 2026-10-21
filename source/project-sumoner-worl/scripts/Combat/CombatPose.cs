@@ -37,18 +37,18 @@ public static class CombatPose
         view.Rotation = new Vector3(pitch, yaw, roll);
     }
 
-    /// <summary>Starts the "hit" swell.</summary>
-    public static void Hit(Node3D view)
+    /// <summary>Starts the "hit" swell around the view's normal <paramref name="size"/> (a creature's life stage, M2-09).</summary>
+    public static void Hit(Node3D view, float size = 1)
     {
         ArgumentNullException.ThrowIfNull(view);
-        view.Scale = Vector3.One * HitSwell;
+        view.Scale = Vector3.One * HitSwell * size;
     }
 
-    /// <summary>Eases a swell back to normal size.</summary>
-    public static void Settle(Node3D view, double delta)
+    /// <summary>Eases a swell back to the normal <paramref name="size"/>.</summary>
+    public static void Settle(Node3D view, double delta, float size = 1)
     {
         ArgumentNullException.ThrowIfNull(view);
-        view.Scale = view.Scale.Lerp(Vector3.One, Math.Min(1f, (float)delta * SwellRecovery));
+        view.Scale = view.Scale.Lerp(Vector3.One * size, Math.Min(1f, (float)delta * SwellRecovery));
     }
 }
 

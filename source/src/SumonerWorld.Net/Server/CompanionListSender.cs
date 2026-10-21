@@ -29,7 +29,8 @@ internal sealed class CompanionListSender(CreatureWorld world, ITransport transp
         var entries = new CompanionEntry[Math.Min(_current.Count, CompanionList.MaxEntries)];
         for (int i = 0; i < entries.Length; i++)
         {
-            entries[i] = new CompanionEntry(_current[i].Id.Value, (byte)_current[i].Species, _current[i].Summoned);
+            Companion companion = _current[i];
+            entries[i] = new CompanionEntry(companion.Id.Value, (byte)companion.Species, companion.Summoned, (byte)companion.Level, (byte)companion.Stage);
         }
 
         var writer = new MessageWriter(_buffer);

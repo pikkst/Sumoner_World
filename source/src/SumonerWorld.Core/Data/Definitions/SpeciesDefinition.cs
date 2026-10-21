@@ -146,4 +146,23 @@ public sealed record SpeciesDefinition
 
     /// <summary>Keys of the goals this species can choose (AI Bible §7.1: species enable a subset).</summary>
     public required IReadOnlyList<string> Goals { get; init; }
+
+    /// <summary>The summoner class it belongs to (companions spec §2): only summoners of this class can bond with it.</summary>
+    public Progression.SummonerClass Class { get; init; } = Progression.SummonerClass.Elf;
+
+    /// <summary>Its tier in the wild (companions spec §3): sets its level cap.</summary>
+    public Progression.Rank Tier { get; init; } = Progression.Rank.F;
+
+    /// <summary>Levels wild ones have (each creature gets one from its stable id).</summary>
+    public LevelRange Levels { get; init; } = new();
+}
+
+/// <summary>A range of levels.</summary>
+public sealed record LevelRange
+{
+    /// <summary>Lowest.</summary>
+    public int Min { get; init; } = 1;
+
+    /// <summary>Highest.</summary>
+    public int Max { get; init; } = 1;
 }

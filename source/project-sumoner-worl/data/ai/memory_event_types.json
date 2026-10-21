@@ -265,6 +265,17 @@
       "baseSalience": 400,
       "halfLifeDays": 14,
       "isCore": false
+    },
+    {
+      "id": 22,
+      "key": "GrewUp",
+      "subjects": [
+        "player"
+      ],
+      "valence": 50,
+      "baseSalience": 700,
+      "halfLifeDays": null,
+      "isCore": true
     }
   ]
 }

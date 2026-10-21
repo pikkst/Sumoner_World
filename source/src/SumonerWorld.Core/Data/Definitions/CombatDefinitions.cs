@@ -188,4 +188,59 @@ public sealed record CombatDefinition
 
     /// <summary>Active summons a player may have (AI Bible §10.4: starting value 2; the rank sets it from M2-20).</summary>
     public required int BondCapacity { get; init; }
+
+    /// <summary>How creatures grow (companions spec §3–4, M2-09).</summary>
+    public GrowthDefinition Growth { get; init; } = new();
+}
+
+/// <summary>
+/// Growth rules (companions spec §3–4): the level curve, experience per role, stats per level and the life-stage conditions.
+/// Defaults are the spec's starting values; <c>combat.json</c> sets them.
+/// </summary>
+public sealed record GrowthDefinition
+{
+    /// <summary>Level <c>n</c> needs <c>xpFactor × (n − 1)^(xpExponentPercent / 100)</c> total experience.</summary>
+    public int XpFactor { get; init; } = 40;
+
+    /// <summary>The curve's exponent in percent (150 = 1.5).</summary>
+    public int XpExponentPercent { get; init; } = 150;
+
+    /// <summary>Damage dealt or taken at the owner's side per point of combat experience.</summary>
+    public int DamagePerCombatXp { get; init; } = 2;
+
+    /// <summary>Combat experience for a defeated wild creature.</summary>
+    public int DefeatXp { get; init; } = 20;
+
+    /// <summary>Metres walked while summoned per point of travel experience.</summary>
+    public int MetresPerTravelXp { get; init; } = 50;
+
+    /// <summary>Work experience per finished task.</summary>
+    public int WorkTaskXp { get; init; } = 5;
+
+    /// <summary>Health added per level above 1, in percent of the species' base.</summary>
+    public int HealthPercentPerLevel { get; init; } = 6;
+
+    /// <summary>Power added per level above 1, in percent of the species' base.</summary>
+    public int PowerPercentPerLevel { get; init; } = 4;
+
+    /// <summary>A companion may grow up at this share of its tier's cap, in percent …</summary>
+    public int GrownAtCapPercent { get; init; } = 40;
+
+    /// <summary>… with at least this bond level (Companion).</summary>
+    public int GrownBondLevel { get; init; } = 2;
+
+    /// <summary>Health a grown creature has over a young one, in percent.</summary>
+    public int GrownHealthPercent { get; init; } = 20;
+
+    /// <summary>A companion may become an elder at this share of its tier's cap, in percent …</summary>
+    public int ElderAtCapPercent { get; init; } = 80;
+
+    /// <summary>… with at least this bond level (Devoted).</summary>
+    public int ElderBondLevel { get; init; } = 4;
+
+    /// <summary>Power an elder has over a grown creature, in percent.</summary>
+    public int ElderPowerPercent { get; init; } = 20;
+
+    /// <summary>How long the summoner must rest (stand still, no fight) before a companion grows up, in ticks.</summary>
+    public int RestTicks { get; init; } = 150;
 }

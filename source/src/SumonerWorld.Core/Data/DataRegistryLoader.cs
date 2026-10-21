@@ -727,6 +727,15 @@ public static partial class DataRegistryLoader
         }
 
         CheckRange(entry.PactThreshold, 0, MaxPactThreshold, "pactThreshold", where, errors);
+        if (!Enum.IsDefined(entry.Class) || !Enum.IsDefined(entry.Tier))
+        {
+            errors.Add($"{where}: class and tier must be known values.");
+        }
+
+        if (entry.Levels is null || entry.Levels.Min < 1 || entry.Levels.Max < entry.Levels.Min || entry.Levels.Max > Progression.GrowthRules.Cap(entry.Tier))
+        {
+            errors.Add($"{where}: levels must be 1 <= min <= max <= the tier's cap.");
+        }
         CheckRange(entry.BodyRadiusCm, MinBodyRadiusCm, MaxBodyRadiusCm, "bodyRadiusCm", where, errors);
 
         if (entry.Perception is null)

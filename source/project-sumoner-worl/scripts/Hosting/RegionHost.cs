@@ -38,7 +38,11 @@ public sealed partial class RegionHost : Node
         if (_options.Showcase.Length > 0)
         {
             _region.FreeFly = false;
-            if (_options.Showcase == "player")
+            if (_options.Showcase == "stages")
+            {
+                AddChild(new StageShowcase(_region.Field!, _region.Camera!, _options.ShowcaseDistance));
+            }
+            else if (_options.Showcase == "player")
             {
                 AddChild(new HumanoidShowcase(_region.Field!, _region.Camera!, _options.ShowcaseDistance));
             }

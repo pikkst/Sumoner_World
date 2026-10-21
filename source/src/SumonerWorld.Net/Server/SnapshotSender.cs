@@ -21,6 +21,7 @@ internal sealed class SnapshotSender(CreatureWorld world, ITransport transport, 
     private readonly ComponentStore<StableId> _ids = world.World.Store<StableId>();
     private readonly ComponentStore<CurrentEmote> _emotes = world.World.Store<CurrentEmote>();
     private readonly ComponentStore<SpeciesRef> _species = world.World.Store<SpeciesRef>();
+    private readonly ComponentStore<Core.Progression.CreatureGrowth> _growth = world.World.Store<Core.Progression.CreatureGrowth>();
     private readonly ComponentStore<Combatant> _combatants = world.World.Store<Combatant>();
 
     public int PartsSent { get; private set; }
@@ -68,7 +69,7 @@ internal sealed class SnapshotSender(CreatureWorld world, ITransport transport, 
             ? new SnapshotEntity(SnapshotEntityKind.Player, _players.Get(entity).AccountId, position, facing, 0, 0, health, (byte)action, (byte)(move + 1))
             : new SnapshotEntity(
                 SnapshotEntityKind.Creature, _ids.Get(entity).Value, position, facing, (byte)_emotes.Get(entity).Value, (byte)_species.Get(entity).Index,
-                health, (byte)action, (byte)(move + 1));
+                health, (byte)action, (byte)(move + 1), (byte)_growth.Get(entity).Stage, (byte)_growth.Get(entity).Level);
     }
 
     private SnapshotVitals Vitals(Entity avatar, ulong tick)
