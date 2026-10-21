@@ -196,7 +196,12 @@ window. Combos are data (`data/combat/combos.json`).
   Block is a held input button and dodge a pressed one (`PlayerButtons`); the server dashes the avatar during a dodge and keeps
   a downed or staggered player still. The `Attack` intent (slot 0 basic, 1 heavy, aimed by heading) hits whatever is in the
   shape. Snapshots carry each entity's health fraction, `CombatAction` and move, and the receiver's own health, stamina and
-  mana. Stamina does not regenerate while blocking. Client input, prediction of the dash, and the HUD come in M2-02b.
+  mana. Stamina does not regenerate while blocking.
+- **M2-02b (client):** left click attacks where the camera looks (held ≥ 0.4 s: heavy), Shift held blocks, Space dodges
+  (`CombatControls`); the client predicts the dodge dash and holds still while down or staggered (`ClientPrediction`,
+  reconciled as usual). `CombatHud`: health, stamina and mana bars and the keys; creatures and players show a health bar while
+  hurt, swell briefly when hit and tilt with their action (`CombatPose`, placeholder until animations). The dev tools pick a
+  creature with the left button only while the overlay or inspector is open.
 
 ## 13. Stakeholder answers (2026-10-21)
 1. **Yield and spare (§6): yes**, this is how defeating without killing works.

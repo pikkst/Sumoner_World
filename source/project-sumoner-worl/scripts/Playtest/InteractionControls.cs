@@ -47,6 +47,9 @@ public sealed partial class InteractionControls : CanvasLayer
     /// <summary>The creature in reach now (0 when none) and its display name.</summary>
     public (ulong Id, string Name) Target { get; private set; }
 
+    /// <summary>Ground distance from the player to the target's centre, in metres.</summary>
+    public float TargetDistance { get; private set; }
+
     /// <summary>Sends one interaction as the player would with a key (also used by the self-test).</summary>
     public void Act(IntentKind kind)
     {
@@ -126,6 +129,7 @@ public sealed partial class InteractionControls : CanvasLayer
             }
         }
 
+        TargetDistance = best.distance;
         if (best.id == 0 || !_client.Entities.TryGetValue((SnapshotEntityKind.Creature, best.id), out SnapshotEntity entity))
         {
             return (0, string.Empty);

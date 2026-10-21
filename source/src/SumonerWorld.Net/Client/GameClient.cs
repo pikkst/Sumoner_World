@@ -1,3 +1,4 @@
+using SumonerWorld.Core.Combat;
 using SumonerWorld.Core.Diagnostics;
 using SumonerWorld.Core.Intents;
 using SumonerWorld.Core.Movement;
@@ -34,7 +35,7 @@ public sealed class GameClient : IClientSessionHandler
     private uint _lastIntent;
 
     /// <summary>Creates the client; <paramref name="movement"/> must match the server's.</summary>
-    public GameClient(ITransport transport, ILog log, Hello hello, MovementSettings movement)
+    public GameClient(ITransport transport, ILog log, Hello hello, MovementSettings movement, DodgePrediction? dodge = null)
     {
         ArgumentNullException.ThrowIfNull(transport);
         ArgumentNullException.ThrowIfNull(log);
@@ -42,7 +43,7 @@ public sealed class GameClient : IClientSessionHandler
         _transport = transport;
         _log = log;
         Session = new ClientEndpoint(transport, log, hello) { Messages = this };
-        Prediction = new ClientPrediction(new MovementModel(movement));
+        Prediction = new ClientPrediction(new MovementModel(movement)) { Dodge = dodge };
     }
 
     /// <summary>The session handshake.</summary>
@@ -240,6 +241,7 @@ public sealed class GameClient : IClientSessionHandler
             _entities.Clear();
             Prediction.Reconcile(header.AckedInput, header.OwnPosition);
             OwnVitals = header.Own;
+            Prediction.Frozen = header.Own.Action is (byte)CombatAction.Down or (byte)CombatAction.Stagger;
         }
 
         for (int i = 0; i < header.EntityCount; i++)
