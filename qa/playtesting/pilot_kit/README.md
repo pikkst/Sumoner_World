@@ -1,5 +1,10 @@
 # Memory Grove pilot kit (M1-23d)
 
+> **DEC-003 (2026-10-21):** the game is private. For now it is tested only by the creator and family (children 4–14 and their
+> parents) on the family PC with the local Docker dev server, with no outside testers and no formal pilot or gate run. For
+> family sessions use `consent_form.md` (adult, parent and child parts) and `family_questionnaire.md`. The rest of this kit
+> (moderator script, coding guide, report tool) is kept for a later public test with the target audience.
+
 Everything a moderator and the raters need to run the USP playtest in `qa/test-plans/M1_benchmark_and_playtest.md` Part B. It
 covers the pilot of 3 (2027-02) and, once the pilot fixes are in, the gate run of at least 20 testers (2027-03). The build is
 described in `../memory_grove_build.md`.
@@ -7,7 +12,8 @@ described in `../memory_grove_build.md`.
 | File | Who uses it | When |
 |---|---|---|
 | `moderator_script.md` | moderator | the whole session, word for word where marked |
-| `consent_form.md` | moderator and tester | before anything is recorded. **Draft: needs stakeholder (legal) approval before the first session** |
+| `consent_form.md` | adult players; a parent for each child | before the first session (organiser Eventnexus OÜ) |
+| `family_questionnaire.md` | parent (ages 4–7, asked aloud), children 8–14 | straight after play, in family sessions |
 | `questionnaire.md` | tester | straight after the 15 minutes of play |
 | `coding_guide.md` | raters A, B and C | after the session, from the recording |
 | `coding_sheet.csv` | raters | one row per rater per session |
@@ -58,9 +64,8 @@ The pilot does not count towards the gate. After the 3 sessions, check and fix:
 Record what changed in the changelog at the end of each file.
 
 ## Not ready yet
-- **A packaged build for remote testers.** It needs Godot's export templates (a download of about 1 GB). Waiting for the
-  stakeholder's go-ahead. Until then the pilot runs on a PC with the editor.
-- **Recruitment** of testers (who and whether they are paid): the stakeholder decides.
+- A public test: deferred (DEC-003). Recruiting, payment and tester hardware are closed questions for now.
 
 ## Changelog
+- **0.2 (2026-10-21):** DEC-003: family testing; family questionnaire; consent rewritten.
 - **0.1 (2026-10-21):** First version.

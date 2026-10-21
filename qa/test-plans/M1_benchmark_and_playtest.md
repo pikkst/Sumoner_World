@@ -2,6 +2,10 @@
 Version: **0.1** (M0-07) · Date: 2026-10-19 · Owners: QA Agent (benchmark, protocol) + Data Scientist (metrics, analysis) · Status: **Delivered, review pending (stakeholder)**
 Rules: R22, R23, R42, R43 · Related: TDD v0.1 (§1 budgets, §8 spikes), AI Bible v0.1 (§9 budgets, §13 tests), GDD success metrics
 
+> **DEC-003 (2026-10-21):** the game is private and is tested only by the creator's family on the local Docker dev environment.
+> The Part B playtest (≥ 20 target-audience testers) and the recommended-spec benchmark runs (A3, M1-24) are **deferred**; the
+> gate rows they feed read "not measured (DEC-003)". The plan stays as written for when the game is opened.
+
 > This plan defines **how the M1 GO / RE-SCOPE gate (2027-03-31) is measured.** Every number the gate uses comes from a scenario in this document, run the way this document says. Results that were not produced this way do not count for the gate.
 
 ---
