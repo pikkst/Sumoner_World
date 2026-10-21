@@ -33,6 +33,15 @@ public enum GearRefusal : byte
 
     /// <summary>The wearer's level is too low.</summary>
     LevelTooLow = 6,
+
+    /// <summary>The item cannot be used (M2-14b).</summary>
+    NotUsable = 7,
+
+    /// <summary>The creature is not at the player's side (M2-14b).</summary>
+    NotWithYou = 8,
+
+    /// <summary>The one it is for is down (M2-14b).</summary>
+    Down = 9,
 }
 
 /// <summary>Shared helpers of the gear transactions.</summary>

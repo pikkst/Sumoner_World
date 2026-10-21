@@ -80,11 +80,11 @@ public static class InteractionText
     /// <summary>An inventory line: the item's name and how many (M2-13).</summary>
     public static string ItemLine(string item, int count) => $"{SkillName(item)} x{count}";
 
-    /// <summary>The spell keys (M2-11), shown with the combat keys.</summary>
-    public const string SpellHints = "C: thornbolt   V: entangle   G: mend";
+    /// <summary>The window and bar keys (M2-14b), shown with the combat keys.</summary>
+    public const string SpellHints = "1-0: action bar   L: abilities   I: bag   B: crafting   K: companion";
 
     /// <summary>The companion keys, shown under the companion list.</summary>
-    public const string CompanionHints = "[Z] call   [X] send back\n[1] attack   [2] guard me   [3] hold here   [4] come back";
+    public const string CompanionHints = "[Z] call   [X] send back\nCommands are on the action bar (7-0)";
 
     /// <summary>The line after a command was given (the companions answer with their bodies).</summary>
     public static string CommandSent(CompanionCommand command) => command switch
@@ -134,7 +134,7 @@ public static class InteractionText
             };
         }
 
-        if (kind is IntentKind.Craft or IntentKind.Equip or IntentKind.Unequip)
+        if (kind is IntentKind.Craft or IntentKind.Equip or IntentKind.Unequip or IntentKind.MoveItem or IntentKind.TransferItem or IntentKind.UseItem)
         {
             return GearResult(kind, result, creature);
         }
@@ -211,7 +211,7 @@ public static class InteractionText
         };
     }
 
-    /// <summary>The line for a craft, equip or unequip result; <paramref name="name"/> is the recipe's or the item's name (M2-14).</summary>
+    /// <summary>The line for a craft, equip, unequip or bag result; <paramref name="name"/> is the recipe's or the item's name (M2-14, M2-14b). Moves that worked say nothing: the bag shows it.</summary>
     public static string GearResult(IntentKind kind, IntentResult result, string name)
     {
         if (result.IsApplied)
@@ -220,7 +220,9 @@ public static class InteractionText
             {
                 IntentKind.Craft => $"You start making: {name}. Stand still, a hit will stop you.",
                 IntentKind.Equip => $"You put on: {name}.",
-                _ => $"You take off: {name}.",
+                IntentKind.Unequip => $"You take off: {name}.",
+                IntentKind.UseItem => $"You use: {name}.",
+                _ => string.Empty,
             };
         }
 
@@ -235,6 +237,9 @@ public static class InteractionText
                 GearRefusal.Busy => "Not now: you are busy.",
                 GearRefusal.CannotWear => $"{name} cannot be worn by that one.",
                 GearRefusal.LevelTooLow => $"Not strong enough for {name} yet.",
+                GearRefusal.NotUsable => $"{name} cannot be used.",
+                GearRefusal.NotWithYou => "Call that companion to your side first.",
+                GearRefusal.Down => "Too late: they are down.",
                 _ => "Nothing happens.",
             },
             _ => "Nothing happens.",
@@ -251,6 +256,54 @@ public static class InteractionText
 
     /// <summary>The line when crafting ended: made, or stopped (a hit, a move, or the inputs went missing).</summary>
     public static string CraftEnded(string name, bool made) => made ? $"You made: {name}." : $"You stopped making: {name}. Nothing was used up.";
+
+    /// <summary>An item's tooltip: its name, what it is and what it gives (M2-14b).</summary>
+    public static string ItemTooltip(Core.Data.Definitions.ItemDefinition item)
+    {
+        ArgumentNullException.ThrowIfNull(item);
+        var lines = new List<string> { SkillName(item.Id), item.Category.ToString().ToLowerInvariant() };
+        Core.Data.Definitions.GearStats stats = item.Stats;
+        var gives = new List<string>();
+        AddIf(gives, stats.Power, "power +{0}%");
+        AddIf(gives, stats.Guard, "guard +{0}");
+        AddIf(gives, stats.ResistPhysical / 10, "physical resist +{0}%");
+        AddIf(gives, stats.ResistPrimal / 10, "primal resist +{0}%");
+        AddIf(gives, stats.Stamina, "stamina +{0}");
+        AddIf(gives, item.Restore.Health, "restores {0} health");
+        AddIf(gives, item.Restore.Stamina, "restores {0} stamina");
+        AddIf(gives, item.Restore.Mana, "restores {0} mana");
+        lines.AddRange(gives);
+        if (item.Slot != Core.Data.Definitions.EquipSlot.None)
+        {
+            lines.Add($"worn by: {string.Join(", ", item.Wearers)}" + (item.MinLevel > 1 ? $" (level {item.MinLevel}+)" : string.Empty));
+        }
+
+        lines.Add(item.Restore.IsUsable ? "right-click: use" : item.Slot != Core.Data.Definitions.EquipSlot.None ? "right-click: put on" : string.Empty);
+        return string.Join('\n', lines.Where(line => line.Length > 0));
+    }
+
+    private static void AddIf(List<string> lines, int value, string format)
+    {
+        if (value > 0)
+        {
+            lines.Add(string.Format(System.Globalization.CultureInfo.InvariantCulture, format, value));
+        }
+    }
+
+    /// <summary>An action bar button's name: the spell, item or skill, or the command as the player calls it (M2-14b).</summary>
+    public static string ActionName(ActionRef action) => action.Kind switch
+    {
+        ActionKind.None => string.Empty,
+        ActionKind.Command => action.Id switch
+        {
+            nameof(CompanionCommand.Attack) => "Attack!",
+            nameof(CompanionCommand.GuardMe) => "Guard me",
+            nameof(CompanionCommand.Hold) => "Hold here",
+            nameof(CompanionCommand.Retreat) => "Come back",
+            _ => action.Id,
+        },
+        _ => SkillName(action.Id),
+    };
 
     /// <summary>The name of an equipment position.</summary>
     public static string PositionName(EquipPosition position) => position switch

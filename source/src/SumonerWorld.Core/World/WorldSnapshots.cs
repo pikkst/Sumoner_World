@@ -46,7 +46,10 @@ public static class WorldSnapshots
             world.World.GetComponent<Progression.CreatureGrowth>(creature),
             world.World.GetComponent<Progression.CreatureSkills>(creature),
             world.World.GetComponent<Combat.CreatureCombos>(creature),
-            Items.EquipRules.Export(world.Data, world.World.GetComponent<Items.Equipment>(creature)));
+            Items.EquipRules.Export(world.Data, world.World.GetComponent<Items.Equipment>(creature)),
+            world.Economy.CreatureBags.Find(world.World.GetComponent<StableId>(creature).Value) is Items.Inventory bag
+                ? Items.Economy.Export(bag, world.Data)
+                : null);
     }
 
     /// <summary>
@@ -69,6 +72,16 @@ public static class WorldSnapshots
         }
     }
 
+    // What a creature wears and carries (M2-14, M2-14b).
+    private static void RestoreItems(CreatureWorld world, Entity creature, CreatureSave save, ushort species)
+    {
+        world.World.Add(creature, Items.EquipRules.Import(world.Data, save.Equipped));
+        if (save.Bag is not null)
+        {
+            Items.Economy.Import(world.Economy.CreatureBags.Of(save.Id.Value, world.Data.Species[species].BodyType), 0, save.Bag, world.Data);
+        }
+    }
+
     private static void Fill(CreatureWorld world, WorldSnapshot snapshot)
     {
         foreach (CreatureSave save in snapshot.Creatures)
@@ -86,7 +99,8 @@ public static class WorldSnapshots
             world.World.Add(creature, save.Growth ?? Progression.GrowthRules.Migrated(world.Data.Species[species], save.Id.Value, save.Bond.State != Bonding.OwnershipState.Wild));
             world.World.Add(creature, (save.Skills ?? default) with { ReluctantUntil = 0 });
             world.World.Add(creature, (save.Combos ?? default) with { ProudUntil = 0 });
-            world.World.Add(creature, Items.EquipRules.Import(world.Data, save.Equipped));
+            RestoreItems(world, creature, save, species);
+
             world.AddCombatant(creature, species);
             world.Services.Bonding.Restore(mind, save.Bond);
         }

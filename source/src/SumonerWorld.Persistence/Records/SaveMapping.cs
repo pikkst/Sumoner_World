@@ -46,6 +46,7 @@ internal static class SaveMapping
             }
             : null,
         Equipped = save.Equipped ?? [],
+        Bag = save.Bag is IReadOnlyList<SavedItem> bag ? [.. bag.Select(item => new SlotRecord { Item = item.Item, Count = item.Count })] : null,
         Combos = save.Combos is CreatureCombos combos
             ? new CombosRecord { Learned = combos.Learned, Landed = [combos.Landed0, combos.Landed1, combos.Landed2, combos.Landed3], SelfStarted = combos.SelfStarted }
             : null,
@@ -76,7 +77,8 @@ internal static class SaveMapping
                 : null,
             record.Skills is SkillsRecord skills ? new CreatureSkills(skills.Learned, skills.UnspentSince, 0, skills.Spent, skills.PickedItself) : null,
             record.Combos is CombosRecord combos ? Combos(combos) : null,
-            record.Equipped);
+            record.Equipped,
+            record.Bag is IReadOnlyList<SlotRecord> bag ? [.. bag.Select(slot => new SavedItem(slot.Item, slot.Count))] : null);
     }
 
     private static CreatureCombos Combos(CombosRecord record)

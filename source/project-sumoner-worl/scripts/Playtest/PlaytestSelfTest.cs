@@ -16,7 +16,8 @@ namespace SumonerWorld.Game.Playtest;
 /// <see cref="SelfTestFixture"/> gave), W held for a moment (it follows, M2-07), the commands 2 (guard me) and 3 (hold here),
 /// W again (it holds), 4 (come back, M2-08), X (send it back), and the companion panel (K, M2-10): it logs the skill tree and
 /// teaches skill 2; then the spells (M2-11): C thornbolt, V entangle, G mend; the inventory (I, M2-13); crafting (B, M2-14): it makes
-/// a wooden staff from the branches the fixture gave, then puts the first gear in the bag on (I, 1).
+/// a wooden staff from the branches the fixture gave; the character window (I, M2-14b): it drags the charm onto a charm slot,
+/// calls the owl and drags berries into its bag. Spells and commands go through the action bar (1-3, 8-0).
 ///  It logs the interaction lines, the attack's result and the calf's health, the own stamina, the calf's
 /// emote while it answers and the answer line, then watches for <see cref="WatchSeconds"/> so the creature can react.
 /// <see cref="Done"/> lets the host take its screenshot afterwards.
@@ -25,8 +26,7 @@ public sealed partial class PlaytestSelfTest(
     InteractionControls controls,
     CompanionBar companions,
     CompanionPanel panel,
-    Items.ItemControls items,
-    Items.GearControls gear,
+    SelfTestPanels panels,
     CombatControls combat, LockOn lockOn, GameClient client, OrbitCamera camera, Func<bool> worldShown, ILog log, Action<string> capture)
     : Node
 {
@@ -34,7 +34,7 @@ public sealed partial class PlaytestSelfTest(
     private const float CloseMetres = 3f; // inside the basic attack's reach of a mossback (2 m + its 1.6 m body)
     private const double StepSeconds = 1.2;
     private const double WatchSeconds = 6;
-    private const int LastStep = 37;
+    private const int LastStep = 41;
 
     private double _clock;
     private double _walking;
@@ -86,7 +86,7 @@ public sealed partial class PlaytestSelfTest(
         switch (_step)
         {
             case 0:
-                log.Write(LogLevel.Info, "selftest.aim", $"attacking {controls.Target.Name} at {controls.TargetDistance:F1} m; gather: {(items.Gather() ? "a bush in reach" : "no node in reach")}");
+                log.Write(LogLevel.Info, "selftest.aim", $"attacking {controls.Target.Name} at {controls.TargetDistance:F1} m; gather: {(panels.Items.Gather() ? "a bush in reach" : "no node in reach")}");
                 Input.ParseInputEvent(new InputEventMouseButton { ButtonIndex = MouseButton.Left, Pressed = true });
                 Input.ParseInputEvent(new InputEventMouseButton { ButtonIndex = MouseButton.Left, Pressed = false });
                 break;
@@ -166,11 +166,11 @@ public sealed partial class PlaytestSelfTest(
                 Press(Key.W, pressed: false);
                 log.Write(LogLevel.Info, "selftest.follow", $"after a run: {CompanionDistance()}");
                 capture("follow");
-                PressKey(Key.Key2);
+                PressKey(Key.Key8);
                 break;
             case 16:
                 log.Write(LogLevel.Info, "selftest.command", $"{controls.Feedback} | companion shows {CompanionEmote()}");
-                PressKey(Key.Key3);
+                PressKey(Key.Key9);
                 break;
             case 17:
                 log.Write(LogLevel.Info, "selftest.command", $"{controls.Feedback} | companion shows {CompanionEmote()}");
@@ -179,7 +179,7 @@ public sealed partial class PlaytestSelfTest(
             case 18:
                 Press(Key.W, pressed: false);
                 log.Write(LogLevel.Info, "selftest.command", $"held while she walked on: {CompanionDistance()}");
-                PressKey(Key.Key4);
+                PressKey(Key.Key0);
                 break;
             case 19:
                 log.Write(LogLevel.Info, "selftest.command", $"{controls.Feedback} | {CompanionDistance()}");
@@ -201,16 +201,17 @@ public sealed partial class PlaytestSelfTest(
                 break;
             case 23:
                 log.Write(LogLevel.Info, "selftest.skills", $"panel open {panel.IsOpen}");
-                PressKey(Key.C);
+                log.Write(LogLevel.Info, "selftest.bar", panels.Bar.Describe());
+                PressKey(Key.Key1);
                 break;
             case 24:
                 log.Write(LogLevel.Info, "selftest.spells", $"thornbolt: {controls.Feedback}; mana {client.OwnVitals.Mana}/255");
-                PressKey(Key.V);
+                PressKey(Key.Key2);
                 break;
             case 25:
                 log.Write(LogLevel.Info, "selftest.spells", $"entangle: {controls.Feedback}; mana {client.OwnVitals.Mana}/255; {RootedNearby()} creatures rooted in view");
                 capture("entangle");
-                PressKey(Key.G);
+                PressKey(Key.Key3);
                 break;
             case 26:
                 log.Write(LogLevel.Info, "selftest.spells", $"mend: {controls.Feedback}; action {(SumonerWorld.Core.Combat.CombatAction)client.OwnVitals.Action}");
@@ -223,7 +224,7 @@ public sealed partial class PlaytestSelfTest(
                 PressKey(Key.I);
                 break;
             case 29:
-                log.Write(LogLevel.Info, "selftest.items", OneLine(items.InventoryText));
+                log.Write(LogLevel.Info, "selftest.items", panels.Character.Describe());
                 capture("inventory");
                 PressKey(Key.I);
                 break;
@@ -243,9 +244,9 @@ public sealed partial class PlaytestSelfTest(
                 PressKey(Key.B);
                 break;
             case 31:
-                log.Write(LogLevel.Info, "selftest.craft", OneLine(gear.CraftingText));
+                log.Write(LogLevel.Info, "selftest.craft", panels.Crafting.Text);
                 capture("crafting");
-                gear.Craft(3); // the wooden staff, 3 seconds
+                panels.Crafting.Craft(3); // the wooden staff, 3 seconds
                 break;
             case 32:
                 log.Write(LogLevel.Info, "selftest.craft", $"{controls.Feedback}; making #{client.Inventory.Crafting}");
@@ -256,21 +257,40 @@ public sealed partial class PlaytestSelfTest(
                 PressKey(Key.I);
                 break;
             case 36:
-                log.Write(LogLevel.Info, "selftest.gear", OneLine(gear.GearText));
-                PressKey(Key.Key1);
+                log.Write(LogLevel.Info, "selftest.gear", panels.Character.Describe());
+                panels.Character.Drop(BagSpotOf("mossback_charm"), panels.Character.WornSpot(Core.Items.EquipPosition.Charm1));
                 break;
             case 37:
-                log.Write(LogLevel.Info, "selftest.gear", $"{controls.Feedback}; {OneLine(gear.GearText)}");
-                capture("gear");
+                log.Write(LogLevel.Info, "selftest.gear", $"{controls.Feedback}; {panels.Character.Describe()}");
+                capture("character");
+                PressKey(Key.Z);
+                break;
+            case 39:
+                panels.Character.Choose(1);
+                log.Write(LogLevel.Info, "selftest.bag", $"{OneLine(companions.Shown)}; {controls.Feedback}");
+                break;
+            case 40:
+                log.Write(LogLevel.Info, "selftest.bag", panels.Character.Describe());
+                panels.Character.Drop(BagSpotOf("sweet_berries"), new DragSpot(DragPlace.CreatureBag, panels.Character.Wearer, 0));
+                break;
+            case 41:
+                log.Write(LogLevel.Info, "selftest.bag", $"{controls.Feedback}; {panels.Character.Describe()}");
+                capture("companion-bag");
                 PressKey(Key.I);
                 break;
-            case 33 or 34:
+            case 33 or 34 or 38:
                 break;
             default:
                 return false;
         }
 
         return true;
+    }
+
+    private DragSpot BagSpotOf(string item)
+    {
+        int index = panels.Data.ItemIndex(item);
+        return new DragSpot(DragPlace.Bag, 0, DragRules.SlotOf(client.Inventory, index));
     }
 
     private static void PressKey(Key key)
@@ -320,3 +340,11 @@ public sealed partial class PlaytestSelfTest(
 
     private static void Press(Key key, bool pressed) => Input.ParseInputEvent(new InputEventKey { Keycode = key, PhysicalKeycode = key, Pressed = pressed });
 }
+
+/// <summary>The item and bag panels the self-test drives (M2-13, M2-14, M2-14b).</summary>
+/// <param name="Items">Loot and gathering.</param>
+/// <param name="Crafting">The crafting window.</param>
+/// <param name="Character">The character window.</param>
+/// <param name="Bar">The action bar.</param>
+/// <param name="Data">The data both sides load.</param>
+public sealed record SelfTestPanels(Items.ItemControls Items, Items.CraftingPanel Crafting, Ui.CharacterWindow Character, Ui.ActionBar Bar, Core.Data.IDataRegistry Data);

@@ -12,8 +12,8 @@ namespace SumonerWorld.Game.Playtest;
 /// The player's companions (M2-06) at the top left: each pacted creature with "with you" or "away", from the server's companion
 /// list. Z calls the first one that is away (a summoning sigil, AI Bible §10.4), X sends back the last one that is with you; the
 /// result line comes through the <see cref="InteractionControls"/>. When a creature arrives, a sigil flares under it. Commands v1
-/// (M2-08) go to every companion with you: 1 attack (the lock-on target, else the creature in reach), 2 guard me, 3 hold here,
-/// 4 come back; each answers with its body (AI Bible §7.4).
+/// (M2-08) go to every companion with you from the action bar (M2-14b; by default 7 attack the lock-on target, else the creature
+/// in reach, 8 guard me, 9 hold here, 0 come back); each answers with its body (AI Bible §7.4).
 /// </summary>
 public sealed partial class CompanionBar(
     GameClient client, IDataRegistry data, EntityViewSync views, InteractionControls controls, Func<ulong> lockedTarget) : CanvasLayer
@@ -86,19 +86,7 @@ public sealed partial class CompanionBar(
             return;
         }
 
-        CompanionCommand command = key.Keycode switch
-        {
-            Key.Key1 => CompanionCommand.Attack,
-            Key.Key2 => CompanionCommand.GuardMe,
-            Key.Key3 => CompanionCommand.Hold,
-            Key.Key4 => CompanionCommand.Retreat,
-            _ => CompanionCommand.None,
-        };
-        if (command != CompanionCommand.None)
-        {
-            Command(command);
-        }
-        else if (key.Keycode == Key.Z)
+        if (key.Keycode == Key.Z)
         {
             CallNext();
         }

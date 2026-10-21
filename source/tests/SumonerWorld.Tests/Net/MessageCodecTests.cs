@@ -55,13 +55,13 @@ public class MessageCodecTests
         CompanionEntry[] companions =
         [
             new(77, 1, true),
-            new(9_000_000_001, 0, false, 12, 2, 4, 3, 0b1_0110, Affinities.Of([45, -60, 0]), Combos: 1, Worn: new WornItems(0, 0, 3, 0, 14, 0)),
+            new(9_000_000_001, 0, false, 12, 2, 4, 3, 0b1_0110, Affinities.Of([45, -60, 0]), Combos: 1, Worn: new WornItems(0, 0, 3, 0, 14, 0), Bag: new BagView(4, [new InventoryEntry(2, 3, 1)])),
         ];
         Assert.Equal(companions, RoundTrip(new CompanionListCodec(), new CompanionList(companions)).Entries);
         Assert.Empty(RoundTrip(new CompanionListCodec(), new CompanionList([])).Entries);
-        InventoryList inventory = RoundTrip(new InventoryListCodec(), new InventoryList(1234, [new InventoryEntry(3, 20), new InventoryEntry(0, 1)]));
+        InventoryList inventory = RoundTrip(new InventoryListCodec(), new InventoryList(1234, [new InventoryEntry(3, 20, 0), new InventoryEntry(0, 1, 7)]));
         Assert.Equal(1234, inventory.Gold);
-        Assert.Equal([new InventoryEntry(3, 20), new InventoryEntry(0, 1)], inventory.Entries);
+        Assert.Equal([new InventoryEntry(3, 20, 0), new InventoryEntry(0, 1, 7)], inventory.Entries);
         InventoryList worn = RoundTrip(new InventoryListCodec(), new InventoryList(5, [], new WornItems(12, 0, 0, 13, 14, 14), 4));
         Assert.Equal((new WornItems(12, 0, 0, 13, 14, 14), 4), (worn.Worn, worn.Crafting));
         Assert.Equal((11, -1), (worn.Worn[0], worn.Worn[1]));

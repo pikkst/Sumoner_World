@@ -103,6 +103,10 @@ public sealed record CreatureRecord
     /// <summary>Worn item ids by position (M2-14); empty in older saves.</summary>
     [Key(9)]
     public IReadOnlyList<string> Equipped { get; init; } = [];
+
+    /// <summary>Its own bag by item id, slot by slot (M2-14b); null when it has none.</summary>
+    [Key(10)]
+    public IReadOnlyList<SlotRecord>? Bag { get; init; }
 }
 
 /// <summary>A creature's combos (combat spec §10): learned bits, landings per combo, times it started one by itself.</summary>

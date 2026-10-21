@@ -27,9 +27,13 @@ The game plays on the local dev server, which runs in Docker on this PC. Nothing
    Left click              attack where you look (hold the button longer for a heavy attack)
    Shift (hold)            block; raised just before a hit, it parries
    Space                   dodge
-   C / V / G               spells: thornbolt (a thorn that hurts and slows), entangle (roots creatures
-                           where you aim, or on the creature you locked on), mend (heals you, or your
-                           locked-on companion). They cost mana (the blue bar).
+   1 2 3 4 5 6 7 8 9 0     the action bar at the bottom of the screen. At first: 1 thornbolt (a thorn
+                           that hurts and slows), 2 entangle (roots creatures where you aim, or the one
+                           you locked on), 3 mend (heals you or your locked-on companion), 5 berry meal,
+                           7 attack, 8 guard me, 9 hold here, 0 come back (commands for your companions).
+                           Spells cost mana (the blue bar).
+   L                       the ability book: drag a spell or a command onto the bar to put it on a key.
+                           Drag a button onto another to swap them, off the bar to clear it.
    Middle click or T       lock the camera on the nearest creature in front (again to let go);
                            your attacks then aim at it by themselves
    Near a creature, a line at the bottom shows what you can do:
@@ -38,16 +42,17 @@ The game plays on the local dev server, which runs in Docker on this PC. Nothing
    moment and it comes to your side. X sends it back. Your companions are listed at the top left.
    A companion follows you, defends you when something attacks you and helps when you fight.
    An independent one may wander off a little when you stand still for a while.
-   Commands for your companions: 1 attack (the creature you locked on with T, or the one near you),
-   2 guard me, 3 hold here, 4 come back. Watch how they answer: a companion that trusts you
+   Commands for your companions (on the bar): attack (the creature you locked on with T, or the one
+   near you), guard me, hold here, come back. Watch how they answer: a companion that trusts you
    obeys at once; one that is unsure pauses or does it its own way; one may even refuse.
    Loot: a defeated creature leaves a bag for everyone who fought it; walk onto your bag to pick it up.
    H gathers from a berry bush, a sweetroot patch or fallen branches nearby (they grow back by the next day).
-   I shows your inventory and gold. While it is open: 1-9 puts on gear from your bag (a staff,
-   a vest, a charm), Shift + 1-6 takes off what you wear there, O switches to a companion at
-   your side, so you can dress it too (a bird wears only a charm or a hat).
-   B opens crafting: press a recipe's number to make it. Stand still for a few seconds; if
-   something hits you, you stop and lose nothing.
+   I opens your bag and character: drag gear onto the slots on your figure to put it on, and back
+   into the bag to take it off. Right-click food to eat it. The tabs at the top show a companion
+   at your side: dress it too (a bird wears only a hat and a charm), and drag things into its own
+   bag (a bird carries little, a four-legged one more). Drag food from the bag onto the bar.
+   B opens crafting: click a recipe to make it. Stand still for a few seconds; if something hits
+   you, you stop and lose nothing.
    K opens the companion panel: your companion's level, bond and skill tree. Teach it a skill with
    1-9 or a click. It likes some branches more than others; a branch it dislikes costs 2 points.
    P opens the Pact menu: choose up to 3 promises with the number keys 1-6 (or click them),

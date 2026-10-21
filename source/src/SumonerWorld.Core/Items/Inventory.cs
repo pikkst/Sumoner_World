@@ -9,10 +9,12 @@ namespace SumonerWorld.Core.Items;
 public readonly record struct ItemCount(int Item, int Count);
 
 /// <summary>
-/// A player's inventory (crafting spec §2–3, M2-13): <see cref="Slots"/> slots of stacks, a weight limit and gold. Server state:
-/// it changes only inside transactions (R27, R31).
+/// A bag (crafting spec §2–3, M2-13): a player's (<see cref="Slots"/> slots of stacks, a weight limit and gold) or a creature's
+/// (fewer slots by body type, M2-14b). Server state: it changes only inside transactions (R27, R31).
 /// </summary>
-public sealed class Inventory
+/// <param name="capacity">Slots.</param>
+/// <param name="maxWeightGrams">The most it carries, in grams.</param>
+public sealed class Inventory(int capacity = Inventory.Slots, int maxWeightGrams = Inventory.MaxWeightGrams)
 {
     /// <summary>Slots a player carries.</summary>
     public const int Slots = 24;
@@ -20,7 +22,13 @@ public sealed class Inventory
     /// <summary>The most a player carries, in grams.</summary>
     public const int MaxWeightGrams = 30_000;
 
-    private readonly ItemCount[] _slots = new ItemCount[Slots];
+    private readonly ItemCount[] _slots = new ItemCount[capacity];
+
+    /// <summary>Slots in this bag.</summary>
+    public int Capacity => _slots.Length;
+
+    /// <summary>The most this bag carries, in grams.</summary>
+    public int MaxGrams => maxWeightGrams;
 
     /// <summary>Gold (never below 0).</summary>
     public int Gold { get; private set; }
@@ -69,7 +77,7 @@ public sealed class Inventory
             }
         }
 
-        return grams <= MaxWeightGrams;
+        return grams <= maxWeightGrams;
     }
 
     /// <summary>Adds items that <see cref="CanAdd"/> allowed.</summary>
@@ -94,7 +102,7 @@ public sealed class Inventory
             return false;
         }
 
-        for (int i = Slots - 1; i >= 0 && count > 0; i--)
+        for (int i = _slots.Length - 1; i >= 0 && count > 0; i--)
         {
             if (_slots[i].Item == item && _slots[i].Count > 0)
             {
@@ -104,6 +112,58 @@ public sealed class Inventory
             }
         }
 
+        return true;
+    }
+
+    /// <summary>Takes one slot's whole stack out (empty when the slot is empty or out of range).</summary>
+    public ItemCount TakeSlot(int slot)
+    {
+        if ((uint)slot >= (uint)_slots.Length)
+        {
+            return default;
+        }
+
+        ItemCount stack = _slots[slot];
+        _slots[slot] = default;
+        return stack;
+    }
+
+    /// <summary>Removes one item from a slot; false when the slot is empty.</summary>
+    public bool TakeOne(int slot)
+    {
+        if ((uint)slot >= (uint)_slots.Length || _slots[slot].Count == 0)
+        {
+            return false;
+        }
+
+        _slots[slot] = _slots[slot].Count == 1 ? default : _slots[slot] with { Count = _slots[slot].Count - 1 };
+        return true;
+    }
+
+    /// <summary>
+    /// Moves a slot's stack onto another slot: into an empty one, onto the same item (as many as fit there, the rest stays), or
+    /// swapping places with a different item. False (nothing moved) when either slot is out of range or the source is empty.
+    /// </summary>
+    public bool Move(IDataRegistry data, int from, int to)
+    {
+        ArgumentNullException.ThrowIfNull(data);
+        if ((uint)from >= (uint)_slots.Length || (uint)to >= (uint)_slots.Length || from == to || _slots[from].Count == 0)
+        {
+            return false;
+        }
+
+        ItemCount source = _slots[from];
+        ItemCount target = _slots[to];
+        if (target.Count > 0 && target.Item == source.Item)
+        {
+            int moved = Math.Min(source.Count, data.Items[source.Item].Stack - target.Count);
+            _slots[to] = target with { Count = target.Count + moved };
+            _slots[from] = source.Count == moved ? default : source with { Count = source.Count - moved };
+            return true;
+        }
+
+        _slots[to] = source;
+        _slots[from] = target;
         return true;
     }
 
@@ -133,7 +193,7 @@ public sealed class Inventory
         ArgumentNullException.ThrowIfNull(slots);
         Gold = Math.Max(0, gold);
         Array.Clear(_slots);
-        for (int i = 0; i < Math.Min(Slots, slots.Count); i++)
+        for (int i = 0; i < Math.Min(_slots.Length, slots.Count); i++)
         {
             _slots[i] = slots[i];
         }
@@ -219,5 +279,52 @@ public sealed class InventoryStore
         Inventory inventory = Of(account);
         IEnumerable<string> items = inventory.Stacks.ToArray().Where(stack => stack.Count > 0).Select(stack => $"{data.Items[stack.Item].Id} x{stack.Count}");
         return $"{inventory.Gold} gold; {string.Join(", ", items)}";
+    }
+}
+
+/// <summary>
+/// Pacted creatures' own bags, by stable id (M2-14b): the owner moves items in and out while it is at their side. Its size
+/// follows its body (<see cref="SizeOf"/>).
+/// </summary>
+public sealed class CreatureBags
+{
+    private readonly SortedDictionary<ulong, Inventory> _byCreature = [];
+
+    /// <summary>Creatures with a bag.</summary>
+    public IEnumerable<ulong> Creatures => _byCreature.Keys;
+
+    /// <summary>Slots and grams a body carries: birds little, four-legged creatures the most.</summary>
+    public static (int Slots, int Grams) SizeOf(Data.Definitions.BodyType body) => body switch
+    {
+        Data.Definitions.BodyType.Avian => (4, 3_000),
+        Data.Definitions.BodyType.Quadruped => (8, 15_000),
+        Data.Definitions.BodyType.Biped => (6, 10_000),
+        _ => (6, 8_000),
+    };
+
+    /// <summary>The creature's bag (created empty on first use).</summary>
+    public Inventory Of(ulong creature, Data.Definitions.BodyType body)
+    {
+        if (!_byCreature.TryGetValue(creature, out Inventory? bag))
+        {
+            (int slots, int grams) = SizeOf(body);
+            bag = new Inventory(slots, grams);
+            _byCreature.Add(creature, bag);
+        }
+
+        return bag;
+    }
+
+    /// <summary>The creature's bag if it has one.</summary>
+    public Inventory? Find(ulong creature) => _byCreature.GetValueOrDefault(creature);
+
+    /// <summary>Adds every bag, in creature order, to a state hash.</summary>
+    public void AddTo(ref StateHash hash)
+    {
+        foreach ((ulong creature, Inventory bag) in _byCreature)
+        {
+            hash.Add(creature);
+            bag.AddTo(ref hash);
+        }
     }
 }

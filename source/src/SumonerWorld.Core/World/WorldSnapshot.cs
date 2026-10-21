@@ -30,6 +30,7 @@ public sealed record WorldSnapshot(
 /// <param name="Skills">Learned skills and spent points (M2-10); null in saves from before they existed.</param>
 /// <param name="Combos">Learned combos and landings (M2-12); null in saves from before they existed.</param>
 /// <param name="Equipped">Worn item ids by position (M2-14); null in older saves.</param>
+/// <param name="Bag">Its own bag, slot by slot (M2-14b); null when it has none.</param>
 public sealed record CreatureSave(
     StableId Id,
     string Species,
@@ -41,7 +42,8 @@ public sealed record CreatureSave(
     Progression.CreatureGrowth? Growth = null,
     Progression.CreatureSkills? Skills = null,
     Combat.CreatureCombos? Combos = null,
-    IReadOnlyList<string>? Equipped = null);
+    IReadOnlyList<string>? Equipped = null,
+    IReadOnlyList<SavedItem>? Bag = null);
 
 /// <summary>One saved reputation score.</summary>
 /// <param name="Species">Species data id.</param>

@@ -33,6 +33,9 @@ public static partial class DataRegistryLoader
         CheckRange(item.Stack, 1, MaxStack, "stack", where, errors);
         CheckRange(item.WeightGrams, 0, MaxWeightGrams, "weightGrams", where, errors);
         CheckRange(item.GoldValue, 0, MaxGold, "goldValue", where, errors);
+        CheckRange(item.Restore.Health, 0, MaxStat, "restore.health", where, errors);
+        CheckRange(item.Restore.Stamina, 0, MaxStat, "restore.stamina", where, errors);
+        CheckRange(item.Restore.Mana, 0, MaxStat, "restore.mana", where, errors);
         if (item.Slot == EquipSlot.None)
         {
             return;
