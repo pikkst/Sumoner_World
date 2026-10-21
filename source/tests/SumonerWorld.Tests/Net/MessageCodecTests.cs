@@ -55,7 +55,7 @@ public class MessageCodecTests
         CompanionEntry[] companions =
         [
             new(77, 1, true),
-            new(9_000_000_001, 0, false, 12, 2, 4, 3, 0b1_0110, Affinities.Of([45, -60, 0])),
+            new(9_000_000_001, 0, false, 12, 2, 4, 3, 0b1_0110, Affinities.Of([45, -60, 0]), Combos: 1),
         ];
         Assert.Equal(companions, RoundTrip(new CompanionListCodec(), new CompanionList(companions)).Entries);
         Assert.Empty(RoundTrip(new CompanionListCodec(), new CompanionList([])).Entries);

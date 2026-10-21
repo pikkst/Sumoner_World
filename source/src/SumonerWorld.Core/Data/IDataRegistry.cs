@@ -44,6 +44,9 @@ public interface IDataRegistry
     /// <summary>Status effects, ordered by id (combat spec §7).</summary>
     IReadOnlyList<EffectDefinition> Effects { get; }
 
+    /// <summary>Combos in file order; a combo's index is its saved bit (combat spec §10).</summary>
+    IReadOnlyList<ComboDefinition> Combos { get; }
+
     /// <summary>The effect with this id, or null.</summary>
     EffectDefinition? EffectOf(string id);
 

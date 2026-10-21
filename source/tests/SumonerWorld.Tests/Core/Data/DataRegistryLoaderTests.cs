@@ -325,6 +325,16 @@ public class DataRegistryLoaderTests
         Assert.All(expected, fragment => Assert.Contains(error.Errors, message => message.Contains(fragment, StringComparison.Ordinal)));
     }
 
+    [Fact]
+    public void The_shipped_combo_is_uproot_on_rooted_targets_learned_after_five()
+    {
+        DataRegistry registry = DataRegistryLoader.Load(ReadShippedData());
+
+        Assert.Equal(
+            ("uproot", "rooted", "charge", 200, 30, 5, "entangle"),
+            registry.Combos.Select(combo => (combo.Id, combo.Effect, combo.MoveTag, combo.DamagePercent, combo.StaggerTicks, combo.LearnAfter, combo.TriggerSpell)).Single());
+    }
+
     private static string SpeciesJson(string id) => $$"""
         { "schemaVersion": 1, "kind": "species", "entries": [ {
           "id": "{{id}}", "nameKey": "species.{{id}}.name", "role": "grazer", "bodyType": "quadruped", "group": "herd",

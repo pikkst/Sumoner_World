@@ -301,11 +301,11 @@ public static class CombatRules
     }
 
     /// <summary>Knocks an entity off balance for the stagger time (refreshes a running stagger) and interrupts its move.</summary>
-    public static void Stagger(EcsWorld world, IDataRegistry data, Entity actor, ulong now)
+    public static void Stagger(EcsWorld world, IDataRegistry data, Entity actor, ulong now, int? ticks = null)
     {
         ArgumentNullException.ThrowIfNull(world);
         ArgumentNullException.ThrowIfNull(data);
-        var until = new Staggered(now + (ulong)data.Combat.StaggerTicks);
+        var until = new Staggered(now + (ulong)(ticks ?? data.Combat.StaggerTicks));
         world.Remove<Blocking>(actor);
         world.Remove<ActiveMove>(actor); // a stagger interrupts the action (combat spec §7); a spell's mana is spent
         if (world.Has<Staggered>(actor))

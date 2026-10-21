@@ -77,6 +77,9 @@ public sealed partial class InteractionControls : CanvasLayer
         _pending.Add((_client.SendIntent(kind, target, 0), kind, Target.Name, 0));
     }
 
+    /// <summary>Shows a line at once (news from the server, e.g. a combo learned).</summary>
+    public void Say(string line) => _delayed.Add((_clock, line));
+
     /// <summary>Sends an intent about a creature and shows its result line like the keys' (the companion keys use this).</summary>
     public void Send(IntentKind kind, ulong creature, string name, byte argument = 0)
     {

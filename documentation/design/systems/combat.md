@@ -238,6 +238,15 @@ window. Combos are data (`data/combat/combos.json`).
   ones go at half speed; mending heals over 4 s. Snapshots carry status marks (roots, slowed ring, mending glow on the body);
   keys C / V / G. Creatures' spells (`foxfire`) come later.
 
+- **M2-12 (first combo):** `data/combat/combos.json` holds Uproot (rooted target, `charge` move, 200% damage, 30-tick knock-down,
+  learned after 5, trigger spell entangle); a combo's position is its saved bit (at most 4). A hit whose move carries the tag on a
+  target with the effect is a combo (`ComboLanded`). A pacted creature that lands it 5 times knows it. When its summoner's
+  entangle catches a creature, every summoned companion that knows Uproot goes for it by itself, the combo move first; the
+  first time, it shows Affection for 2 s, and the player reads "Your mossback learned your style: Uproot!" when it learns it.
+  A companion that does not know it does not react to its summoner's rooting (only to real hits). Companions now attack as soon
+  as any move reaches (a charge from 6 m), unless they flank. Combos are saved with the creature; the companion list carries
+  them (protocol 15).
+
 ## Changelog
 - **0.1 (2026-10-21):** First draft (M2 D1), for stakeholder approval.
 - **0.4 (2026-10-21, M2-02c):** lock-on (§11a) on Normal servers, none on Hardcore; protocol 8.

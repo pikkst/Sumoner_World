@@ -16,6 +16,7 @@ public static class ProgressionComponents
         world.Register<CreatureGrowth>();
         world.Register<PlayerProgress>();
         world.Register<CreatureSkills>();
+        world.Register<CreatureCombos>();
     }
 
     /// <summary>Adds the components, with the entities that hold them.</summary>
@@ -28,6 +29,8 @@ public static class ProgressionComponents
         hash.Add<PlayerProgress>(world.Store<PlayerProgress>().Components);
         hash.Add<Entity>(world.Store<CreatureSkills>().Entities);
         hash.Add<CreatureSkills>(world.Store<CreatureSkills>().Components);
+        hash.Add<Entity>(world.Store<CreatureCombos>().Entities);
+        hash.Add<CreatureCombos>(world.Store<CreatureCombos>().Components);
     }
 
     /// <summary>Gives a new wild creature its growth (<see cref="GrowthRules.Wild"/>).</summary>
@@ -36,6 +39,7 @@ public static class ProgressionComponents
         ArgumentNullException.ThrowIfNull(world);
         world.Add(creature, GrowthRules.Wild(species, stableId));
         world.Add(creature, default(CreatureSkills));
+        world.Add(creature, default(CreatureCombos));
     }
 
     /// <summary>Gives a new player avatar its progress (a new player until profiles are saved, M2-20).</summary>

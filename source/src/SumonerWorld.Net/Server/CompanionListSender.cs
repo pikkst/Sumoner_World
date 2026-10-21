@@ -40,7 +40,8 @@ internal sealed class CompanionListSender(CreatureWorld world, ITransport transp
                 (byte)companion.BondLevel,
                 (byte)Math.Min(companion.Points, byte.MaxValue),
                 companion.Learned,
-                BranchAffinities(companion));
+                BranchAffinities(companion),
+                (byte)companion.Combos);
         }
 
         var writer = new MessageWriter(_buffer);

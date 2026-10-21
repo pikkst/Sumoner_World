@@ -29,6 +29,7 @@ public sealed class CreatureAttackSystem : ISimulationSystem
     private readonly int[] _skillMoves = new int[Progression.SkillRules.Slots(Progression.LifeStage.Elder)];
     private readonly ComponentStore<Progression.CreatureSkills> _skillsStore;
     private readonly ComponentStore<Progression.CreatureGrowth> _growthStore;
+    private readonly ComponentStore<CreatureCombos> _combosStore;
 
     /// <summary>Creates the system for a world.</summary>
     public CreatureAttackSystem(CreatureWorld world)
@@ -44,6 +45,7 @@ public sealed class CreatureAttackSystem : ISimulationSystem
         _minds = _ecs.Store<MindRef>();
         _skillsStore = _ecs.Store<Progression.CreatureSkills>();
         _growthStore = _ecs.Store<Progression.CreatureGrowth>();
+        _combosStore = _ecs.Store<CreatureCombos>();
         _movesBySource = [.. world.Data.Species.Select(species => species.Combat.Moves.Select(world.Data.MoveIndex).ToArray())];
     }
 
@@ -63,6 +65,27 @@ public sealed class CreatureAttackSystem : ISimulationSystem
                 TryAttack(intent.Actor, tick.Index);
             }
         }
+    }
+
+    // A move that makes a combo it knows on this target (it tries that first, M2-12), or −1.
+    private int ComboMove(Entity actor, Entity target, ulong now, int skills, int[] species)
+    {
+        if (!_combosStore.Has(actor) || _combosStore.Get(actor).Learned == 0)
+        {
+            return -1;
+        }
+
+        for (int i = 0; i < skills + species.Length; i++)
+        {
+            int move = i < skills ? _skillMoves[i] : species[i - skills];
+            int combo = ComboRules.Match(_world.Data, _world.Data.Moves[move], _ecs, target, now);
+            if (combo >= 0 && _combosStore.Get(actor).Knows(combo))
+            {
+                return move;
+            }
+        }
+
+        return -1;
     }
 
     // A companion never attacks the player it is pacted to (M2-07), whatever its own mind wants.
@@ -97,9 +120,15 @@ public sealed class CreatureAttackSystem : ISimulationSystem
                 _world.Data, _world.Data.SkillTreeOf(source), _skillsStore.Get(actor).Learned, (Progression.LifeStage)_growthStore.Get(actor).Stage, _skillMoves)
             : 0;
         int[] species = _movesBySource[source];
-        for (int i = 0; i < skills + species.Length; i++)
+        int combo = ComboMove(actor, focus.Entity, now, skills, species);
+        for (int i = -1; i < skills + species.Length; i++)
         {
-            int move = i < skills ? _skillMoves[i] : species[i - skills];
+            if (i < 0 && combo < 0)
+            {
+                continue;
+            }
+
+            int move = i < 0 ? combo : i < skills ? _skillMoves[i] : species[i - skills];
             MoveDefinition definition = _world.Data.Moves[move];
             if (!CombatSystem.InShape(definition.Shape, from, aim, to, radius) || !CombatRules.CanStart(_ecs, _world.Data, actor, move).IsApplied)
             {

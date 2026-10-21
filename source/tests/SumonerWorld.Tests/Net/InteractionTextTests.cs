@@ -74,6 +74,7 @@ public class InteractionTextTests
         };
 
         Assert.Equal("Thick hide", InteractionText.SkillName("thick_hide"));
+        Assert.Equal("Your mossback learned your style: Uproot! It will join in when you cast it.", InteractionText.ComboLearned("mossback", "uproot"));
         Assert.Equal("new move: Lunge", InteractionText.SkillEffect(lunge));
         Assert.Equal("health +15%", InteractionText.SkillEffect(hide));
         Assert.Equal("likes it", InteractionText.BranchFeeling(40));

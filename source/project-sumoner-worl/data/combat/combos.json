@@ -1,0 +1,9 @@
+// Combos (combat spec §10): a creature move hitting a target that carries a status effect from the player. Append only: a
+// combo's position is its saved bit. Starting values.
+{
+  "schemaVersion": 1,
+  "kind": "combos",
+  "entries": [
+    { "id": "uproot", "effect": "rooted", "moveTag": "charge", "damagePercent": 200, "staggerTicks": 30, "learnAfter": 5, "triggerSpell": "entangle" }
+  ]
+}

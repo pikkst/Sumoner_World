@@ -61,7 +61,7 @@ public enum RejectReason : byte
 public static class Protocol
 {
     /// <summary>Current protocol version; bump on any wire-format change.</summary>
-    public const ushort Version = 14;
+    public const ushort Version = 15;
 
     /// <summary>Largest message, in bytes (fits one UDP datagram on common networks).</summary>
     public const int MaxMessageSize = 1200;

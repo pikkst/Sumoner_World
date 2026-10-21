@@ -167,6 +167,7 @@ public sealed record CreatureSystems(
         scheduler.Register(Fight.Attacks);
         scheduler.Register(Fight.Combat);
         scheduler.Register(Fight.Alerts);
+        scheduler.Register(Fight.Combos);
         scheduler.Register(Fight.Status);
         scheduler.Register(Fight.Vitals);
         scheduler.Register(Growth);
@@ -179,13 +180,21 @@ public sealed record CreatureSystems(
 /// <param name="Attacks">Creatures' attack intents (M2-03).</param>
 /// <param name="Combat">Moves and hits (combat spec §4).</param>
 /// <param name="Alerts">Hits that give summoned companions a foe (M2-07).</param>
+/// <param name="Combos">Combo learning and companions starting a known combo by themselves (M2-12).</param>
 /// <param name="Status">Status effects over time: mending, expiry (M2-11).</param>
 /// <param name="Vitals">Regeneration, yield, defeat (combat spec §5, §6).</param>
-public sealed record FightSystems(CreatureAttackSystem Attacks, CombatSystem Combat, CompanionAlertSystem Alerts, StatusSystem Status, VitalsSystem Vitals)
+public sealed record FightSystems(
+    CreatureAttackSystem Attacks, CombatSystem Combat, CompanionAlertSystem Alerts, ComboSystem Combos, StatusSystem Status, VitalsSystem Vitals)
 {
     /// <summary>Builds them for a world.</summary>
     public static FightSystems Create(CreatureWorld world) =>
-        new(new CreatureAttackSystem(world), new CombatSystem(world), new CompanionAlertSystem(world), new StatusSystem(world.World), new VitalsSystem(world));
+        new(
+            new CreatureAttackSystem(world),
+            new CombatSystem(world),
+            new CompanionAlertSystem(world),
+            new ComboSystem(world),
+            new StatusSystem(world.World),
+            new VitalsSystem(world));
 }
 
 /// <summary>
