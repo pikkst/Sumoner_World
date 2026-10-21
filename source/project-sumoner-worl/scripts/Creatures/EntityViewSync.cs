@@ -1,7 +1,9 @@
 using Godot;
 using SumonerWorld.Core.Cognition.Appraisal;
+using SumonerWorld.Core.Combat;
 using SumonerWorld.Core.Data;
 using SumonerWorld.Core.Data.Definitions;
+using SumonerWorld.Game.Characters;
 using SumonerWorld.Game.Combat;
 using SumonerWorld.Net.Client;
 using SumonerWorld.Net.Messages;
@@ -12,8 +14,9 @@ namespace SumonerWorld.Game.Creatures;
 /// Shows what the server sends (ADR-001, R38): every frame it advances the client's <see cref="RemoteInterpolation"/>, places one
 /// pooled view per remote entity at its interpolated position and heading, and lets the <see cref="IEmotePresenter"/> pose creatures
 /// from their emote and ground speed. Views never own state: an entity that leaves the snapshots returns its view to the pool.
-/// Creatures get the model of their species' role; other players a simple capsule. Combat (M2-02b): each view tilts with its
-/// combat action, swells briefly when its health drops, and shows a health bar while hurt.
+/// Creatures get the model of their species' role; other players the <see cref="HumanoidRig"/>, animated from their ground speed
+/// and combat action (M2-04). Combat (M2-02b): each view tilts with its combat action, swells briefly (players also flinch) when
+/// its health drops, and shows a health bar while hurt.
 /// </summary>
 public sealed partial class EntityViewSync : Node3D
 {
@@ -71,6 +74,10 @@ public sealed partial class EntityViewSync : Node3D
             {
                 _presenter.Present(rig, (Emote)state.Emote, state.Speed, delta);
             }
+            else if (view is HumanoidRig humanoid)
+            {
+                HumanoidAnimator.Animate(humanoid, (CombatAction)state.Action, state.Speed, delta);
+            }
 
             ShowHealth(view, state.Health, delta);
         }
@@ -111,7 +118,7 @@ public sealed partial class EntityViewSync : Node3D
         }
         else
         {
-            view = _playerPool.Count > 0 ? _playerPool.Pop() : AddView(PlayerView());
+            view = _playerPool.Count > 0 ? _playerPool.Pop() : AddView(HumanoidRig.Build(OtherRobe));
         }
 
         view.Visible = true;
@@ -134,6 +141,10 @@ public sealed partial class EntityViewSync : Node3D
         if (health < before)
         {
             CombatPose.Hit(view);
+            if (view is HumanoidRig humanoid)
+            {
+                HumanoidAnimator.Hit(humanoid);
+            }
         }
 
         CombatPose.Settle(view, delta);
@@ -160,12 +171,9 @@ public sealed partial class EntityViewSync : Node3D
         return view;
     }
 
-    private static Node3D PlayerView()
-    {
-        var root = new Node3D { Name = "Player" };
-        var cloth = new StandardMaterial3D { AlbedoColor = new Color(0.2f, 0.3f, 0.55f) };
-        root.AddChild(new MeshInstance3D { Mesh = new CapsuleMesh { Radius = 0.35f, Height = 1.8f, RadialSegments = 8, Rings = 2 }, MaterialOverride = cloth, Position = new Vector3(0, 0.9f, 0) });
-        root.AddChild(new MeshInstance3D { Mesh = new BoxMesh { Size = new Vector3(0.2f, 0.15f, 0.3f) }, MaterialOverride = cloth, Position = new Vector3(0, 1.5f, 0.35f) });
-        return root;
-    }
+    /// <summary>Robe colour of other players (the own character wears <see cref="OwnRobe"/>).</summary>
+    public static readonly Color OtherRobe = new(0.26f, 0.36f, 0.6f);
+
+    /// <summary>Robe colour of the own character.</summary>
+    public static readonly Color OwnRobe = new(0.62f, 0.3f, 0.24f);
 }

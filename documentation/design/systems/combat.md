@@ -218,6 +218,7 @@ window. Combos are data (`data/combat/combos.json`).
   reconciled as usual). `CombatHud`: health, stamina and mana bars and the keys; creatures and players show a health bar while
   hurt, swell briefly when hit and tilt with their action (`CombatPose`, placeholder until animations). The dev tools pick a
   creature with the left button only while the overlay or inspector is open.
+- **M2-04 (player character):** players are shown as a placeholder summoner with a staff (style guide §1–2) animated from ground speed and the snapshot's combat action: the wind-up raises the staff behind the head (the telegraph of §11), the strike swings it forward and down, block raises both forearms, dodge is a low dive, stagger throws the arms out, yield kneels, and a hit snaps the head back. `CombatPose`'s whole-body tilts stay on top. Check with `--showcase=player --showcase-distance=9`.
 
 ## 13. Stakeholder answers (2026-10-21)
 1. **Yield and spare (§6): yes**, this is how defeating without killing works.
