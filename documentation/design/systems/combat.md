@@ -1,6 +1,6 @@
 # Sumoner World - Combat & Magic v1 (D1)
 Version: **0.1** (M2 D1) · Date: 2026-10-21 · Owners: Sr Game Designer (feel, values) + Mechanics Developer (contract, server) ·
-Status: **Draft, waiting for stakeholder approval**
+Status: **Approved by stakeholder 2026-10-21** (§13 answers recorded)
 Rules: R08, R11, R15, R21, R27, R28, R30–R33, R50 · Related: GDD v0.2 §3 Combat, §4 Magic, §9 Death, §10 Companions;
 AI Bible v0.1 §4 (memory events), §7–8 (decisions, learning), §10 (Bonding); TDD v0.1 §1 (budgets), §2 (tick stages), §3 (net)
 
@@ -176,12 +176,13 @@ window. Combos are data (`data/combat/combos.json`).
   duplicate intents deal damage once (R27, R30, R34).
 - **Determinism:** two seeded runs of the combat scenario give identical state hashes (R11).
 
-## 13. Questions for the stakeholder
-1. **Yield and spare (§6):** creatures below 20% health may yield, and sparing them is a path to trust. Is that how you want
-   defeating without killing to work?
-2. **Server preset for the family:** the GDD's default preset is Hardcore (companions die permanently). Should the family's dev
-   server run **Normal** (fallen companions can be revived)? Recommended for the children.
-3. **No randomness in v1 (§1):** no critical hits or damage rolls. All right?
+## 13. Stakeholder answers (2026-10-21)
+1. **Yield and spare (§6): yes**, this is how defeating without killing works.
+2. **Server preset: Normal is the default** (fallen companions can be revived). Hardcore stays an option a server can choose.
+   GDD §9 updated to match.
+3. **No randomness in v1:** not answered directly; the stakeholder asked the team to fill open gaps, so v1 keeps **no random
+   damage or critical hits** (§1). It can be revisited after the family sessions.
 
 ## Changelog
 - **0.1 (2026-10-21):** First draft (M2 D1), for stakeholder approval.
+- **0.1 approved (2026-10-21):** yield and spare confirmed; Normal is the default server preset; no randomness in v1 kept.
