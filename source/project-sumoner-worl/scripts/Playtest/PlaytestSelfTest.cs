@@ -13,7 +13,8 @@ namespace SumonerWorld.Game.Playtest;
 /// lock ignores, T again (let go), a Pact while it is still snared (M2-05: P opens the menu, 1 and 2 choose two promises,
 /// <paramref name="capture"/> saves frames of the menu and of the answer, Enter offers it), R (free it), E (feed it), Q (shout), a
 /// right-button drag that turns the camera a quarter round, Space held for a dodge, then Z (summon the companion the
-/// <see cref="SelfTestFixture"/> gave), W held for a moment (it follows, M2-07) and X (send it back). It logs the interaction lines, the attack's result and the calf's health, the own stamina, the calf's
+/// <see cref="SelfTestFixture"/> gave), W held for a moment (it follows, M2-07), the commands 2 (guard me) and 3 (hold here),
+/// W again (it holds), 4 (come back, M2-08) and X (send it back). It logs the interaction lines, the attack's result and the calf's health, the own stamina, the calf's
 /// emote while it answers and the answer line, then watches for <see cref="WatchSeconds"/> so the creature can react.
 /// <see cref="Done"/> lets the host take its screenshot afterwards.
 /// </summary>
@@ -27,7 +28,7 @@ public sealed partial class PlaytestSelfTest(
     private const float CloseMetres = 3f; // inside the basic attack's reach of a mossback (2 m + its 1.6 m body)
     private const double StepSeconds = 1.2;
     private const double WatchSeconds = 6;
-    private const int LastStep = 16;
+    private const int LastStep = 20;
 
     private double _clock;
     private double _walking;
@@ -148,9 +149,27 @@ public sealed partial class PlaytestSelfTest(
                 Press(Key.W, pressed: false);
                 log.Write(LogLevel.Info, "selftest.follow", $"after a run: {CompanionDistance()}");
                 capture("follow");
-                PressKey(Key.X);
+                PressKey(Key.Key2);
                 break;
             case 16:
+                log.Write(LogLevel.Info, "selftest.command", $"{controls.Feedback} | companion shows {CompanionEmote()}");
+                PressKey(Key.Key3);
+                break;
+            case 17:
+                log.Write(LogLevel.Info, "selftest.command", $"{controls.Feedback} | companion shows {CompanionEmote()}");
+                Press(Key.W, pressed: true);
+                break;
+            case 18:
+                Press(Key.W, pressed: false);
+                log.Write(LogLevel.Info, "selftest.command", $"held while she walked on: {CompanionDistance()}");
+                PressKey(Key.Key4);
+                break;
+            case 19:
+                log.Write(LogLevel.Info, "selftest.command", $"{controls.Feedback} | {CompanionDistance()}");
+                capture("commands");
+                PressKey(Key.X);
+                break;
+            case 20:
                 log.Write(LogLevel.Info, "selftest.summon", $"{OneLine(companions.Shown)} | {controls.Feedback}");
                 break;
             default:
@@ -166,6 +185,19 @@ public sealed partial class PlaytestSelfTest(
     }
 
     private static string OneLine(string text) => text.Replace("\n", "; ", StringComparison.Ordinal);
+
+    private string CompanionEmote()
+    {
+        foreach (SumonerWorld.Net.Messages.CompanionEntry companion in client.Companions)
+        {
+            if (client.Entities.TryGetValue((SumonerWorld.Net.Messages.SnapshotEntityKind.Creature, companion.Id), out SumonerWorld.Net.Messages.SnapshotEntity entity))
+            {
+                return ((SumonerWorld.Core.Cognition.Appraisal.Emote)entity.Emote).ToString();
+            }
+        }
+
+        return "nothing";
+    }
 
     private string CompanionDistance()
     {

@@ -1,5 +1,6 @@
 using System.Globalization;
 using System.Text;
+using SumonerWorld.Core.Bonding;
 using SumonerWorld.Core.Cognition;
 using SumonerWorld.Core.Cognition.Memory;
 using SumonerWorld.Core.Data;
@@ -80,6 +81,10 @@ public static class DevReadout
         Line(text, $"goal  {GoalName(inspection.Goal, data)}");
         Line(text, $"tree  {TreePath(inspection, data)}");
         Line(text, $"focus {(inspection.Focus is MemorySubject focus ? $"{SubjectName(focus, data)} at {inspection.FocusDistance / 10.0:F0}%" : "none")}");
+        if (inspection.Command is InspectedCommand command)
+        {
+            Line(text, $"order {CommandLine(command)}");
+        }
 
         Section(text, "TRAITS (now / birth)");
         Personality now = inspection.Personality;
@@ -118,6 +123,31 @@ public static class DevReadout
 
         return text.ToString();
     }
+
+    /// <summary>
+    /// A companion's last command, its answer and the reason in a few words, e.g.
+    /// <c>Attack → Hesitate (obedience 312: the foe is dangerous) 2 s ago</c> (M2-08).
+    /// </summary>
+    public static string CommandLine(InspectedCommand command) =>
+        $"{command.Command} -> {command.Response} (obedience {command.Obedience}: {ReasonText(command.Reason)}) {Age(command.AgeTicks)}";
+
+    /// <summary>An obedience reason in a few words.</summary>
+    public static string ReasonText(ObedienceReason reason) => reason switch
+    {
+        ObedienceReason.Bond => "their bond",
+        ObedienceReason.Trust => "it trusts you",
+        ObedienceReason.Distrust => "it does not trust you",
+        ObedienceReason.Respect => "it respects you",
+        ObedienceReason.Disrespect => "it does not respect you",
+        ObedienceReason.Loyal => "it is loyal",
+        ObedienceReason.Independent => "it is independent",
+        ObedienceReason.Fear => "it is afraid of you",
+        ObedienceReason.Danger => "the foe is dangerous",
+        ObedienceReason.MemoryConflict => "it will not fight its own kind",
+        ObedienceReason.Suicidal => "it would not survive",
+        ObedienceReason.BetterTactic => "it knows a better way",
+        _ => "nothing stood out",
+    };
 
     /// <summary>The running node and its ancestors, e.g. <c>Flee: Sequence › MoveTo AwayFromFocus 150%</c>.</summary>
     public static string TreePath(CreatureInspection inspection, IDataRegistry data)

@@ -22,7 +22,7 @@ public class StateHashPaddingTests
         typeof(Opinion), typeof(Personality),
         typeof(Combatant), typeof(ActiveMove), typeof(Yielding), typeof(Blocking), typeof(Dodging), typeof(Staggered),
         typeof(SumonerWorld.Core.Bonding.PactAnswer), typeof(SumonerWorld.Core.Bonding.SigilCast),
-        typeof(SumonerWorld.Core.Bonding.CompanionState),
+        typeof(SumonerWorld.Core.Bonding.CompanionState), typeof(SumonerWorld.Core.Bonding.CompanionOrder),
     };
 
     [Theory]

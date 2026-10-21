@@ -1,4 +1,5 @@
 using Godot;
+using SumonerWorld.Core.Bonding;
 using SumonerWorld.Core.Data;
 using SumonerWorld.Game.Characters;
 using SumonerWorld.Game.Creatures;
@@ -10,9 +11,12 @@ namespace SumonerWorld.Game.Playtest;
 /// <summary>
 /// The player's companions (M2-06) at the top left: each pacted creature with "with you" or "away", from the server's companion
 /// list. Z calls the first one that is away (a summoning sigil, AI Bible §10.4), X sends back the last one that is with you; the
-/// result line comes through the <see cref="InteractionControls"/>. When a creature arrives, a sigil flares under it.
+/// result line comes through the <see cref="InteractionControls"/>. When a creature arrives, a sigil flares under it. Commands v1
+/// (M2-08) go to every companion with you: 1 attack (the lock-on target, else the creature in reach), 2 guard me, 3 hold here,
+/// 4 come back; each answers with its body (AI Bible §7.4).
 /// </summary>
-public sealed partial class CompanionBar(GameClient client, IDataRegistry data, EntityViewSync views, InteractionControls controls) : CanvasLayer
+public sealed partial class CompanionBar(
+    GameClient client, IDataRegistry data, EntityViewSync views, InteractionControls controls, Func<ulong> lockedTarget) : CanvasLayer
 {
     private const double ArrivalWaitSeconds = 3;
 
@@ -37,6 +41,13 @@ public sealed partial class CompanionBar(GameClient client, IDataRegistry data, 
         }
 
         return false;
+    }
+
+    /// <summary>Commands every companion with the player (also used by the self-test).</summary>
+    public void Command(CompanionCommand command)
+    {
+        ulong target = command == CompanionCommand.Attack ? (lockedTarget() is ulong locked and not 0 ? locked : controls.Target.Id) : 0;
+        controls.Send(IntentKind.Command, target, controls.Target.Name, (byte)command);
     }
 
     /// <summary>Sends back the last companion that is with the player; false when there is none.</summary>
@@ -74,7 +85,19 @@ public sealed partial class CompanionBar(GameClient client, IDataRegistry data, 
             return;
         }
 
-        if (key.Keycode == Key.Z)
+        CompanionCommand command = key.Keycode switch
+        {
+            Key.Key1 => CompanionCommand.Attack,
+            Key.Key2 => CompanionCommand.GuardMe,
+            Key.Key3 => CompanionCommand.Hold,
+            Key.Key4 => CompanionCommand.Retreat,
+            _ => CompanionCommand.None,
+        };
+        if (command != CompanionCommand.None)
+        {
+            Command(command);
+        }
+        else if (key.Keycode == Key.Z)
         {
             CallNext();
         }

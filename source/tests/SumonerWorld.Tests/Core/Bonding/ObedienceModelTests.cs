@@ -63,6 +63,20 @@ public class ObedienceModelTests
         Assert.True(kit.Obedience.Evaluate(kit.Creature, Alice, 2, 0, false, false, 1).Obedience < before);
     }
 
+    [Fact]
+    public void The_answer_names_what_mattered_most()
+    {
+        var loyal = new BondingTestKit(new Personality(0, Loyalty: 100, 0, 0));
+        var independent = new BondingTestKit(new Personality(0, Loyalty: -100, 0, 0));
+
+        Assert.Equal(ObedienceReason.Bond, loyal.Obedience.Evaluate(loyal.Creature, Alice, 4, 0, false, false, 0).Reason);
+        Assert.Equal(ObedienceReason.Danger, loyal.Obedience.Evaluate(loyal.Creature, Alice, 0, danger: 700, false, false, 0).Reason);
+        Assert.Equal(ObedienceReason.MemoryConflict, loyal.Obedience.Evaluate(loyal.Creature, Alice, 0, 0, conflictsWithMemory: true, false, 0).Reason);
+        Assert.Equal(ObedienceReason.Independent, independent.Obedience.Evaluate(independent.Creature, Alice, 0, 100, false, false, 0).Reason);
+        Assert.Equal(ObedienceReason.Suicidal, independent.Obedience.Evaluate(independent.Creature, Alice, 0, 900, false, false, 0).Reason);
+        Assert.Equal(ObedienceReason.BetterTactic, loyal.Obedience.Evaluate(loyal.Creature, Alice, 5, 0, false, knowsBetterTactic: true, 0).Reason);
+    }
+
     private static CommandResponse Response(BondingTestKit kit, int danger, bool conflict = false) =>
         kit.Obedience.Evaluate(kit.Creature, Alice, bondLevel: 1, danger, conflict, knowsBetterTactic: false, 0).Response;
 }

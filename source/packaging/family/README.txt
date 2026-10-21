@@ -35,6 +35,9 @@ The game plays on the local dev server, which runs in Docker on this PC. Nothing
    moment and it comes to your side. X sends it back. Your companions are listed at the top left.
    A companion follows you, defends you when something attacks you and helps when you fight.
    An independent one may wander off a little when you stand still for a while.
+   Commands for your companions: 1 attack (the creature you locked on with T, or the one near you),
+   2 guard me, 3 hold here, 4 come back. Watch how they answer: a companion that trusts you
+   obeys at once; one that is unsure pauses or does it its own way; one may even refuse.
    P opens the Pact menu: choose up to 3 promises with the number keys 1-6 (or click them),
    then Enter (or "Offer the Pact"); Esc closes it. Watch the creature: it answers first with
    its body (it comes closer, or turns away), then a line tells you its answer.

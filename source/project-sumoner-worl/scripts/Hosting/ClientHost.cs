@@ -168,7 +168,7 @@ public sealed partial class ClientHost : Node
             _client!, () => _region?.Camera, () => _lockOn.TryGetTarget(out Vector3 target) && _avatar is not null ? (AvatarCentre(), target) : null);
         AddChild(_combat);
         AddChild(new CombatHud(_client!));
-        _companionBar = new CompanionBar(_client!, data, _views, controls);
+        _companionBar = new CompanionBar(_client!, data, _views, controls, () => _lockOn?.Target ?? 0);
         AddChild(_companionBar);
         if (_options.SelfTest)
         {

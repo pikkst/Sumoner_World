@@ -106,6 +106,12 @@ public enum IntentKind : byte
 
     /// <summary>Send a summoned creature back (since protocol 9): target = stable id.</summary>
     Dismiss = 8,
+
+    /// <summary>
+    /// Command every summoned companion (since protocol 10): argument = <c>CompanionCommand</c>, target = the creature to attack
+    /// (Attack) or 0; detail = companions doing it (low 4 bits) and refusing (high 4 bits).
+    /// </summary>
+    Command = 9,
 }
 
 /// <summary>One of the receiver's pacted creatures.</summary>

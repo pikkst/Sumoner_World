@@ -29,6 +29,14 @@ public readonly record struct InspectedOpinion(MemorySubject Subject, Opinion Op
 /// <param name="Score">Score.</param>
 public readonly record struct GoalScore(ushort Goal, int Score);
 
+/// <summary>A companion's last command and its answer (M2-08), as the AI Inspector shows it.</summary>
+/// <param name="Command">The command.</param>
+/// <param name="Response">Its answer.</param>
+/// <param name="Obedience">The obedience score.</param>
+/// <param name="Reason">What mattered most.</param>
+/// <param name="AgeTicks">Ticks since it was given.</param>
+public readonly record struct InspectedCommand(Bonding.CompanionCommand Command, Bonding.CommandResponse Response, int Obedience, Bonding.ObedienceReason Reason, ulong AgeTicks);
+
 /// <summary>
 /// Everything the AI Inspector shows about one creature at one tick (AI Bible §13): traits, needs, emotions, top memories,
 /// opinions, goal scores and the running behaviour-tree node. Dev tools only.
@@ -54,6 +62,7 @@ public readonly record struct GoalScore(ushort Goal, int Score);
 /// <param name="Goals">Every goal of the species with its score, in goal-id order.</param>
 /// <param name="TreeGoal">Goal whose tree ran at the last behaviour tick.</param>
 /// <param name="TreeNode">Innermost running node of that tree (pre-order index), −1 when none.</param>
+/// <param name="Command">A companion's last command and answer (M2-08), null when it never had one.</param>
 public sealed record CreatureInspection(
     ulong Tick,
     StableId Id,
@@ -75,7 +84,8 @@ public sealed record CreatureInspection(
     IReadOnlyList<InspectedOpinion> Opinions,
     IReadOnlyList<GoalScore> Goals,
     ushort TreeGoal,
-    int TreeNode)
+    int TreeNode,
+    InspectedCommand? Command = null)
 {
     /// <summary>Most memories listed.</summary>
     public const int MaxMemories = 8;
@@ -156,7 +166,20 @@ public sealed class CreatureInspector
             Opinions(mind, focusSubject, memories, now),
             Scores(mind, context),
             treeGoal,
-            treeNode);
+            treeNode,
+            LastCommand(creature, now));
+    }
+
+    private InspectedCommand? LastCommand(Entity creature, ulong now)
+    {
+        if (!_world.World.Has<Bonding.CompanionOrder>(creature))
+        {
+            return null;
+        }
+
+        Bonding.CompanionOrder order = _world.World.GetComponent<Bonding.CompanionOrder>(creature);
+        return new InspectedCommand(
+            (Bonding.CompanionCommand)order.Command, (Bonding.CommandResponse)order.Response, order.Obedience, (Bonding.ObedienceReason)order.Reason, now - order.Since);
     }
 
     private InspectedMemory[] Memories(MindHandle mind, ulong now)
