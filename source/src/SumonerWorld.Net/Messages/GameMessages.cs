@@ -136,8 +136,18 @@ public enum IntentKind : byte
 /// <param name="Points">Skill points it can spend (since protocol 13).</param>
 /// <param name="Learned">Learned skill bits (since protocol 13).</param>
 /// <param name="Affinity">How much it likes each branch of its tree, in branch order (since protocol 13).</param>
+/// <param name="Combos">Learned combo bits (since protocol 15).</param>
 public readonly record struct CompanionEntry(
-    ulong Id, byte Species, bool Summoned, byte Level = 1, byte Stage = 0, byte BondLevel = 0, byte Points = 0, ulong Learned = 0, Affinities Affinity = default);
+    ulong Id,
+    byte Species,
+    bool Summoned,
+    byte Level = 1,
+    byte Stage = 0,
+    byte BondLevel = 0,
+    byte Points = 0,
+    ulong Learned = 0,
+    Affinities Affinity = default,
+    byte Combos = 0);
 
 /// <summary>Up to four branch affinities (−128…127), in branch order.</summary>
 /// <param name="Count">How many branches.</param>
@@ -200,6 +210,8 @@ public sealed class CompanionListCodec : IMessageCodec<CompanionList>
             {
                 writer.WriteByte(unchecked((byte)entry.Affinity[a]));
             }
+
+            writer.WriteByte(entry.Combos);
         }
     }
 
@@ -240,7 +252,7 @@ public sealed class CompanionListCodec : IMessageCodec<CompanionList>
                 affinity[b] = unchecked((sbyte)reader.ReadByte());
             }
 
-            entries[i] = new CompanionEntry(id, species, summoned == 1, level, stage, bondLevel, points, learned, Affinities.Of(affinity[..branches]));
+            entries[i] = new CompanionEntry(id, species, summoned == 1, level, stage, bondLevel, points, learned, Affinities.Of(affinity[..branches]), reader.ReadByte());
         }
 
         reader.EnsureEnd();

@@ -3,6 +3,7 @@ using SumonerWorld.Core.Bonding;
 using SumonerWorld.Core.Cognition;
 using SumonerWorld.Core.Cognition.Memory;
 using SumonerWorld.Core.Cognition.Opinions;
+using SumonerWorld.Core.Combat;
 using SumonerWorld.Core.Data.Definitions;
 using SumonerWorld.Core.Ecs;
 using SumonerWorld.Core.Progression;
@@ -44,6 +45,9 @@ internal static class SaveMapping
                 TravelCm = growth.TravelCm,
             }
             : null,
+        Combos = save.Combos is CreatureCombos combos
+            ? new CombosRecord { Learned = combos.Learned, Landed = [combos.Landed0, combos.Landed1, combos.Landed2, combos.Landed3], SelfStarted = combos.SelfStarted }
+            : null,
         Skills = save.Skills is CreatureSkills skills
             ? new SkillsRecord { Learned = skills.Learned, Spent = skills.Spent, UnspentSince = skills.UnspentSince, PickedItself = skills.PickedItself }
             : null,
@@ -69,7 +73,14 @@ internal static class SaveMapping
             record.Growth is GrowthRecord growth
                 ? new CreatureGrowth(growth.Tier, growth.Level, growth.Stage, growth.CombatXp, growth.WorkXp, growth.TravelXp, growth.TravelCm)
                 : null,
-            record.Skills is SkillsRecord skills ? new CreatureSkills(skills.Learned, skills.UnspentSince, 0, skills.Spent, skills.PickedItself) : null);
+            record.Skills is SkillsRecord skills ? new CreatureSkills(skills.Learned, skills.UnspentSince, 0, skills.Spent, skills.PickedItself) : null,
+            record.Combos is CombosRecord combos ? Combos(combos) : null);
+    }
+
+    private static CreatureCombos Combos(CombosRecord record)
+    {
+        int Landed(int i) => i < record.Landed.Count ? record.Landed[i] : 0;
+        return new CreatureCombos(0, record.Learned, Landed(0), Landed(1), Landed(2), Landed(3), record.SelfStarted);
     }
 
     private static MindRecord ToRecord(MindState mind) => new()

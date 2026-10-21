@@ -47,8 +47,17 @@ public enum SummonRefusal : byte
 /// <param name="BondLevel">Its bond level.</param>
 /// <param name="Points">Skill points it can spend.</param>
 /// <param name="Learned">Learned skill bits.</param>
+/// <param name="Combos">Learned combo bits.</param>
 public readonly record struct Companion(
-    StableId Id, ushort Species, bool Summoned, int Level = 1, Progression.LifeStage Stage = Progression.LifeStage.Young, int BondLevel = 0, int Points = 0, ulong Learned = 0);
+    StableId Id,
+    ushort Species,
+    bool Summoned,
+    int Level = 1,
+    Progression.LifeStage Stage = Progression.LifeStage.Young,
+    int BondLevel = 0,
+    int Points = 0,
+    ulong Learned = 0,
+    int Combos = 0);
 
 /// <summary>Queries over pacted creatures (AI Bible §10.4).</summary>
 public static class Companions
@@ -76,7 +85,8 @@ public static class Companions
                     (Progression.LifeStage)growth.Stage,
                     bond.BondLevel,
                     Progression.SkillRules.Points(growth, skills),
-                    skills.Learned));
+                    skills.Learned,
+                    world.World.GetComponent<Combat.CreatureCombos>(creatures[i]).Learned));
             }
         }
 

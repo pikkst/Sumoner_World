@@ -70,6 +70,27 @@ public sealed record CreatureRecord
     /// <summary>Skills (M2-10); null in saves from before they existed.</summary>
     [Key(7)]
     public SkillsRecord? Skills { get; init; }
+
+    /// <summary>Combos (M2-12); null in saves from before they existed.</summary>
+    [Key(8)]
+    public CombosRecord? Combos { get; init; }
+}
+
+/// <summary>A creature's combos (combat spec §10): learned bits, landings per combo, times it started one by itself.</summary>
+[MessagePackObject]
+public sealed record CombosRecord
+{
+    /// <summary>Learned combo bits.</summary>
+    [Key(0)]
+    public int Learned { get; init; }
+
+    /// <summary>Landings per combo, in combo order.</summary>
+    [Key(1)]
+    public IReadOnlyList<int> Landed { get; init; } = [];
+
+    /// <summary>Times it started a combo by itself.</summary>
+    [Key(2)]
+    public int SelfStarted { get; init; }
 }
 
 /// <summary>A creature's skills (companions spec §5, §9).</summary>

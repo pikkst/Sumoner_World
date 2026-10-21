@@ -65,6 +65,9 @@ public static class InteractionText
     /// <summary>The player's level line in the HUD, e.g. <c>Elf · Rank F · Level 3</c> (M2-09).</summary>
     public static string PlayerLine(SummonerClass summonerClass, Rank rank, int level) => $"{summonerClass} · Rank {rank} · Level {level}";
 
+    /// <summary>The line when a companion learned a combo with the player (M2-12): it is the player's style it learned.</summary>
+    public static string ComboLearned(string creature, string combo) => $"Your {creature} learned your style: {SkillName(combo)}! It will join in when you cast it.";
+
     /// <summary>The spell keys (M2-11), shown with the combat keys.</summary>
     public const string SpellHints = "C: thornbolt   V: entangle   G: mend";
 

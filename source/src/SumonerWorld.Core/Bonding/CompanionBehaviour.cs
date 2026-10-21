@@ -67,6 +67,11 @@ public sealed class CompanionAlertSystem : ISimulationSystem
     {
         foreach (CombatHit hit in _world.Events.Read<CombatHit>())
         {
+            if (hit.Damage == 0 && _players.Has(hit.Attacker))
+            {
+                continue; // rooting or slowing a creature is not starting a fight; companions that know a combo answer it (M2-12)
+            }
+
             ReadOnlySpan<Entity> companions = _companions.Entities;
             for (int i = 0; i < companions.Length; i++)
             {
@@ -410,9 +415,15 @@ public sealed class CompanionSystem : ISimulationSystem
         Vector3 foe = _positions.Get(state.Foe).Value;
         float gap = Flat(foe - me) - _world.Sizes.RadiusOf(companion) - _world.Sizes.RadiusOf(state.Foe);
         _focus.Get(companion) = new FocusRef(state.Foe, 0, 1);
-        if (gap <= AttackReachMetres)
+
+        // It attacks as soon as one of its moves reaches (a charge from six metres), unless it is going round to flank first.
+        if (!flank || gap <= AttackReachMetres)
         {
             _world.Events.Publish(new CreatureIntent(companion, IntentKind.Attack, MoveTargetMode.Focus, 0, Emote.None, InteractVerb.Eat, null));
+        }
+
+        if (gap <= AttackReachMetres)
+        {
             return;
         }
 

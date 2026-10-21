@@ -22,8 +22,10 @@ public sealed class DataRegistry : IDataRegistry
         CombatDefinition combat,
         IReadOnlyList<SkillTreeDefinition> skillTrees,
         IReadOnlyList<SpellDefinition> spells,
-        IReadOnlyList<EffectDefinition> effects)
+        IReadOnlyList<EffectDefinition> effects,
+        IReadOnlyList<ComboDefinition> combos)
     {
+        Combos = combos;
         Spells = spells;
         Effects = effects;
         SkillTrees = skillTrees;
@@ -77,6 +79,9 @@ public sealed class DataRegistry : IDataRegistry
 
     /// <inheritdoc />
     public IReadOnlyList<EffectDefinition> Effects { get; }
+
+    /// <inheritdoc />
+    public IReadOnlyList<ComboDefinition> Combos { get; }
 
     /// <inheritdoc />
     public EffectDefinition? EffectOf(string id)

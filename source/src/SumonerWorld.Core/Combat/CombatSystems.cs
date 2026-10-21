@@ -20,6 +20,7 @@ public sealed class CombatSystem : ISimulationSystem
     private const int MaxCandidates = 64;
     private const float CentimetresPerMetre = 100f;
     private const int PerMille = 1000;
+    private const int Percent = 100;
 
     private readonly CreatureWorld _world;
     private readonly EcsWorld _ecs;
@@ -161,6 +162,19 @@ public sealed class CombatSystem : ISimulationSystem
         }
 
         int damage = definition.Damage == 0 ? 0 : CombatRules.Damage(definition.Damage, _combatants.Get(attacker).Power, CombatRules.ResistTo(victim, definition.DamageType), victim.Guard);
+        int combo = guarded ? -1 : ComboRules.Match(_world.Data, definition, _ecs, target, now);
+        if (combo >= 0)
+        {
+            // A combo (combat spec §10): more damage, and the target is knocked down for longer.
+            ComboDefinition rule = _world.Data.Combos[combo];
+            damage = damage * rule.DamagePercent / Percent;
+            CombatRules.Stagger(_ecs, _world.Data, target, now, rule.StaggerTicks);
+            if (_world.Events.IsRegistered<ComboLanded>())
+            {
+                _world.Events.Publish(new ComboLanded(attacker, target, combo));
+            }
+        }
+
         if (definition.Effect is string effect && !guarded)
         {
             StatusRules.Apply(_ecs, _world.Data, target, effect, now);
@@ -177,7 +191,7 @@ public sealed class CombatSystem : ISimulationSystem
                 CombatRules.Stagger(_ecs, _world.Data, target, now); // guard broken
             }
         }
-        else if (definition.Poise > victim.Poise)
+        else if (combo < 0 && definition.Poise > victim.Poise)
         {
             CombatRules.Stagger(_ecs, _world.Data, target, now);
         }

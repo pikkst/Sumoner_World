@@ -99,7 +99,7 @@ public record struct LearnSkillTransaction(CreatureWorld Creatures, Entity Avata
 /// <summary>
 /// Skill upkeep (companions spec §5): a pacted creature with points its summoner has not spent for
 /// <see cref="PickAfterDays"/> in-game days picks a skill itself, from the branch it likes most (the cheapest available node there,
-/// else any branch by liking); a creature that learned a disliked skill shows reluctance (Grudge) for a moment.
+/// else any branch by liking); a creature that learned a disliked skill shows reluctance (Grudge) for a moment, and one that started a learned combo by itself the first time shows pride (Affection, M2-12).
 /// </summary>
 public sealed class SkillSystem : ISimulationSystem
 {
@@ -115,6 +115,7 @@ public sealed class SkillSystem : ISimulationSystem
     private readonly ComponentStore<MindRef> _minds;
     private readonly ComponentStore<SpeciesRef> _species;
     private readonly ComponentStore<CurrentEmote> _emotes;
+    private readonly ComponentStore<CreatureCombos> _combos;
     private readonly int[] _order = new int[MaxBranches];
     private readonly int[] _affinity = new int[MaxBranches];
 
@@ -128,6 +129,7 @@ public sealed class SkillSystem : ISimulationSystem
         _minds = world.World.Store<MindRef>();
         _species = world.World.Store<SpeciesRef>();
         _emotes = world.World.Store<CurrentEmote>();
+        _combos = world.World.Store<CreatureCombos>();
     }
 
     /// <summary>Skills creatures picked for themselves since the start.</summary>
@@ -147,6 +149,10 @@ public sealed class SkillSystem : ISimulationSystem
             if (tick.Index < _skills.Components[i].ReluctantUntil)
             {
                 _emotes.Get(creature) = new CurrentEmote(Emote.Grudge);
+            }
+            else if (_combos.Has(creature) && tick.Index < _combos.Get(creature).ProudUntil)
+            {
+                _emotes.Get(creature) = new CurrentEmote(Emote.Affection); // it learned its summoner's style (M2-12)
             }
 
             if (check)

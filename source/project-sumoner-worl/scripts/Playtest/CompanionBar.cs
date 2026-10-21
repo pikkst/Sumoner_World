@@ -21,6 +21,7 @@ public sealed partial class CompanionBar(
     private const double ArrivalWaitSeconds = 3;
 
     private readonly HashSet<ulong> _summoned = [];
+    private readonly Dictionary<ulong, byte> _combos = [];
     private readonly List<(ulong Id, double At)> _arrivals = [];
     private Label? _list;
     private double _clock;
@@ -125,6 +126,7 @@ public sealed partial class CompanionBar(
         _clock += delta;
         foreach (CompanionEntry companion in companions)
         {
+            AnnounceCombos(companion);
             if (companion.Summoned && _summoned.Add(companion.Id))
             {
                 // Marked summoned when the sigil starts; it arrives when the cast is done.
@@ -149,6 +151,23 @@ public sealed partial class CompanionBar(
                 _arrivals.RemoveAt(i);
             }
         }
+    }
+
+    // A combo bit that was not there before: the companion just learned it (the first list only records what it knows).
+    private void AnnounceCombos(CompanionEntry companion)
+    {
+        if (_combos.TryGetValue(companion.Id, out byte known))
+        {
+            for (int i = 0; i < data.Combos.Count; i++)
+            {
+                if ((companion.Combos & ~known & (1 << i)) != 0)
+                {
+                    controls.Say(InteractionText.ComboLearned(NameOf(companion), data.Combos[i].Id));
+                }
+            }
+        }
+
+        _combos[companion.Id] = companion.Combos;
     }
 
     private string NameOf(CompanionEntry companion) =>

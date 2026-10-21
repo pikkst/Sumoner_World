@@ -41,6 +41,38 @@ public static partial class DataRegistryLoader
         }
     }
 
+    // Combos name a known effect and spell, stay in range, and fit the saved bits.
+    private static void ValidateCombos(
+        List<(ComboDefinition Entry, string Where)> combos, List<EffectDefinition> effects, List<(SpellDefinition Entry, string Where)> spells, List<string> errors)
+    {
+        if (combos.Count > ComboDefinition.MaxCombos)
+        {
+            errors.Add($"At most {ComboDefinition.MaxCombos} combos; found {combos.Count}.");
+        }
+
+        foreach ((ComboDefinition combo, string where) in combos)
+        {
+            if (!IsSnakeCaseId(combo.Id))
+            {
+                errors.Add($"{where}: id '{combo.Id}' must be snake_case.");
+            }
+
+            if (!effects.Any(effect => effect.Id == combo.Effect))
+            {
+                errors.Add($"{where}: unknown effect '{combo.Effect}'.");
+            }
+
+            if (!spells.Any(spell => spell.Entry.Id == combo.TriggerSpell))
+            {
+                errors.Add($"{where}: unknown trigger spell '{combo.TriggerSpell}'.");
+            }
+
+            CheckRange(combo.DamagePercent, 100, 1000, "damagePercent", where, errors);
+            CheckRange(combo.StaggerTicks, 1, MaxMoveTicks, "staggerTicks", where, errors);
+            CheckRange(combo.LearnAfter, 1, 100, "learnAfter", where, errors);
+        }
+    }
+
     private static void ValidateEffect(EffectDefinition effect, string where, List<string> errors)
     {
         if (!KnownEffects.Contains(effect.Id))
