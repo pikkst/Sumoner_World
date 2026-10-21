@@ -19,7 +19,7 @@ Otherwise **noticed = no**.
 |---|---|
 | feed (E) | after several meals: comes closer, Trust emote |
 | hit (F) | keeps its distance, fear, or anger in bold creatures |
-| kill (third hit) | others of its kind nearby flee or get angry; the herd may avoid the player |
+| kill (hit until its health runs out) | others of its kind nearby flee or get angry; the herd may avoid the player |
 | free from a snare (R) | Affection emote, follows or stays near the player; herd-mates may come closer, curious |
 | shout near predators (Q) | predators keep away, fear |
 | offer a Pact (P) | accepted or refused |

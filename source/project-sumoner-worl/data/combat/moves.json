@@ -1,0 +1,25 @@
+// Moves shared by players and creatures (combat spec §3, Combat contract v1.0.0). Ticks at 30 per second. Starting values.
+{
+  "schemaVersion": 1,
+  "kind": "moves",
+  "entries": [
+    { "id": "light", "windupTicks": 8, "activeTicks": 3, "recoveryTicks": 10,
+      "shape": { "kind": "arc", "reachCm": 200, "angleDeg": 120 },
+      "damage": 8, "damageType": "physical", "stamina": 12, "poise": 10, "tags": ["blade"] },
+    { "id": "heavy", "windupTicks": 20, "activeTicks": 4, "recoveryTicks": 18,
+      "shape": { "kind": "arc", "reachCm": 230, "angleDeg": 150 },
+      "damage": 20, "damageType": "physical", "stamina": 30, "poise": 40, "tags": ["blade", "heavy"] },
+    { "id": "charge", "windupTicks": 24, "activeTicks": 10, "recoveryTicks": 24,
+      "shape": { "kind": "line", "reachCm": 600, "widthCm": 300 },
+      "damage": 22, "damageType": "physical", "stamina": 35, "poise": 60, "tags": ["charge", "heavy"] },
+    { "id": "bite", "windupTicks": 9, "activeTicks": 3, "recoveryTicks": 12,
+      "shape": { "kind": "arc", "reachCm": 170, "angleDeg": 90 },
+      "damage": 7, "damageType": "physical", "stamina": 10, "poise": 10, "tags": ["bite"] },
+    { "id": "pounce", "windupTicks": 15, "activeTicks": 6, "recoveryTicks": 20,
+      "shape": { "kind": "line", "reachCm": 400, "widthCm": 120 },
+      "damage": 12, "damageType": "physical", "stamina": 25, "poise": 25, "tags": ["pounce"] },
+    { "id": "peck", "windupTicks": 8, "activeTicks": 3, "recoveryTicks": 12,
+      "shape": { "kind": "arc", "reachCm": 120, "angleDeg": 90 },
+      "damage": 4, "damageType": "physical", "stamina": 8, "poise": 5, "tags": ["bite"] }
+  ]
+}

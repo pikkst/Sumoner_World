@@ -9,7 +9,7 @@ namespace SumonerWorld.Core.Data;
 /// Every file is an envelope <c>{ "schemaVersion": 1, "kind": "...", "entries": [ ... ] }</c>. Unknown fields, missing fields,
 /// unknown enum values, out-of-range numbers and duplicate ids are all errors; every error in every file is reported together.
 /// </summary>
-public static class DataRegistryLoader
+public static partial class DataRegistryLoader
 {
     /// <summary>File kind for <see cref="MemoryEventTypeDefinition"/> (exactly one file).</summary>
     public const string MemoryEventTypesKind = "memoryEventTypes";
@@ -31,6 +31,12 @@ public static class DataRegistryLoader
 
     /// <summary>File kind for <see cref="BondLevelDefinition"/> (exactly one file).</summary>
     public const string BondLevelsKind = "bondLevels";
+
+    /// <summary>File kind for <see cref="MoveDefinition"/> (one or more files).</summary>
+    public const string MovesKind = "moves";
+
+    /// <summary>File kind for <see cref="CombatDefinition"/> (exactly one file).</summary>
+    public const string CombatKind = "combat";
 
     private const int MaxTermValue = 300;
 
@@ -79,7 +85,7 @@ public static class DataRegistryLoader
     // Everything read so far, per kind; Build runs the cross-file checks and creates the registry.
     private sealed class Collected
     {
-        private static readonly string[] SingleFileKinds = [MemoryEventTypesKind, OpinionWeightsKind, GoalsKind, PactTermsKind, BondLevelsKind];
+        private static readonly string[] SingleFileKinds = [MemoryEventTypesKind, OpinionWeightsKind, GoalsKind, PactTermsKind, BondLevelsKind, CombatKind];
 
         private readonly List<MemoryEventTypeDefinition> _memoryEventTypes = [];
         private readonly List<SpeciesDefinition> _species = [];
@@ -89,6 +95,9 @@ public static class DataRegistryLoader
         private readonly List<(BehaviourTreeDefinition Entry, string Where)> _trees = [];
         private readonly List<PactTermDefinition> _pactTerms = [];
         private readonly List<BondLevelDefinition> _bondLevels = [];
+        private readonly List<(MoveDefinition Entry, string Where)> _moves = [];
+        private readonly List<(CombatStatsDefinition Stats, string Where)> _combatants = [];
+        private CombatDefinition? _combat;
         private readonly Dictionary<string, string> _speciesSources = new(StringComparer.Ordinal);
         private readonly Dictionary<string, List<string>> _filesByKind = new(StringComparer.Ordinal);
 
@@ -152,8 +161,20 @@ public static class DataRegistryLoader
                     ValidateBondLevels(levels, file.Path, Errors);
                     _bondLevels.AddRange(levels.Select(level => level.Entry));
                     break;
+                case MovesKind:
+                    foreach ((MoveDefinition entry, int index) in ReadEntries<MoveDefinition>(file, Errors))
+                    {
+                        string where = $"{file.Path}: entries[{index}]";
+                        ValidateMove(entry, where, Errors);
+                        _moves.Add((entry, where));
+                    }
+
+                    break;
+                case CombatKind:
+                    AddCombat(file);
+                    break;
                 default:
-                    Errors.Add($"{file.Path}: unknown kind '{kind}'. Known kinds: {MemoryEventTypesKind}, {SpeciesKind}, {OpinionWeightsKind}, {GoalsKind}, {BehaviourTreesKind}, {PactTermsKind}, {BondLevelsKind}.");
+                    Errors.Add($"{file.Path}: unknown kind '{kind}'. Known kinds: {MemoryEventTypesKind}, {SpeciesKind}, {OpinionWeightsKind}, {GoalsKind}, {BehaviourTreesKind}, {PactTermsKind}, {BondLevelsKind}, {MovesKind}, {CombatKind}.");
                     break;
             }
         }
@@ -173,6 +194,7 @@ public static class DataRegistryLoader
             ValidateTreeReferences(_trees, _goals, Errors);
             ValidateUniqueMemoryEventTypes(_memoryEventTypes, Errors);
             ValidateOpinionWeightReferences(_opinionWeights, _memoryEventTypes, Errors);
+            ValidateMoveReferences(_moves, _combatants, Errors);
 
             if (Errors.Count > 0)
             {
@@ -186,7 +208,9 @@ public static class DataRegistryLoader
                 [.. _goals.Select(item => item.Entry).OrderBy(definition => definition.Id)],
                 [.. _trees.Select(item => item.Entry).OrderBy(definition => definition.Goal, StringComparer.Ordinal)],
                 _pactTerms,
-                [.. _bondLevels.OrderBy(level => level.Level)]);
+                [.. _bondLevels.OrderBy(level => level.Level)],
+                [.. _moves.Select(item => item.Entry).OrderBy(definition => definition.Id, StringComparer.Ordinal)],
+                _combat!);
         }
 
         private void AddSpecies(DataFile file)
@@ -195,6 +219,15 @@ public static class DataRegistryLoader
             {
                 string where = $"{file.Path}: entries[{index}]";
                 ValidateSpecies(entry, where, Errors);
+                if (entry.Combat is null)
+                {
+                    Errors.Add($"{where}: combat is required.");
+                }
+                else
+                {
+                    ValidateCombatStats(entry.Combat, $"{where}: combat", Errors);
+                    _combatants.Add((entry.Combat, $"{where}: combat"));
+                }
                 foreach (string goalKey in entry.Goals ?? [])
                 {
                     _speciesGoalRefs.Add((goalKey, where));
@@ -207,6 +240,25 @@ public static class DataRegistryLoader
 
                 _species.Add(entry);
             }
+        }
+
+        private void AddCombat(DataFile file)
+        {
+            List<(CombatDefinition Entry, int Index)> entries = ReadEntries<CombatDefinition>(file, Errors);
+            if (entries.Count != 1)
+            {
+                Errors.Add($"{file.Path}: a combat file has exactly one entry, found {entries.Count}.");
+                return;
+            }
+
+            string where = $"{file.Path}: entries[0]";
+            ValidateCombatRules(entries[0].Entry, where, Errors);
+            if (entries[0].Entry.Player is not null)
+            {
+                _combatants.Add((entries[0].Entry.Player, $"{where}: player"));
+            }
+
+            _combat = entries[0].Entry;
         }
     }
 

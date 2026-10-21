@@ -79,6 +79,7 @@ public static class WorldSnapshots
             world.World.Add(creature, default(FocusRef));
             world.World.Add(creature, new GroupRef(save.Group));
             world.World.Add(creature, new SpeciesRef(species));
+            world.AddCombatant(creature, species);
             world.Services.Bonding.Restore(mind, save.Bond);
         }
 

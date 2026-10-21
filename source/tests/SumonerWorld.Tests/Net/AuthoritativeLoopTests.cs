@@ -59,7 +59,7 @@ public class AuthoritativeLoopTests
     }
 
     [Fact]
-    public void Memory_grove_interactions_travel_as_intents_and_the_third_hit_kills()
+    public void Memory_grove_interactions_travel_as_intents_and_hits_wear_a_creature_down()
     {
         using var lan = new Lan(0);
         StableId creature = lan.SpawnCreature(lan.Settings.SpawnPoint + new Vector3(2.5f, 0, 0));
@@ -70,16 +70,16 @@ public class AuthoritativeLoopTests
 
         uint feed = alice.SendIntent(IntentKind.Feed, creature.Value, 0);
         uint scare = alice.SendIntent(IntentKind.Scare, 0, 0);
-        uint[] hits = new uint[3];
-        for (int i = 0; i < hits.Length; i++)
+        var hits = new List<uint>();
+        for (int i = 0; i < 120 && lan.World.TryFindCreature(creature, out _); i++)
         {
-            hits[i] = alice.SendIntent(IntentKind.Hit, creature.Value, 0);
-            lan.Run((int)HitTransaction.CooldownTicks + 1, _ => MoveInput.None);
+            hits.Add(alice.SendIntent(IntentKind.Hit, creature.Value, 0));
+            lan.Run(25, _ => MoveInput.None);
         }
 
         Assert.True(alice.IntentResults[feed].IsApplied);
         Assert.Equal(IntentResult.Applied(0), alice.IntentResults[scare]);
-        Assert.Equal([0, 0, 1], hits.Select(hit => (int)alice.IntentResults[hit].Detail));
+        Assert.True(alice.IntentResults[hits[0]].IsApplied);
         Assert.False(lan.World.TryFindCreature(creature, out _));
     }
 

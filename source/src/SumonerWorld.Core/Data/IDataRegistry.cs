@@ -29,6 +29,15 @@ public interface IDataRegistry
     /// <summary>Bond levels 0…N (AI Bible §10.3).</summary>
     IReadOnlyList<BondLevelDefinition> BondLevels { get; }
 
+    /// <summary>All moves, ordered by id (combat spec §3); a move's index is what <c>ActiveMove</c> holds.</summary>
+    IReadOnlyList<MoveDefinition> Moves { get; }
+
+    /// <summary>Combat rules and the player's base stats (combat spec §2, §5, §6).</summary>
+    CombatDefinition Combat { get; }
+
+    /// <summary>Index of the move with this id in <see cref="Moves"/>. Throws <see cref="KeyNotFoundException"/> if unknown.</summary>
+    int MoveIndex(string id);
+
     /// <summary>The memory event type with this id. Throws <see cref="KeyNotFoundException"/> if unknown.</summary>
     MemoryEventTypeDefinition GetMemoryEventType(ushort id);
 

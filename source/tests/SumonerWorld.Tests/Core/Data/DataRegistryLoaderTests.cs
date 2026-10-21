@@ -43,6 +43,21 @@ public class DataRegistryLoaderTests
         ] }
         """;
 
+    private const string ValidMoves = """
+        { "schemaVersion": 1, "kind": "moves", "entries": [
+          { "id": "bite", "windupTicks": 9, "activeTicks": 3, "recoveryTicks": 12, "shape": { "kind": "arc", "reachCm": 170, "angleDeg": 90 },
+            "damage": 7, "damageType": "physical", "stamina": 10, "poise": 10 }
+        ] }
+        """;
+
+    private const string ValidCombat = """
+        { "schemaVersion": 1, "kind": "combat", "entries": [ {
+          "player": { "health": 100, "stamina": 100, "mana": 60, "power": 100, "guard": 0, "poise": 20,
+            "resist": { "physical": 0, "primal": 0 }, "moves": ["bite"] },
+          "staminaRegenPerSecond": 20, "staminaRegenDelayTicks": 15, "manaRegenPerSecond": 3, "healthRegenPerMillePerSecond": 20,
+          "healthRegenDelayTicks": 300, "yieldBelowPerMille": 200, "yieldMaxBoldness": 50, "spareAfterTicks": 150, "playerDownTicks": 150 } ] }
+        """;
+
     private const string ValidBondLevels = """
         { "schemaVersion": 1, "kind": "bondLevels", "entries": [
           { "level": 0, "key": "Wary", "minTrust": -100, "minAffection": -100, "coreMemoriesWithOwner": 0, "minDaysBonded": 0 },
@@ -125,6 +140,8 @@ public class DataRegistryLoaderTests
             new DataFile("tree.json", ValidTree),
             new DataFile("terms.json", ValidPactTerms),
             new DataFile("levels.json", ValidBondLevels),
+            new DataFile("moves.json", ValidMoves),
+            new DataFile("combat.json", ValidCombat),
             new DataFile("a.json", badSpecies),
             new DataFile("b.json", duplicate),
             new DataFile("c.json", badTrait),
@@ -260,13 +277,34 @@ public class DataRegistryLoaderTests
         Assert.Contains(error.Errors, message => message.Contains("needs is required", StringComparison.Ordinal));
     }
 
+    [Fact]
+    public void Combat_data_must_name_known_moves_and_stay_in_range()
+    {
+        string unknownMove = SpeciesJson("mossback").Replace("\"moves\": [\"bite\"]", "\"moves\": [\"tail_swipe\"]", StringComparison.Ordinal);
+        string noReach = ValidMoves.Replace("\"reachCm\": 170", "\"reachCm\": 0", StringComparison.Ordinal);
+
+        var error = Assert.Throws<DataValidationException>(() => DataRegistryLoader.Load(
+        [
+            new DataFile("events.json", ValidEventTypes), new DataFile("weights.json", ValidOpinionWeights), new DataFile("goals.json", ValidGoals),
+            new DataFile("tree.json", ValidTree), new DataFile("terms.json", ValidPactTerms), new DataFile("levels.json", ValidBondLevels),
+            new DataFile("moves.json", noReach), new DataFile("combat.json", ValidCombat), new DataFile("s.json", unknownMove),
+        ]));
+
+        Assert.Equal(2, error.Errors.Count);
+        Assert.Contains(error.Errors, message => message.StartsWith("s.json", StringComparison.Ordinal) && message.Contains("unknown move 'tail_swipe'", StringComparison.Ordinal));
+        Assert.Contains(error.Errors, message => message.StartsWith("moves.json", StringComparison.Ordinal) && message.Contains("shape.reachCm", StringComparison.Ordinal));
+    }
+
     private static string SpeciesJson(string id) => $$"""
         { "schemaVersion": 1, "kind": "species", "entries": [ {
           "id": "{{id}}", "nameKey": "species.{{id}}.name", "role": "grazer", "bodyType": "quadruped", "group": "herd",
           "boldness": { "mean": -30, "spread": 25 }, "loyalty": { "mean": 40, "spread": 30 },
           "curiosity": { "mean": 10, "spread": 30 }, "temper": { "mean": -40, "spread": 20 },
           "needs": { "hunger": 60, "rest": 40, "safety": 50, "social": 70, "territory": 10 },
-          "bodyRadiusCm": 120, "pactThreshold": 450, "perception": { "sightRange": 50, "sightHalfAngle": 120, "hearingRange": 30 }, "goals": ["Eat"] } ] }
+          "bodyRadiusCm": 120, "pactThreshold": 450, "perception": { "sightRange": 50, "sightHalfAngle": 120, "hearingRange": 30 },
+          "combat": { "health": 100, "stamina": 50, "mana": 0, "power": 100, "guard": 0, "poise": 10,
+            "resist": { "physical": 0, "primal": 0 }, "moves": ["bite"] },
+          "goals": ["Eat"] } ] }
         """;
 
     private static List<DataFile> ReadShippedData()

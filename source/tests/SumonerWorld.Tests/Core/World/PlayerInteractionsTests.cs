@@ -38,25 +38,30 @@ public class PlayerInteractionsTests
     }
 
     [Fact]
-    public void The_third_hit_kills_and_kin_nearby_remember_who_did_it()
+    public void Hits_wear_a_creature_down_until_it_dies_and_kin_nearby_remember_who_did_it()
     {
+        // Combat spec (M2-01) replaced the M1 placeholder "the third hit kills": hits now deal damage until health runs out.
         using var grove = new Grove();
         Entity victim = grove.Creature("mossback", new Vector3(103, 0, 100));
+        grove.World.Snare(victim, 0); // keeps it in reach: a hurt creature runs away
         Entity kin = grove.Creature("mossback", new Vector3(120, 0, 100));
         Entity farKin = grove.Creature("mossback", new Vector3(160, 0, 100));
         Entity fox = grove.Creature("bogfox", new Vector3(110, 0, 110));
         StableId victimId = grove.World.World.GetComponent<StableId>(victim);
 
-        Assert.Equal((byte)0, grove.Hit(victim, now: 0).Detail);
-        Assert.Equal((byte)0, grove.Hit(victim, now: 30).Detail);
-        Assert.Contains(grove.MemoriesAbout(victim), memory => memory.Record.EventType == grove.Event("AttackedBy"));
-        Assert.Equal((byte)1, grove.Hit(victim, now: 60).Detail);
+        int swings = 0;
+        for (int tick = 0; tick < 3_000 && grove.World.TryFindCreature(victimId, out _); tick++)
+        {
+            swings += grove.Hit(victim, grove.Now).IsApplied ? 1 : 0;
+            grove.Run(1);
+        }
 
         Assert.False(grove.World.TryFindCreature(victimId, out _));
+        Assert.InRange(swings, 20, 40);
         Assert.Contains(grove.MemoriesAbout(kin), memory => memory.Record.EventType == grove.Event("KilledKin") && memory.Record.IsPinned);
         Assert.Empty(grove.MemoriesAbout(farKin));
         Assert.Empty(grove.MemoriesAbout(fox));
-        Assert.Contains(grove.World.Appraisal.Appraise(grove.Mind(kin), AliceSubject, 63), new[] { Emote.Fear, Emote.Grudge });
+        Assert.Contains(grove.World.Appraisal.Appraise(grove.Mind(kin), AliceSubject, grove.Now), new[] { Emote.Fear, Emote.Grudge });
     }
 
     [Fact]
@@ -131,6 +136,8 @@ public class PlayerInteractionsTests
             CreatureSystems systems = World.CreateSystems();
             _scheduler.Register(systems.JobApply);
             _scheduler.Register(systems.Movement);
+            _scheduler.Register(systems.Combat);
+            _scheduler.Register(systems.Vitals);
             _avatar = World.SpawnPlayerAvatar(Alice, new Vector3(100, 0, 100));
         }
 
@@ -159,7 +166,7 @@ public class PlayerInteractionsTests
 
         public IntentResult Feed(Entity creature, ulong now) => Run(new FeedTransaction(World, _cooldowns, _avatar, Id(creature)), now);
 
-        public IntentResult Hit(Entity creature, ulong now) => Run(new HitTransaction(World, _cooldowns, _avatar, Id(creature)), now);
+        public IntentResult Hit(Entity creature, ulong now) => Run(new HitTransaction(World, _avatar, Id(creature)), now);
 
         public IntentResult Help(Entity creature, ulong now) => Run(new HelpTransaction(World, _cooldowns, _avatar, Id(creature)), now);
 
