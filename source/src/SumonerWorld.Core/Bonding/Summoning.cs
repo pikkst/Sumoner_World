@@ -235,28 +235,30 @@ public sealed class SummoningSystem : ISimulationSystem
             if (_world.TryFindCreature(cast.Creature, out Entity creature)
                 && _world.Services.Bonding.GetBond(_world.World.GetComponent<MindRef>(creature).Handle).Summoned)
             {
-                Arrive(caster, creature);
+                PlaceBeside(_world, caster, creature);
+                _world.World.GetComponent<CurrentEmote>(creature) = new CurrentEmote(Emote.Trust);
+                Arrivals++;
             }
         }
     }
 
-    private void Arrive(Entity caster, Entity creature)
+    /// <summary>Puts <paramref name="creature"/> in front of <paramref name="player"/> and to their right, facing their way, standing still.</summary>
+    public static void PlaceBeside(CreatureWorld creatures, Entity player, Entity creature)
     {
-        EcsWorld world = _world.World;
-        Vector3 player = world.GetComponent<Position>(caster).Value;
-        Vector3 facing = world.GetComponent<Facing>(caster).Value;
+        ArgumentNullException.ThrowIfNull(creatures);
+        EcsWorld world = creatures.World;
+        Vector3 from = world.GetComponent<Position>(player).Value;
+        Vector3 facing = world.GetComponent<Facing>(player).Value;
         var ahead = new Vector3(facing.X, 0, facing.Z);
         ahead = ahead.LengthSquared() > 0 ? Vector3.Normalize(ahead) : Vector3.UnitZ;
         var right = new Vector3(-ahead.Z, 0, ahead.X);
-        float distance = _world.Sizes.RadiusOf(caster) + _world.Sizes.RadiusOf(creature) + ArrivalMetres;
-        Vector3 at = Vector3.Clamp(player + (Vector3.Normalize(ahead + right) * distance), _world.Settings.BoundsMin, _world.Settings.BoundsMax);
-        at.Y = _world.Settings.Ground?.HeightAt(at.X, at.Z) ?? player.Y;
+        float distance = creatures.Sizes.RadiusOf(player) + creatures.Sizes.RadiusOf(creature) + ArrivalMetres;
+        Vector3 at = Vector3.Clamp(from + (Vector3.Normalize(ahead + right) * distance), creatures.Settings.BoundsMin, creatures.Settings.BoundsMax);
+        at.Y = creatures.Settings.Ground?.HeightAt(at.X, at.Z) ?? from.Y;
 
         world.GetComponent<Position>(creature) = new Position(at);
         world.GetComponent<Facing>(creature) = new Facing(ahead);
         world.GetComponent<MoveTarget>(creature) = world.GetComponent<MoveTarget>(creature) with { Active = 0 };
-        world.GetComponent<CurrentEmote>(creature) = new CurrentEmote(Emote.Trust);
-        _world.Grid.Move(creature, at);
-        Arrivals++;
+        creatures.Grid.Move(creature, at);
     }
 }
