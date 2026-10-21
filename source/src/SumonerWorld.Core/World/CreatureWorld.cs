@@ -71,6 +71,7 @@ public sealed record CreatureServices(AiLodPolicy Lod, CreatureSubjectResolver R
 /// <param name="Intents">Creature intents.</param>
 /// <param name="Movement">Movement.</param>
 /// <param name="Separation">Keeps bodies apart after movement.</param>
+/// <param name="Attacks">Creatures' attack intents (M2-03).</param>
 /// <param name="Combat">Moves and hits (combat spec §4).</param>
 /// <param name="Vitals">Regeneration, yield, defeat (combat spec §5, §6).</param>
 /// <param name="ReputationFlush">Reputation aggregation.</param>
@@ -83,6 +84,7 @@ public sealed record CreatureSystems(
     CreatureIntentSystem Intents,
     MovementSystem Movement,
     SeparationSystem Separation,
+    CreatureAttackSystem Attacks,
     CombatSystem Combat,
     VitalsSystem Vitals,
     ReputationFlushSystem ReputationFlush)
@@ -103,6 +105,7 @@ public sealed record CreatureSystems(
             intents,
             movement,
             new SeparationSystem(world.World, world.Grid, sizes, world.Settings.Ground),
+            new CreatureAttackSystem(world),
             new CombatSystem(world),
             new VitalsSystem(world),
             new ReputationFlushSystem(world.Reputation));
@@ -139,6 +142,7 @@ public sealed record CreatureSystems(
         scheduler.Register(Intents);
         scheduler.Register(Movement);
         scheduler.Register(Separation);
+        scheduler.Register(Attacks);
         scheduler.Register(Combat);
         scheduler.Register(Vitals);
         scheduler.Register(ReputationFlush);

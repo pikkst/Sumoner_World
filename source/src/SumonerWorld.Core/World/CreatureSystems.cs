@@ -5,6 +5,7 @@ using SumonerWorld.Core.Cognition.Decision;
 using SumonerWorld.Core.Cognition.Lod;
 using SumonerWorld.Core.Cognition.Memory;
 using SumonerWorld.Core.Cognition.Perception;
+using SumonerWorld.Core.Combat;
 using SumonerWorld.Core.Data.Definitions;
 using SumonerWorld.Core.Ecosystem;
 using SumonerWorld.Core.Ecs;
@@ -185,12 +186,29 @@ public sealed class PerceptionSystem(
     }
 }
 
-/// <summary>Utility AI (AI Bible §7) at each creature's tier rate, with its species' goals and current focus.</summary>
+/// <summary>The AI's <c>health</c> input (AI Bible §7): a creature's health as 0–1000 of full (full when it has no combat stats).</summary>
+internal static class HealthInput
+{
+    private const int PerMille = 1000;
+
+    public static int Of(ComponentStore<Combatant> combatants, Entity creature)
+    {
+        if (!combatants.Has(creature))
+        {
+            return PerMille;
+        }
+
+        Combatant c = combatants.Get(creature);
+        return c.MaxHealth == 0 ? PerMille : (int)((long)c.Health * PerMille / c.MaxHealth);
+    }
+}
+
+/// <summary>Utility AI (AI Bible §7) at each creature's tier rate, with its species' goals, current focus and health.</summary>
 public sealed class DecisionSystem(
     IEcsWorld world, IUtilityEvaluator evaluator, IAiLodPolicy policy, CreatureSubjectResolver resolver, IReadOnlyList<GoalSet> goalsBySpecies, IRandom random)
     : ISimulationSystem
 {
-    private const int FullHealth = 1000;
+    private readonly ComponentStore<Combatant> _combatants = world.Store<Combatant>();
 
     private readonly ComponentStore<CurrentGoal> _goals = world.Store<CurrentGoal>();
     private readonly ComponentStore<AiTier> _tiers = world.Store<AiTier>();
@@ -215,7 +233,8 @@ public sealed class DecisionSystem(
 
             FocusRef focus = _focus.Get(entities[i]);
             GoalSet goals = goalsBySpecies[_species.Get(entities[i]).Index];
-            var context = new DecisionContext(goals, tick.Index, current[i].Goal, resolver.FocusSubject(focus), focus.Distance, FullHealth);
+            int health = HealthInput.Of(_combatants, entities[i]);
+            var context = new DecisionContext(goals, tick.Index, current[i].Goal, resolver.FocusSubject(focus), focus.Distance, health);
             current[i] = new CurrentGoal(evaluator.Decide(_minds.Get(entities[i]).Handle, context, random).Goal);
         }
     }
@@ -224,7 +243,7 @@ public sealed class DecisionSystem(
 /// <summary>Behaviour trees (AI Bible §7.3) at each creature's tier rate, with its current focus.</summary>
 public sealed class BehaviourSystem(IEcsWorld world, IBehaviourTreeRunner runner, IAiLodPolicy policy, CreatureSubjectResolver resolver) : ISimulationSystem
 {
-    private const int FullHealth = 1000;
+    private readonly ComponentStore<Combatant> _combatants = world.Store<Combatant>();
 
     private readonly ComponentStore<CurrentGoal> _goals = world.Store<CurrentGoal>();
     private readonly ComponentStore<AiTier> _tiers = world.Store<AiTier>();
@@ -247,7 +266,7 @@ public sealed class BehaviourSystem(IEcsWorld world, IBehaviourTreeRunner runner
             }
 
             FocusRef focus = _focus.Get(entities[i]);
-            var context = new BehaviourContext(entities[i], goals[i].Goal, tick.Index, resolver.FocusSubject(focus), focus.Distance, FullHealth);
+            var context = new BehaviourContext(entities[i], goals[i].Goal, tick.Index, resolver.FocusSubject(focus), focus.Distance, HealthInput.Of(_combatants, entities[i]));
             runner.Tick(_minds.Get(entities[i]).Handle, context);
         }
     }
