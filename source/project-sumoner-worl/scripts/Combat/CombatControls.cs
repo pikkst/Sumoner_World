@@ -11,9 +11,9 @@ namespace SumonerWorld.Game.Combat;
 /// <see cref="HeavyHoldSeconds"/> and releasing does the heavy one, both aimed where the camera looks. Shift held is the
 /// guard (block, and a parry if raised just before a hit), Space dodges along the movement. Block and dodge travel as input
 /// buttons every tick (<see cref="Buttons"/>); attacks are intents, so the server checks stamina and timing. While locked on
-/// (<see cref="LockOn"/>), attacks aim at the target instead of along the camera. Spells (M2-11): C thornbolt, V entangle (it
-/// lands on the lock-on target, else <see cref="BurstMetres"/> ahead), G mend (on the locked-on creature if it is one of the
-/// player's, else on themselves; the server decides). The server checks mana and timing.
+/// (<see cref="LockOn"/>), attacks aim at the target instead of along the camera. Spells (M2-11) are cast from the action bar
+/// (M2-14b): thornbolt, entangle (it lands on the lock-on target, else <see cref="BurstMetres"/> ahead), mend (on the locked-on
+/// creature if it is one of the player's, else on themselves; the server decides). The server checks mana and timing.
 /// </summary>
 public sealed partial class CombatControls(
     GameClient client,
@@ -107,18 +107,6 @@ public sealed partial class CombatControls(
     /// <inheritdoc />
     public override void _UnhandledInput(InputEvent @event)
     {
-        if (@event is InputEventKey { Pressed: true, Echo: false } key && key.Keycode is Key.C or Key.V or Key.G)
-        {
-            Cast(key.Keycode switch
-            {
-                Key.C => "thornbolt",
-                Key.V => "entangle",
-                _ => "mend",
-            });
-            GetViewport().SetInputAsHandled();
-            return;
-        }
-
         if (@event is not InputEventMouseButton { ButtonIndex: MouseButton.Left } button)
         {
             return;

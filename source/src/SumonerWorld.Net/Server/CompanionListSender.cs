@@ -8,15 +8,15 @@ namespace SumonerWorld.Net.Server;
 
 /// <summary>
 /// Sends each player their pacted creatures (<see cref="CompanionList"/>, M2-06) and their gold and inventory
-/// (<see cref="InventoryList"/>, M2-13) whenever either changed since the last send to them. A new or resumed connection gets
-/// both again.
+/// (<see cref="InventoryList"/>, M2-13) whenever either changed since the last send to them, including what the creatures wear
+/// and carry (M2-14, M2-14b). A new or resumed connection gets both again.
 /// </summary>
 internal sealed class CompanionListSender(CreatureWorld world, ITransport transport)
 {
     private readonly CompanionListCodec _codec = new();
     private readonly byte[] _buffer = new byte[Protocol.MaxMessageSize];
     private readonly List<Companion> _current = [];
-    private readonly Dictionary<ulong, Companion[]> _sent = [];
+    private readonly Dictionary<ulong, (Companion[] Companions, ulong Gear)> _sent = [];
     private readonly InventoryListCodec _inventoryCodec = new();
     private readonly Dictionary<ulong, (int Gold, Core.Items.ItemCount[] Slots, WornItems Worn, int Crafting)> _sentInventory = [];
 
@@ -25,12 +25,14 @@ internal sealed class CompanionListSender(CreatureWorld world, ITransport transp
     {
         UpdateInventory(connection, account);
         Companions.Of(world, account, _current);
-        if (_sent.TryGetValue(account, out Companion[]? sent) && sent.AsSpan().SequenceEqual(System.Runtime.InteropServices.CollectionsMarshal.AsSpan(_current)))
+        ulong gear = GearFingerprint();
+        if (_sent.TryGetValue(account, out (Companion[] Companions, ulong Gear) sent) && sent.Gear == gear
+            && sent.Companions.AsSpan().SequenceEqual(System.Runtime.InteropServices.CollectionsMarshal.AsSpan(_current)))
         {
             return;
         }
 
-        _sent[account] = [.. _current];
+        _sent[account] = ([.. _current], gear);
         var entries = new CompanionEntry[Math.Min(_current.Count, CompanionList.MaxEntries)];
         for (int i = 0; i < entries.Length; i++)
         {
@@ -46,7 +48,8 @@ internal sealed class CompanionListSender(CreatureWorld world, ITransport transp
                 companion.Learned,
                 BranchAffinities(companion),
                 (byte)companion.Combos,
-                world.TryFindCreature(companion.Id, out Core.Ecs.Entity worn) ? Worn(world.World.GetComponent<Core.Items.Equipment>(worn)) : default);
+                world.TryFindCreature(companion.Id, out Core.Ecs.Entity worn) ? Worn(world.World.GetComponent<Core.Items.Equipment>(worn)) : default,
+                world.Economy.CreatureBags.Find(companion.Id.Value) is Core.Items.Inventory bag ? new BagView(bag.Capacity, Entries(bag)) : null);
         }
 
         var writer = new MessageWriter(_buffer);
@@ -67,6 +70,49 @@ internal sealed class CompanionListSender(CreatureWorld world, ITransport transp
         }
 
         return (default, 0);
+    }
+
+    // A number that changes whenever what the current companions wear or carry changes.
+    private ulong GearFingerprint()
+    {
+        ulong hash = 14_695_981_039_346_656_037;
+        foreach (Companion companion in _current)
+        {
+            if (world.TryFindCreature(companion.Id, out Core.Ecs.Entity creature))
+            {
+                Core.Items.Equipment worn = world.World.GetComponent<Core.Items.Equipment>(creature);
+                hash = Mix(Mix(Mix(hash, (ulong)worn.Weapon), (ulong)worn.Head), (ulong)worn.Body);
+                hash = Mix(Mix(Mix(hash, (ulong)worn.OffHand), (ulong)worn.Charm1), (ulong)worn.Charm2);
+            }
+
+            if (world.Economy.CreatureBags.Find(companion.Id.Value) is Core.Items.Inventory bag)
+            {
+                foreach (Core.Items.ItemCount stack in bag.Stacks)
+                {
+                    hash = Mix(Mix(hash, (ulong)stack.Item), (ulong)stack.Count);
+                }
+            }
+        }
+
+        return hash;
+    }
+
+    private static ulong Mix(ulong hash, ulong value) => (hash ^ value) * 1_099_511_628_211;
+
+    // The non-empty slots of a bag, each with its slot index.
+    private static List<InventoryEntry> Entries(Core.Items.Inventory bag)
+    {
+        var entries = new List<InventoryEntry>();
+        ReadOnlySpan<Core.Items.ItemCount> stacks = bag.Stacks;
+        for (int i = 0; i < stacks.Length; i++)
+        {
+            if (stacks[i].Count > 0)
+            {
+                entries.Add(new InventoryEntry(stacks[i].Item, stacks[i].Count, i));
+            }
+        }
+
+        return entries;
     }
 
     private static WornItems Worn(Core.Items.Equipment equipment) =>
@@ -111,15 +157,7 @@ internal sealed class CompanionListSender(CreatureWorld world, ITransport transp
         }
 
         _sentInventory[account] = (inventory.Gold, inventory.Stacks.ToArray(), worn, crafting);
-        var entries = new List<InventoryEntry>();
-        foreach (Core.Items.ItemCount slot in inventory.Stacks)
-        {
-            if (slot.Count > 0)
-            {
-                entries.Add(new InventoryEntry(slot.Item, slot.Count));
-            }
-        }
-
+        List<InventoryEntry> entries = Entries(inventory);
         var writer = new MessageWriter(_buffer);
         _inventoryCodec.Write(ref writer, new InventoryList(inventory.Gold, entries, worn, crafting));
         transport.Send(connection, Channel.ReliableOrdered, writer.WrittenSpan);

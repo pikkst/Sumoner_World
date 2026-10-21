@@ -1,4 +1,3 @@
-using System.Text;
 using Godot;
 using SumonerWorld.Core.Data;
 using SumonerWorld.Game.Playtest;
@@ -10,8 +9,8 @@ namespace SumonerWorld.Game.Items;
 /// <summary>
 /// Loot, gathering and the inventory on the keyboard (crafting spec §2–5, M2-13). The player's own loot bags are picked up by
 /// walking onto them (within <see cref="PickUpMetres"/>); H gathers from the nearest node that has grown back (within
-/// <see cref="GatherMetres"/>, a prompt says what); I shows the inventory: gold, every slot, and the weight carried. The server
-/// checks everything; the result lines come through the <see cref="InteractionControls"/>.
+/// <see cref="GatherMetres"/>, a prompt says what). The bag itself is in the <see cref="Ui.CharacterWindow"/> (I, M2-14b). The
+/// server checks everything; the result lines come through the <see cref="InteractionControls"/>.
 /// </summary>
 public sealed partial class ItemControls(GameClient client, IDataRegistry data, InteractionControls controls, Func<Vector3> player) : CanvasLayer
 {
@@ -22,19 +21,11 @@ public sealed partial class ItemControls(GameClient client, IDataRegistry data, 
     public const float GatherMetres = 2.8f;
 
     private const double RetrySeconds = 1;
-    private const int KilogramsGrams = 1000;
 
     private readonly Dictionary<ulong, double> _asked = [];
     private Label? _prompt;
-    private Label? _panel;
     private double _clock;
     private (ulong Id, string Item) _node;
-
-    /// <summary>True while the inventory is shown.</summary>
-    public bool InventoryOpen => _panel?.Visible ?? false;
-
-    /// <summary>The inventory text as shown (for the self-test log).</summary>
-    public string InventoryText => _panel?.Text ?? string.Empty;
 
     /// <summary>Gathers from the node in reach, if any (also used by the self-test); false when there is none.</summary>
     public bool Gather()
@@ -57,11 +48,6 @@ public sealed partial class ItemControls(GameClient client, IDataRegistry data, 
         _prompt.Position += new Vector2(0, -150);
         Style(_prompt, 18);
         AddChild(_prompt);
-        _panel = new Label { Visible = false };
-        _panel.SetAnchorsPreset(Control.LayoutPreset.TopRight);
-        _panel.Position += new Vector2(-300, 20);
-        Style(_panel, 16);
-        AddChild(_panel);
     }
 
     /// <inheritdoc />
@@ -75,17 +61,8 @@ public sealed partial class ItemControls(GameClient client, IDataRegistry data, 
         if (key.Keycode == Key.H)
         {
             Gather();
+            GetViewport().SetInputAsHandled();
         }
-        else if (key.Keycode == Key.I)
-        {
-            _panel!.Visible = !_panel.Visible;
-        }
-        else
-        {
-            return;
-        }
-
-        GetViewport().SetInputAsHandled();
     }
 
     /// <inheritdoc />
@@ -111,10 +88,6 @@ public sealed partial class ItemControls(GameClient client, IDataRegistry data, 
         }
 
         _prompt!.Text = _node.Id == 0 ? string.Empty : InteractionText.GatherHint(NodeKind());
-        if (_panel!.Visible)
-        {
-            _panel.Text = Describe();
-        }
     }
 
     private string NodeKind()
@@ -128,29 +101,6 @@ public sealed partial class ItemControls(GameClient client, IDataRegistry data, 
         }
 
         return string.Empty;
-    }
-
-    private string Describe()
-    {
-        InventoryList inventory = client.Inventory;
-        var text = new StringBuilder($"Inventory   {inventory.Gold} gold\n");
-        int grams = 0;
-        foreach (InventoryEntry entry in inventory.Entries)
-        {
-            if (entry.Item < data.Items.Count)
-            {
-                text.Append(InteractionText.ItemLine(data.Items[entry.Item].Id, entry.Count)).Append('\n');
-                grams += data.Items[entry.Item].WeightGrams * entry.Count;
-            }
-        }
-
-        if (inventory.Entries.Count == 0)
-        {
-            text.Append("(empty)\n");
-        }
-
-        text.Append(System.Globalization.CultureInfo.InvariantCulture, $"{grams / (float)KilogramsGrams:F1} / {Core.Items.Inventory.MaxWeightGrams / KilogramsGrams} kg   [I] close");
-        return text.ToString();
     }
 
     private static void Style(Label label, int size)

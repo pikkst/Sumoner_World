@@ -46,21 +46,12 @@ internal sealed class PlayerIntents(CreatureWorld world, TransactionProcessor tr
             case IntentKind.Dismiss:
                 var dismiss = new DismissTransaction(world, avatar, target);
                 return Changed(transactions.Execute(id, ref dismiss, now), target, out changed);
-            case IntentKind.PickUp:
-                var pickUp = new PickUpTransaction(world, avatar, request.Target);
-                return transactions.Execute(id, ref pickUp, now);
-            case IntentKind.Gather:
-                var gather = new GatherTransaction(world, avatar, request.Target);
-                return transactions.Execute(id, ref gather, now);
-            case IntentKind.Craft:
-                var craft = new CraftTransaction(world, avatar, request.Argument);
-                return transactions.Execute(id, ref craft, now);
-            case IntentKind.Equip:
-                var equip = new EquipTransaction(world, avatar, target, request.Argument);
-                return Changed(transactions.Execute(id, ref equip, now), target, out changed);
-            case IntentKind.Unequip:
-                var unequip = new UnequipTransaction(world, avatar, target, (EquipPosition)request.Argument);
-                return Changed(transactions.Execute(id, ref unequip, now), target, out changed);
+            case IntentKind.PickUp or IntentKind.Gather or IntentKind.Craft or IntentKind.Equip or IntentKind.Unequip
+                or IntentKind.MoveItem or IntentKind.TransferItem or IntentKind.UseItem:
+                IntentResult item = ExecuteItem(id, avatar, request, now);
+                return request.Kind is IntentKind.Equip or IntentKind.Unequip or IntentKind.TransferItem or IntentKind.UseItem
+                    ? Changed(item, target, out changed)
+                    : item;
             case IntentKind.Cast:
                 var cast = new CastTransaction(
                     world, avatar, request.Argument, (byte)(request.Target & 0xFF), ((request.Target >> 8) & 0xFFFF) / 10f, new StableId(request.Target >> 24));
@@ -74,6 +65,42 @@ internal sealed class PlayerIntents(CreatureWorld world, TransactionProcessor tr
             case IntentKind.Attack when request.Target <= byte.MaxValue:
                 var attack = new AttackTransaction(world, avatar, request.Argument, (byte)request.Target);
                 return transactions.Execute(id, ref attack, now);
+            default:
+                return IntentResult.Reject(IntentRejectReason.InvalidArguments);
+        }
+    }
+
+    // Items, crafting and gear (M2-13, M2-14, M2-14b).
+    private IntentResult ExecuteItem(IntentId id, Entity avatar, IntentRequest request, ulong now)
+    {
+        var target = new StableId(request.Target);
+        switch (request.Kind)
+        {
+            case IntentKind.PickUp:
+                var pickUp = new PickUpTransaction(world, avatar, request.Target);
+                return transactions.Execute(id, ref pickUp, now);
+            case IntentKind.Gather:
+                var gather = new GatherTransaction(world, avatar, request.Target);
+                return transactions.Execute(id, ref gather, now);
+            case IntentKind.Craft:
+                var craft = new CraftTransaction(world, avatar, request.Argument);
+                return transactions.Execute(id, ref craft, now);
+            case IntentKind.Equip:
+                var equip = new EquipTransaction(world, avatar, target, request.Argument);
+                return transactions.Execute(id, ref equip, now);
+            case IntentKind.Unequip:
+                var unequip = new UnequipTransaction(world, avatar, target, (EquipPosition)request.Argument);
+                return transactions.Execute(id, ref unequip, now);
+            case IntentKind.MoveItem when request.Target <= byte.MaxValue:
+                var move = new MoveItemTransaction(world, avatar, (int)request.Target, request.Argument);
+                return transactions.Execute(id, ref move, now);
+            case IntentKind.TransferItem:
+                bool fromCreature = (request.Argument & IntentArguments.FromCreature) != 0;
+                var transfer = new TransferItemTransaction(world, avatar, target, request.Argument & ~IntentArguments.FromCreature, fromCreature);
+                return transactions.Execute(id, ref transfer, now);
+            case IntentKind.UseItem:
+                var use = new UseItemTransaction(world, avatar, target, request.Argument);
+                return transactions.Execute(id, ref use, now);
             default:
                 return IntentResult.Reject(IntentRejectReason.InvalidArguments);
         }

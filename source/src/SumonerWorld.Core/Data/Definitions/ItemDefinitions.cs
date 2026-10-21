@@ -63,6 +63,25 @@ public sealed record ItemDefinition
 
     /// <summary>Gear: what it adds to its wearer's combat stats.</summary>
     public GearStats Stats { get; init; } = new();
+
+    /// <summary>Food and potions: what using one gives back (M2-14b); all zero for items that cannot be used.</summary>
+    public ItemRestore Restore { get; init; } = new();
+}
+
+/// <summary>What using an item gives back to whoever uses or is given it (M2-14b).</summary>
+public sealed record ItemRestore
+{
+    /// <summary>Health.</summary>
+    public int Health { get; init; }
+
+    /// <summary>Stamina.</summary>
+    public int Stamina { get; init; }
+
+    /// <summary>Mana.</summary>
+    public int Mana { get; init; }
+
+    /// <summary>True when using it gives anything.</summary>
+    public bool IsUsable => Health > 0 || Stamina > 0 || Mana > 0;
 }
 
 /// <summary>The kinds of equipment slot (crafting spec §8).</summary>

@@ -109,12 +109,31 @@ and if they want to.
   crafter or a move it starts stops it and nothing is used up; when the time is up, inputs and output change in one step if
   they still fit. Only hand recipes for now: campfire, workbench and forge recipes are refused until the Sanctum has them.
 - **Equipment:** six positions (weapon, off hand, head, body, two charms); creatures use only those their body has
-  (quadrupeds head, body, a charm; birds head, a charm). With the inventory open (I), a number puts gear on, Shift + number
-  takes it off, O switches between oneself and the companions at one's side. Gear is refused below its level or on the
+  (quadrupeds head, body, a charm; birds head, a charm). Put on and taken off by dragging in the character window (§13,
+  M2-14b). Gear is refused below its level or on the
   wrong body. Stats are recomputed from scratch (base, level, skills, gear), so nothing adds up twice; worn gear is saved by
   item id with the player and with each creature.
 - **Safety:** craft, equip and unequip are atomic, idempotent transactions (tests); equipping on someone else's creature is
   refused. Durability, quality, stations and recipe discovery come later.
+
+## 13. Bags, the character window and the action bar (M2-14b)
+Stakeholder decision 2026-10-22: skills and inventory follow the usual MMO/RPG layout.
+- **Action bar:** ten buttons at the bottom on the keys 1-9 and 0. A button holds a spell, a companion command, an item
+  (food is eaten, gear put on) or, from M2-14c, a companion's skill. The player drags actions onto it from the ability book
+  (L) and items from the bag, drags a button onto another to swap them, and off the bar (or right-click) to clear it. The
+  first layout: spells on 1-3, berry meal on 5, commands on 7-0. The layout is kept per character on the player's computer.
+  C/V/G and the command keys 1-4 are gone.
+- **Character window (I):** the chosen wearer on the left (the player, or a companion at their side, by tabs) drawn with
+  the equipment slots where they are worn (head above, body in the middle, weapon and off hand at the sides, charms below; a
+  creature shows only the slots of its body), the player's bag on the right (24 slots, gold, weight). Items are dragged
+  between the bag, the slots and the companion's bag; right-click uses food, puts gear on, or takes it off.
+- **Creature bags:** every pacted creature carries its own bag, sized by its body: birds 4 slots and 3 kg, four-legged
+  creatures 8 slots and 15 kg, two-legged 6 and 10 kg, others 6 and 8 kg. Items move only while it is at its owner's side;
+  a whole stack moves at once, if it all fits. The bag is saved with the creature.
+- **Bag order:** items stay in the slot they were put in (also through a save); dropping on the same item tops it up,
+  dropping on another item swaps them.
+- **Food:** berries give back 5 health; a berry meal 40 health and 30 stamina, for the player or a companion at their side.
+- **Protocol 18:** MoveItem, TransferItem and UseItem intents; inventory slots carry their index; companions carry their bag.
 
 ## Changelog
 - **0.2 (2026-10-21):** approved with the stakeholder's answers: a first loot system with **gold, item drops and inventory**

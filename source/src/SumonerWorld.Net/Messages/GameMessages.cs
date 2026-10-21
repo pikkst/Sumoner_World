@@ -122,6 +122,18 @@ public enum IntentKind : byte
     /// <summary>Take off gear (since protocol 17): target as for Equip; argument = equipment position.</summary>
     Unequip = 16,
 
+    /// <summary>Move a stack within one's bag (since protocol 18): target = source slot; argument = target slot.</summary>
+    MoveItem = 17,
+
+    /// <summary>
+    /// Move a whole stack between one's bag and a companion's (since protocol 18): target = the creature's stable id; argument =
+    /// source slot, plus <see cref="IntentArguments.FromCreature"/> to take from the creature.
+    /// </summary>
+    TransferItem = 18,
+
+    /// <summary>Use one item from a bag slot (since protocol 18): target = 0 for oneself or a companion's stable id; argument = slot.</summary>
+    UseItem = 19,
+
     /// <summary>
     /// Cast a spell (since protocol 14): argument = index in the spells data; target = aim heading in 1/256 turns (bits 0–7),
     /// burst distance in decimetres (bits 8–23) and the ward's creature stable id (bits 24 and up, 0 = self).
@@ -141,6 +153,40 @@ public enum IntentKind : byte
     Command = 9,
 }
 
+/// <summary>Bits packed into an intent's argument.</summary>
+public static class IntentArguments
+{
+    /// <summary>TransferItem: the source slot is in the creature's bag (taking), not the player's (giving).</summary>
+    public const byte FromCreature = 0x80;
+}
+
+/// <summary>A creature's bag on the wire (since protocol 18): its size and non-empty slots.</summary>
+/// <param name="Slots">How many slots it has.</param>
+/// <param name="Entries">Non-empty slots, each with its slot index.</param>
+public sealed record BagView(int Slots, IReadOnlyList<InventoryEntry> Entries)
+{
+    /// <summary>Equal when the size and every slot are.</summary>
+    public bool Equals(BagView? other) => other is not null && Slots == other.Slots && Entries.SequenceEqual(other.Entries);
+
+    /// <inheritdoc />
+    public override int GetHashCode() => HashCode.Combine(Slots, Entries.Count);
+
+    /// <summary>Writes the size and slots.</summary>
+    public static void Write(ref MessageWriter writer, BagView? bag)
+    {
+        writer.WriteByte((byte)(bag?.Slots ?? 0));
+        InventoryEntry.WriteAll(ref writer, bag?.Entries ?? []);
+    }
+
+    /// <summary>Reads the size and slots (null when it has no slots).</summary>
+    public static BagView? Read(ref MessageReader reader)
+    {
+        int slots = reader.ReadByte();
+        IReadOnlyList<InventoryEntry> entries = InventoryEntry.ReadAll(ref reader, slots);
+        return slots == 0 ? null : new BagView(slots, entries);
+    }
+}
+
 /// <summary>One of the receiver's pacted creatures.</summary>
 /// <param name="Id">Stable id.</param>
 /// <param name="Species">Species index.</param>
@@ -153,6 +199,7 @@ public enum IntentKind : byte
 /// <param name="Affinity">How much it likes each branch of its tree, in branch order (since protocol 13).</param>
 /// <param name="Combos">Learned combo bits (since protocol 15).</param>
 /// <param name="Worn">What it wears (since protocol 17).</param>
+/// <param name="Bag">Its own bag (since protocol 18); null when it has none yet.</param>
 public readonly record struct CompanionEntry(
     ulong Id,
     byte Species,
@@ -164,7 +211,8 @@ public readonly record struct CompanionEntry(
     ulong Learned = 0,
     Affinities Affinity = default,
     byte Combos = 0,
-    WornItems Worn = default);
+    WornItems Worn = default,
+    BagView? Bag = null);
 
 /// <summary>Up to four branch affinities (−128…127), in branch order.</summary>
 /// <param name="Count">How many branches.</param>
@@ -202,7 +250,48 @@ public readonly record struct CompanionList(IReadOnlyList<CompanionEntry> Entrie
 /// <summary>One inventory slot on the wire.</summary>
 /// <param name="Item">Index in the items data both sides load.</param>
 /// <param name="Count">How many.</param>
-public readonly record struct InventoryEntry(int Item, int Count);
+/// <param name="Slot">Which slot of the bag it is in (since protocol 18).</param>
+public readonly record struct InventoryEntry(int Item, int Count, int Slot = 0)
+{
+    /// <summary>Writes a count and the slots.</summary>
+    public static void WriteAll(ref MessageWriter writer, IReadOnlyList<InventoryEntry> entries)
+    {
+        ArgumentNullException.ThrowIfNull(entries);
+        writer.WriteByte((byte)entries.Count);
+        foreach (InventoryEntry entry in entries)
+        {
+            writer.WriteVarUInt((ulong)entry.Item);
+            writer.WriteVarUInt((ulong)entry.Count);
+            writer.WriteByte((byte)entry.Slot);
+        }
+    }
+
+    /// <summary>Reads what <see cref="WriteAll"/> wrote; slots must lie below <paramref name="slots"/>.</summary>
+    public static IReadOnlyList<InventoryEntry> ReadAll(ref MessageReader reader, int slots)
+    {
+        int count = reader.ReadByte();
+        if (count > slots)
+        {
+            throw new MalformedMessageException($"{count} filled slots in a bag of {slots}.");
+        }
+
+        var entries = new InventoryEntry[count];
+        for (int i = 0; i < count; i++)
+        {
+            ulong item = reader.ReadVarUInt();
+            ulong number = reader.ReadVarUInt();
+            int slot = reader.ReadByte();
+            if (item > ushort.MaxValue || number is 0 or > ushort.MaxValue || slot >= slots)
+            {
+                throw new MalformedMessageException($"Bag slot {slot} ({item} x{number}) is out of range.");
+            }
+
+            entries[i] = new InventoryEntry((int)item, (int)number, slot);
+        }
+
+        return entries;
+    }
+}
 
 /// <summary>Worn items by equipment position (item index + 1, 0 = empty), since protocol 17.</summary>
 /// <param name="Weapon">Weapon.</param>
@@ -278,13 +367,7 @@ public sealed class InventoryListCodec : IMessageCodec<InventoryList>
         ArgumentOutOfRangeException.ThrowIfNegative(message.Gold);
         Protocol.WriteHeader(ref writer, Type);
         writer.WriteVarUInt((ulong)message.Gold);
-        writer.WriteByte((byte)message.Entries.Count);
-        foreach (InventoryEntry entry in message.Entries)
-        {
-            writer.WriteVarUInt((ulong)entry.Item);
-            writer.WriteVarUInt((ulong)entry.Count);
-        }
-
+        InventoryEntry.WriteAll(ref writer, message.Entries);
         message.Worn.Write(ref writer);
         writer.WriteVarUInt((ulong)Math.Max(0, message.Crafting));
     }
@@ -293,25 +376,12 @@ public sealed class InventoryListCodec : IMessageCodec<InventoryList>
     public InventoryList Read(ref MessageReader reader)
     {
         ulong gold = reader.ReadVarUInt();
-        int count = reader.ReadByte();
-        if (gold > int.MaxValue || count > InventoryList.MaxEntries)
+        if (gold > int.MaxValue)
         {
-            throw new MalformedMessageException($"Inventory with {gold} gold and {count} slots is out of range.");
+            throw new MalformedMessageException($"Inventory with {gold} gold is out of range.");
         }
 
-        var entries = new InventoryEntry[count];
-        for (int i = 0; i < count; i++)
-        {
-            ulong item = reader.ReadVarUInt();
-            ulong number = reader.ReadVarUInt();
-            if (item > ushort.MaxValue || number is 0 or > ushort.MaxValue)
-            {
-                throw new MalformedMessageException($"Inventory slot {i} ({item} x{number}) is out of range.");
-            }
-
-            entries[i] = new InventoryEntry((int)item, (int)number);
-        }
-
+        IReadOnlyList<InventoryEntry> entries = InventoryEntry.ReadAll(ref reader, InventoryList.MaxEntries);
         WornItems worn = WornItems.Read(ref reader);
         int crafting = WornItems.Small(ref reader);
         reader.EnsureEnd();
@@ -350,6 +420,7 @@ public sealed class CompanionListCodec : IMessageCodec<CompanionList>
 
             writer.WriteByte(entry.Combos);
             entry.Worn.Write(ref writer);
+            BagView.Write(ref writer, entry.Bag);
         }
     }
 
@@ -390,7 +461,7 @@ public sealed class CompanionListCodec : IMessageCodec<CompanionList>
                 affinity[b] = unchecked((sbyte)reader.ReadByte());
             }
 
-            entries[i] = new CompanionEntry(id, species, summoned == 1, level, stage, bondLevel, points, learned, Affinities.Of(affinity[..branches]), reader.ReadByte(), WornItems.Read(ref reader));
+            entries[i] = new CompanionEntry(id, species, summoned == 1, level, stage, bondLevel, points, learned, Affinities.Of(affinity[..branches]), reader.ReadByte(), WornItems.Read(ref reader), BagView.Read(ref reader));
         }
 
         reader.EnsureEnd();

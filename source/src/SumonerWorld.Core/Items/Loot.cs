@@ -92,6 +92,9 @@ public sealed class Economy
     /// <summary>Inventories.</summary>
     public InventoryStore Inventories { get; } = new();
 
+    /// <summary>Pacted creatures' bags (M2-14b).</summary>
+    public CreatureBags CreatureBags { get; } = new();
+
     /// <summary>Loot bags lying in the world.</summary>
     public IReadOnlyList<LootBag> Bags => _bags;
 
@@ -161,39 +164,57 @@ public sealed class Economy
     {
         ArgumentNullException.ThrowIfNull(data);
         Inventory inventory = Inventories.Of(account);
+        return new InventorySave(inventory.Gold, Export(inventory, data));
+    }
+
+    /// <summary>A bag's slots by item id, in slot order (empty slots as an empty id, trailing ones left out), for saving.</summary>
+    public static IReadOnlyList<SavedItem> Export(Inventory bag, IDataRegistry data)
+    {
+        ArgumentNullException.ThrowIfNull(bag);
+        ArgumentNullException.ThrowIfNull(data);
         var items = new List<SavedItem>();
-        foreach (ItemCount slot in inventory.Stacks)
+        ReadOnlySpan<ItemCount> stacks = bag.Stacks;
+        int last = stacks.Length - 1;
+        while (last >= 0 && stacks[last].Count == 0)
         {
-            if (slot.Count > 0)
-            {
-                items.Add(new SavedItem(data.Items[slot.Item].Id, slot.Count));
-            }
+            last--;
         }
 
-        return new InventorySave(inventory.Gold, items);
+        for (int i = 0; i <= last; i++)
+        {
+            items.Add(stacks[i].Count > 0 ? new SavedItem(data.Items[stacks[i].Item].Id, stacks[i].Count) : new SavedItem(string.Empty, 0));
+        }
+
+        return items;
+    }
+
+    /// <summary>Fills a bag from saved slots, each in its place; items the data no longer knows leave their slot empty.</summary>
+    public static void Import(Inventory bag, int gold, IReadOnlyList<SavedItem> saved, IDataRegistry data)
+    {
+        ArgumentNullException.ThrowIfNull(bag);
+        ArgumentNullException.ThrowIfNull(saved);
+        ArgumentNullException.ThrowIfNull(data);
+        var slots = new List<ItemCount>();
+        foreach (SavedItem item in saved)
+        {
+            slots.Add(item.Count > 0 && data.Items.Any(definition => definition.Id == item.Item) ? new ItemCount(data.ItemIndex(item.Item), item.Count) : default);
+        }
+
+        bag.Restore(gold, slots);
     }
 
     /// <summary>Restores a saved inventory; items the data no longer knows are dropped.</summary>
     public void Import(ulong account, InventorySave saved, IDataRegistry data)
     {
         ArgumentNullException.ThrowIfNull(saved);
-        ArgumentNullException.ThrowIfNull(data);
-        var slots = new List<ItemCount>();
-        foreach (SavedItem item in saved.Items)
-        {
-            if (data.Items.Any(definition => definition.Id == item.Item))
-            {
-                slots.Add(new ItemCount(data.ItemIndex(item.Item), item.Count));
-            }
-        }
-
-        Inventories.Of(account).Restore(saved.Gold, slots);
+        Import(Inventories.Of(account), saved.Gold, saved.Items, data);
     }
 
-    /// <summary>Adds inventories, bags and nodes to a state hash.</summary>
+    /// <summary>Adds inventories, creature bags, loot bags and nodes to a state hash.</summary>
     public void AddTo(ref StateHash hash)
     {
         Inventories.AddTo(ref hash);
+        CreatureBags.AddTo(ref hash);
         foreach (LootBag bag in _bags)
         {
             hash.Add(bag.Id);

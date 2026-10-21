@@ -63,7 +63,6 @@ public sealed partial class ClientHost : Node
     private InteractionControls? _interactions;
     private CompanionBar? _companionBar;
     private CompanionPanel? _companionPanel;
-    private Items.ItemControls? _items;
     private DevToolsLayer? _devTools;
     private PlaytestSelfTest? _selfTest;
     private OrbitCamera? _orbit;
@@ -171,13 +170,10 @@ public sealed partial class ClientHost : Node
         AddChild(_companionBar);
         _companionPanel = new CompanionPanel(_client!, data, controls);
         AddChild(_companionPanel);
-        _items = new Items.ItemControls(_client!, data, controls, () => _avatar?.Feet ?? Vector3.Zero);
-        AddChild(_items);
-        var gear = new Items.GearControls(_client!, data, controls, () => _items.InventoryOpen);
-        AddChild(gear);
+        SelfTestPanels panels = Ui.Panels.AddTo(this, _client!, data, controls, _combat!, _companionBar!, () => _avatar?.Feet ?? Vector3.Zero, _options.SelfTest ? string.Empty : $"user://actionbar-{_options.Account}.txt");
         if (_options.SelfTest)
         {
-            _selfTest = new PlaytestSelfTest(controls, _companionBar, _companionPanel, _items, gear, _combat, _lockOn, _client!, _orbit, () => _views.Shown > 0 && _elapsed > ScreenshotAfterSeconds, _log, Capture);
+            _selfTest = new PlaytestSelfTest(controls, _companionBar, _companionPanel, panels, _combat, _lockOn, _client!, _orbit, () => _views.Shown > 0 && _elapsed > ScreenshotAfterSeconds, _log, Capture);
             AddChild(_selfTest);
         }
 
