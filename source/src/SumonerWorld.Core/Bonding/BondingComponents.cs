@@ -14,6 +14,7 @@ public static class BondingComponents
         world.Register<SigilCast>();
         world.Register<CompanionState>();
         world.Register<CompanionOrder>();
+        world.Register<RequestedMove>();
     }
 
     /// <summary>Adds the components, with the entities that hold them.</summary>
@@ -28,5 +29,7 @@ public static class BondingComponents
         hash.Add<CompanionState>(world.Store<CompanionState>().Components);
         hash.Add<Entity>(world.Store<CompanionOrder>().Entities);
         hash.Add<CompanionOrder>(world.Store<CompanionOrder>().Components);
+        hash.Add<Entity>(world.Store<RequestedMove>().Entities);
+        hash.Add<RequestedMove>(world.Store<RequestedMove>().Components);
     }
 }

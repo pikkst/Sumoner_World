@@ -9,7 +9,9 @@ namespace SumonerWorld.Core.Combat;
 
 /// <summary>
 /// Carries out the behaviour trees' <c>attack</c> intents (AI Bible §7.3, combat spec §9, M2-03): the creature turns to its focus
-/// and starts the first move whose shape reaches it and that it can pay for: the moves of its active skills first (M2-10), then its
+/// and starts the first move whose shape reaches it and that it can pay for: a move its summoner asked for (M2-14c; only that
+/// one while it tries), a combo
+/// move it knows (M2-12), the moves of its active skills (M2-10), then its
 /// species' moves (so a bogfox bites up close and pounces from farther away),
 /// through the same <see cref="CombatRules"/> as players. Nothing happens when no move reaches, the focus is already down, the
 /// creature is snared, the focus is the summoner it is pacted to, or <see cref="CombatRules.CanStart"/> refuses (in a move, tired, staggered, yielding); the tree simply tries
@@ -30,6 +32,7 @@ public sealed class CreatureAttackSystem : ISimulationSystem
     private readonly ComponentStore<Progression.CreatureSkills> _skillsStore;
     private readonly ComponentStore<Progression.CreatureGrowth> _growthStore;
     private readonly ComponentStore<CreatureCombos> _combosStore;
+    private readonly ComponentStore<Bonding.RequestedMove> _requested;
 
     /// <summary>Creates the system for a world.</summary>
     public CreatureAttackSystem(CreatureWorld world)
@@ -46,6 +49,7 @@ public sealed class CreatureAttackSystem : ISimulationSystem
         _skillsStore = _ecs.Store<Progression.CreatureSkills>();
         _growthStore = _ecs.Store<Progression.CreatureGrowth>();
         _combosStore = _ecs.Store<CreatureCombos>();
+        _requested = _ecs.Store<Bonding.RequestedMove>();
         _movesBySource = [.. world.Data.Species.Select(species => species.Combat.Moves.Select(world.Data.MoveIndex).ToArray())];
     }
 
@@ -88,6 +92,23 @@ public sealed class CreatureAttackSystem : ISimulationSystem
         return -1;
     }
 
+    // The move its summoner asked for, while it still tries (M2-14c); an old request is dropped.
+    private int? Requested(Entity actor, ulong now)
+    {
+        if (!_requested.Has(actor))
+        {
+            return null;
+        }
+
+        if (now > _requested.Get(actor).Until)
+        {
+            _ecs.Remove<Bonding.RequestedMove>(actor);
+            return null;
+        }
+
+        return _requested.Get(actor).Move;
+    }
+
     // A companion never attacks the player it is pacted to (M2-07), whatever its own mind wants.
     private bool IsOwnSummoner(Entity actor, Entity target)
     {
@@ -120,8 +141,10 @@ public sealed class CreatureAttackSystem : ISimulationSystem
                 _world.Data, _world.Data.SkillTreeOf(source), _skillsStore.Get(actor).Learned, (Progression.LifeStage)_growthStore.Get(actor).Stage, _skillMoves)
             : 0;
         int[] species = _movesBySource[source];
-        int combo = ComboMove(actor, focus.Entity, now, skills, species);
-        for (int i = -1; i < skills + species.Length; i++)
+        int? asked = Requested(actor, now);
+        int combo = asked ?? ComboMove(actor, focus.Entity, now, skills, species);
+        int last = asked is null ? skills + species.Length : 0; // an asked-for move waits until it reaches
+        for (int i = -1; i < last; i++)
         {
             if (i < 0 && combo < 0)
             {
@@ -137,6 +160,11 @@ public sealed class CreatureAttackSystem : ISimulationSystem
 
             var direction = new Vector3(aim.X, 0, aim.Y);
             CombatRules.Start(_ecs, _world.Data, actor, move, direction, now);
+            if (_requested.Has(actor) && _requested.Get(actor).Move == move)
+            {
+                _ecs.Remove<Bonding.RequestedMove>(actor);
+            }
+
             _ecs.GetComponent<Facing>(actor) = new Facing(direction);
             Started++;
             return;

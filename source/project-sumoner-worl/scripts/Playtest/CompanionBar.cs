@@ -51,6 +51,16 @@ public sealed partial class CompanionBar(
         controls.Send(IntentKind.Command, target, controls.Target.Name, (byte)command);
     }
 
+    /// <summary>Asks the companions with the player for a learned move on the target, like an attack command (M2-14c).</summary>
+    public void CommandSkill(string move)
+    {
+        ulong target = lockedTarget() is ulong locked and not 0 ? locked : controls.Target.Id;
+        if (data.Moves.Any(definition => definition.Id == move))
+        {
+            controls.Send(IntentKind.CompanionSkill, target, InteractionText.SkillName(move), (byte)data.MoveIndex(move));
+        }
+    }
+
     /// <summary>Sends back the last companion that is with the player; false when there is none.</summary>
     public bool SendBackLast()
     {

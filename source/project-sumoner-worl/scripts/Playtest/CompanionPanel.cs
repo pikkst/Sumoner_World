@@ -12,7 +12,8 @@ namespace SumonerWorld.Game.Playtest;
 /// The companion panel (companions spec §10, M2-10): K opens it. It shows one companion at a time (Left / Right switch): level,
 /// life stage, bond level and skill points, then its skill tree, one column per branch with how the creature feels about it
 /// (warm when it likes it, cold when it dislikes it and its skills cost 2), and each skill with what it gives and whether it is
-/// learned, can be learned or what it still needs. Click a skill, or press its number (1–9), to teach it; K or Esc closes.
+/// learned, can be learned or what it still needs. Click a skill, or press its number (1–9), to teach it; drag a learned move
+/// onto the action bar to call for it in a fight (M2-14c); K or Esc closes.
 /// Everything comes from the server's companion list; the server checks every choice.
 /// </summary>
 public sealed partial class CompanionPanel(GameClient client, IDataRegistry data, InteractionControls controls) : CanvasLayer
@@ -75,7 +76,7 @@ public sealed partial class CompanionPanel(GameClient client, IDataRegistry data
         _columns = new HBoxContainer();
         _columns.AddThemeConstantOverride("separation", 18);
         rows.AddChild(_columns);
-        var hints = new Label { Text = "[1-9] or click: teach a skill   [Left/Right] other companion   [K/Esc] close" };
+        var hints = new Label { Text = "[1-9] or click: teach a skill   drag a learned move onto the bar   [Left/Right] other companion   [K/Esc] close" };
         hints.AddThemeFontSizeOverride("font_size", 13);
         rows.AddChild(hints);
     }
@@ -203,7 +204,22 @@ public sealed partial class CompanionPanel(GameClient client, IDataRegistry data
                     button.AddThemeColorOverride("font_disabled_color", new Color(0.6f, 0.95f, 0.6f));
                 }
 
-                column.AddChild(button);
+                if (state == SkillState.Learned && node.Move is string move)
+                {
+                    var row = new HBoxContainer();
+                    row.AddThemeConstantOverride("separation", 4);
+                    var skill = new ActionRef(ActionKind.CompanionSkill, move);
+                    var tile = new Ui.UiSlot(new DragSpot(DragPlace.Action, 0, 0, skill.ToString()));
+                    tile.Show(Ui.ItemLook.Action(skill, $"{InteractionText.SkillName(move)}: drag onto the bar"));
+                    row.AddChild(tile);
+                    row.AddChild(button);
+                    column.AddChild(row);
+                }
+                else
+                {
+                    column.AddChild(button);
+                }
+
                 text.Append(CultureInfo.InvariantCulture, $" {InteractionText.SkillName(node.Id)}={state}");
             }
         }

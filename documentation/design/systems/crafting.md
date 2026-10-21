@@ -134,6 +134,10 @@ Stakeholder decision 2026-10-22: skills and inventory follow the usual MMO/RPG l
   dropping on another item swaps them.
 - **Food:** berries give back 5 health; a berry meal 40 health and 30 stamina, for the player or a companion at their side.
 - **Protocol 18:** MoveItem, TransferItem and UseItem intents; inventory slots carry their index; companions carry their bag.
+- **Companion skills (M2-14c):** a learned move is dragged from the companion panel (K) onto the bar. Pressing it commands
+  the companions at one's side to attack the target (lock-on, else the creature in reach), and those that know the move and
+  obey try it first, waiting up to 5 seconds for it to reach. Obedience works as for any command: a companion may refuse.
+  Protocol 19 (`CompanionSkill`).
 
 ## Changelog
 - **0.2 (2026-10-21):** approved with the stakeholder's answers: a first loot system with **gold, item drops and inventory**

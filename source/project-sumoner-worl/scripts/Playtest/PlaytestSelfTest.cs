@@ -34,7 +34,7 @@ public sealed partial class PlaytestSelfTest(
     private const float CloseMetres = 3f; // inside the basic attack's reach of a mossback (2 m + its 1.6 m body)
     private const double StepSeconds = 1.2;
     private const double WatchSeconds = 6;
-    private const int LastStep = 41;
+    private const int LastStep = 43;
 
     private double _clock;
     private double _walking;
@@ -278,6 +278,20 @@ public sealed partial class PlaytestSelfTest(
                 capture("companion-bag");
                 PressKey(Key.I);
                 break;
+            case 42:
+                string? move = LearnedMove();
+                log.Write(LogLevel.Info, "selftest.skillbar", $"owl's learned move: {move ?? "none"}");
+                if (move is not null)
+                {
+                    panels.Bar.Drop(new DragSpot(DragPlace.Action, 0, 0, new ActionRef(ActionKind.CompanionSkill, move).ToString()), 3);
+                    PressKey(Key.Key4);
+                }
+
+                break;
+            case 43:
+                log.Write(LogLevel.Info, "selftest.skillbar", $"{panels.Bar.Describe()} | {controls.Feedback}");
+                capture("skill-bar");
+                break;
             case 33 or 34 or 38:
                 break;
             default:
@@ -285,6 +299,25 @@ public sealed partial class PlaytestSelfTest(
         }
 
         return true;
+    }
+
+    // A move the first companion has learned (from its skill tree and the companion list), or null.
+    private string? LearnedMove()
+    {
+        if (client.Companions.Count == 0 || panels.Data.SkillTreeOf(client.Companions[0].Species) is not Core.Data.Definitions.SkillTreeDefinition tree)
+        {
+            return null;
+        }
+
+        for (int n = 0; n < tree.Nodes.Count; n++)
+        {
+            if ((client.Companions[0].Learned & (1UL << n)) != 0 && tree.Nodes[n].Move is string move)
+            {
+                return move;
+            }
+        }
+
+        return null;
     }
 
     private DragSpot BagSpotOf(string item)
