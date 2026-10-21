@@ -59,6 +59,9 @@ public class MessageCodecTests
         ];
         Assert.Equal(companions, RoundTrip(new CompanionListCodec(), new CompanionList(companions)).Entries);
         Assert.Empty(RoundTrip(new CompanionListCodec(), new CompanionList([])).Entries);
+        InventoryList inventory = RoundTrip(new InventoryListCodec(), new InventoryList(1234, [new InventoryEntry(3, 20), new InventoryEntry(0, 1)]));
+        Assert.Equal(1234, inventory.Gold);
+        Assert.Equal([new InventoryEntry(3, 20), new InventoryEntry(0, 1)], inventory.Entries);
     }
 
     [Fact]

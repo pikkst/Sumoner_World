@@ -107,6 +107,12 @@ public enum IntentKind : byte
     /// <summary>Send a summoned creature back (since protocol 9): target = stable id.</summary>
     Dismiss = 8,
 
+    /// <summary>Pick up one's own loot bag (since protocol 16): target = bag id; detail = gold picked up.</summary>
+    PickUp = 12,
+
+    /// <summary>Gather from a node (since protocol 16): target = node id; detail = how many were gathered.</summary>
+    Gather = 13,
+
     /// <summary>
     /// Cast a spell (since protocol 14): argument = index in the spells data; target = aim heading in 1/256 turns (bits 0–7),
     /// burst distance in decimetres (bits 8–23) and the ward's creature stable id (bits 24 and up, 0 = self).
@@ -180,6 +186,70 @@ public readonly record struct CompanionList(IReadOnlyList<CompanionEntry> Entrie
 {
     /// <summary>Most companions sent.</summary>
     public const int MaxEntries = 32;
+}
+
+/// <summary>One inventory slot on the wire.</summary>
+/// <param name="Item">Index in the items data both sides load.</param>
+/// <param name="Count">How many.</param>
+public readonly record struct InventoryEntry(int Item, int Count);
+
+/// <summary>Server → client, reliable (since protocol 16): the receiver's gold and non-empty slots, in slot order.</summary>
+/// <param name="Gold">Gold.</param>
+/// <param name="Entries">At most <see cref="MaxEntries"/>.</param>
+public readonly record struct InventoryList(int Gold, IReadOnlyList<InventoryEntry> Entries)
+{
+    /// <summary>Most slots sent.</summary>
+    public const int MaxEntries = 24;
+}
+
+/// <summary>Codec for <see cref="InventoryList"/>.</summary>
+public sealed class InventoryListCodec : IMessageCodec<InventoryList>
+{
+    /// <inheritdoc />
+    public MessageType Type => MessageType.InventoryList;
+
+    /// <inheritdoc />
+    public void Write(ref MessageWriter writer, in InventoryList message)
+    {
+        ArgumentNullException.ThrowIfNull(message.Entries);
+        ArgumentOutOfRangeException.ThrowIfGreaterThan(message.Entries.Count, InventoryList.MaxEntries);
+        ArgumentOutOfRangeException.ThrowIfNegative(message.Gold);
+        Protocol.WriteHeader(ref writer, Type);
+        writer.WriteVarUInt((ulong)message.Gold);
+        writer.WriteByte((byte)message.Entries.Count);
+        foreach (InventoryEntry entry in message.Entries)
+        {
+            writer.WriteVarUInt((ulong)entry.Item);
+            writer.WriteVarUInt((ulong)entry.Count);
+        }
+    }
+
+    /// <inheritdoc />
+    public InventoryList Read(ref MessageReader reader)
+    {
+        ulong gold = reader.ReadVarUInt();
+        int count = reader.ReadByte();
+        if (gold > int.MaxValue || count > InventoryList.MaxEntries)
+        {
+            throw new MalformedMessageException($"Inventory with {gold} gold and {count} slots is out of range.");
+        }
+
+        var entries = new InventoryEntry[count];
+        for (int i = 0; i < count; i++)
+        {
+            ulong item = reader.ReadVarUInt();
+            ulong number = reader.ReadVarUInt();
+            if (item > ushort.MaxValue || number is 0 or > ushort.MaxValue)
+            {
+                throw new MalformedMessageException($"Inventory slot {i} ({item} x{number}) is out of range.");
+            }
+
+            entries[i] = new InventoryEntry((int)item, (int)number);
+        }
+
+        reader.EnsureEnd();
+        return new InventoryList((int)gold, entries);
+    }
 }
 
 /// <summary>Codec for <see cref="CompanionList"/>.</summary>
@@ -355,6 +425,12 @@ public enum SnapshotEntityKind : byte
 
     /// <summary>Another player's avatar; the id is the account id.</summary>
     Player = 2,
+
+    /// <summary>The receiver's own loot bag (only its owner gets it, since protocol 16); the id is the bag's id.</summary>
+    Loot = 3,
+
+    /// <summary>A gathering node (since protocol 16): species = node kind index, health 255 when it can be gathered, 0 when not.</summary>
+    Node = 4,
 }
 
 /// <summary>The receiver's own vitals as fractions (0–255 of full; never 0 while above 0) and combat action (since protocol 7).</summary>

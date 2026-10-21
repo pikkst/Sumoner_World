@@ -156,6 +156,40 @@ public sealed class Economy
         }
     }
 
+    /// <summary>The account's inventory for saving.</summary>
+    public InventorySave Export(ulong account, IDataRegistry data)
+    {
+        ArgumentNullException.ThrowIfNull(data);
+        Inventory inventory = Inventories.Of(account);
+        var items = new List<SavedItem>();
+        foreach (ItemCount slot in inventory.Stacks)
+        {
+            if (slot.Count > 0)
+            {
+                items.Add(new SavedItem(data.Items[slot.Item].Id, slot.Count));
+            }
+        }
+
+        return new InventorySave(inventory.Gold, items);
+    }
+
+    /// <summary>Restores a saved inventory; items the data no longer knows are dropped.</summary>
+    public void Import(ulong account, InventorySave saved, IDataRegistry data)
+    {
+        ArgumentNullException.ThrowIfNull(saved);
+        ArgumentNullException.ThrowIfNull(data);
+        var slots = new List<ItemCount>();
+        foreach (SavedItem item in saved.Items)
+        {
+            if (data.Items.Any(definition => definition.Id == item.Item))
+            {
+                slots.Add(new ItemCount(data.ItemIndex(item.Item), item.Count));
+            }
+        }
+
+        Inventories.Of(account).Restore(saved.Gold, slots);
+    }
+
     /// <summary>Adds inventories, bags and nodes to a state hash.</summary>
     public void AddTo(ref StateHash hash)
     {

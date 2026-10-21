@@ -71,6 +71,13 @@ public sealed partial class EntityViewSync : Node3D
             }
 
             view.Position = new Vector3(state.Position.X, state.Position.Y, state.Position.Z);
+            if (view is Items.ItemView item)
+            {
+                // Loot bags and gathering nodes (M2-13): a node shows its fruit while it can be gathered.
+                item.SetReady(state.Health > 0);
+                continue;
+            }
+
             CombatPose.Apply(view, state.Action, state.Yaw, _time);
             if (view is CreatureRig rig)
             {
@@ -124,9 +131,14 @@ public sealed partial class EntityViewSync : Node3D
             rig.Clock = state.Id % 97 * 0.31;
             view = rig;
         }
-        else
+        else if (state.Kind == SnapshotEntityKind.Player)
         {
             view = _playerPool.Count > 0 ? _playerPool.Pop() : AddView(HumanoidRig.Build(OtherRobe));
+        }
+        else
+        {
+            string kind = state.Species < _data.GatherNodes.Count ? _data.GatherNodes[state.Species].Id : "fallen_branches";
+            return AddView(state.Kind == SnapshotEntityKind.Loot ? Items.ItemView.Bag() : Items.ItemView.Node(kind));
         }
 
         view.Visible = true;
@@ -183,6 +195,12 @@ public sealed partial class EntityViewSync : Node3D
 
     private void Return(Node3D view)
     {
+        if (view is Items.ItemView)
+        {
+            view.QueueFree();
+            return;
+        }
+
         view.Visible = false;
         if (view is CreatureRig rig)
         {

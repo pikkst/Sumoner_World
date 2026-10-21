@@ -33,6 +33,27 @@ public sealed record PlayerRecord
     /// <summary>Total experience.</summary>
     [Key(6)]
     public int Xp { get; init; }
+
+    /// <summary>Gold (M2-13); null in saves from before the inventory existed.</summary>
+    [Key(7)]
+    public int? Gold { get; init; }
+
+    /// <summary>Inventory slots by item id.</summary>
+    [Key(8)]
+    public IReadOnlyList<SlotRecord> Items { get; init; } = [];
+}
+
+/// <summary>A saved inventory slot.</summary>
+[MessagePackObject]
+public sealed record SlotRecord
+{
+    /// <summary>Item id.</summary>
+    [Key(0)]
+    public string Item { get; init; } = string.Empty;
+
+    /// <summary>How many.</summary>
+    [Key(1)]
+    public int Count { get; init; }
 }
 
 /// <summary>A saved creature (payload v1, "CreatureMind v1" inside, AI Bible §4.6).</summary>

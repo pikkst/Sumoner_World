@@ -7,8 +7,9 @@ using SumonerWorld.Net.Transport;
 namespace SumonerWorld.Net.Server;
 
 /// <summary>
-/// Sends each player their pacted creatures (<see cref="CompanionList"/>, M2-06) whenever the list changed since the last send to
-/// them: a Pact, a summon, a dismissal, a creature leaving. A new or resumed connection gets the list again.
+/// Sends each player their pacted creatures (<see cref="CompanionList"/>, M2-06) and their gold and inventory
+/// (<see cref="InventoryList"/>, M2-13) whenever either changed since the last send to them. A new or resumed connection gets
+/// both again.
 /// </summary>
 internal sealed class CompanionListSender(CreatureWorld world, ITransport transport)
 {
@@ -16,10 +17,13 @@ internal sealed class CompanionListSender(CreatureWorld world, ITransport transp
     private readonly byte[] _buffer = new byte[Protocol.MaxMessageSize];
     private readonly List<Companion> _current = [];
     private readonly Dictionary<ulong, Companion[]> _sent = [];
+    private readonly InventoryListCodec _inventoryCodec = new();
+    private readonly Dictionary<ulong, (int Gold, Core.Items.ItemCount[] Slots)> _sentInventory = [];
 
     /// <summary>Sends the account's list on <paramref name="connection"/> if it changed.</summary>
     public void Update(ConnectionId connection, ulong account)
     {
+        UpdateInventory(connection, account);
         Companions.Of(world, account, _current);
         if (_sent.TryGetValue(account, out Companion[]? sent) && sent.AsSpan().SequenceEqual(System.Runtime.InteropServices.CollectionsMarshal.AsSpan(_current)))
         {
@@ -70,6 +74,34 @@ internal sealed class CompanionListSender(CreatureWorld world, ITransport transp
         return Affinities.Of(values[..count]);
     }
 
-    /// <summary>Forgets what was sent to the account, so the next <see cref="Update"/> sends the list again.</summary>
-    public void Forget(ulong account) => _sent.Remove(account);
+    /// <summary>Forgets what was sent to the account, so the next <see cref="Update"/> sends both again.</summary>
+    public void Forget(ulong account)
+    {
+        _sent.Remove(account);
+        _sentInventory.Remove(account);
+    }
+
+    private void UpdateInventory(ConnectionId connection, ulong account)
+    {
+        Core.Items.Inventory inventory = world.Economy.Inventories.Of(account);
+        if (_sentInventory.TryGetValue(account, out (int Gold, Core.Items.ItemCount[] Slots) sent)
+            && sent.Gold == inventory.Gold && inventory.Stacks.SequenceEqual(sent.Slots))
+        {
+            return;
+        }
+
+        _sentInventory[account] = (inventory.Gold, inventory.Stacks.ToArray());
+        var entries = new List<InventoryEntry>();
+        foreach (Core.Items.ItemCount slot in inventory.Stacks)
+        {
+            if (slot.Count > 0)
+            {
+                entries.Add(new InventoryEntry(slot.Item, slot.Count));
+            }
+        }
+
+        var writer = new MessageWriter(_buffer);
+        _inventoryCodec.Write(ref writer, new InventoryList(inventory.Gold, entries));
+        transport.Send(connection, Channel.ReliableOrdered, writer.WrittenSpan);
+    }
 }

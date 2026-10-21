@@ -55,6 +55,7 @@ public sealed partial class Bootstrap : Node
                 if (options.SelfTest)
                 {
                     log.Write(LogLevel.Info, "selftest.fixture", $"companion given: {SelfTestFixture.GiveCompanion(server.Server!, options.Account)}");
+                    SelfTestFixture.PlaceBush(server.Server!);
                 }
 
                 AddChild(client);

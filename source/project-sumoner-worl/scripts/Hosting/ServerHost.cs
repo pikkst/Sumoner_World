@@ -61,6 +61,8 @@ public sealed partial class ServerHost : Node
         _log = log;
     }
 
+    private const int GatherNodesPerKind = 4;
+
     /// <summary>The running server (after <see cref="_Ready"/>).</summary>
     public GameServer? Server => _server;
 
@@ -97,6 +99,7 @@ public sealed partial class ServerHost : Node
             Movement = DevWorld.Movement(),
             DevTools = _options.DevTools,
             Hardcore = _options.Hardcore,
+            GatherNodesPerKind = GatherNodesPerKind,
         };
         _server = new GameServer(_world, metered, new DevTokenAuthenticator(_options.DevSecret), _log, settings, _benchmark, _writer);
         if (saved is null)
