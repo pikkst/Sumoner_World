@@ -17,8 +17,9 @@ namespace SumonerWorld.Net.Client;
 /// <param name="Move">Move of the newer sample (index + 1, 0 = none).</param>
 /// <param name="Stage">Creature life stage.</param>
 /// <param name="Level">Creature level.</param>
+/// <param name="Status">Status effect bits.</param>
 public readonly record struct RemoteState(
-    SnapshotEntityKind Kind, ulong Id, Vector3 Position, float Yaw, float Speed, byte Emote, byte Species, byte Health = 255, byte Action = 0, byte Move = 0, byte Stage = 0, byte Level = 0);
+    SnapshotEntityKind Kind, ulong Id, Vector3 Position, float Yaw, float Speed, byte Emote, byte Species, byte Health = 255, byte Action = 0, byte Move = 0, byte Stage = 0, byte Level = 0, byte Status = 0);
 
 /// <summary>
 /// Remote entity interpolation (TDD §3.2): others are shown <see cref="DelayTicks"/> (100 ms) in the past, between the two snapshots
@@ -185,7 +186,7 @@ public sealed class RemoteInterpolation
             if (newer == 0 || _count == 1)
             {
                 SnapshotEntity only = _samples[newer == 0 ? 0 : _count - 1];
-                return new RemoteState(only.Kind, only.Id, only.Position, Yaw(only.Facing), 0, only.Emote, only.Species, only.Health, only.Action, only.Move, only.Stage, only.Level);
+                return new RemoteState(only.Kind, only.Id, only.Position, Yaw(only.Facing), 0, only.Emote, only.Species, only.Health, only.Action, only.Move, only.Stage, only.Level, only.Status);
             }
 
             if (newer == _count)
@@ -197,13 +198,13 @@ public sealed class RemoteInterpolation
                 double lastSpan = _ticks[_count - 1] - _ticks[_count - 2];
                 if (past > MaxExtrapolationTicks)
                 {
-                    return new RemoteState(last.Kind, last.Id, last.Position, Yaw(last.Facing), 0, last.Emote, last.Species, last.Health, last.Action, last.Move, last.Stage, last.Level);
+                    return new RemoteState(last.Kind, last.Id, last.Position, Yaw(last.Facing), 0, last.Emote, last.Species, last.Health, last.Action, last.Move, last.Stage, last.Level, last.Status);
                 }
 
                 Vector3 velocity = (last.Position - previous.Position) / (float)lastSpan;
                 float lastSpeed = new Vector2(velocity.X, velocity.Z).Length() * SimulationSettings.DefaultTicksPerSecond;
                 return new RemoteState(
-                    last.Kind, last.Id, last.Position + (velocity * (float)past), Yaw(last.Facing), lastSpeed, last.Emote, last.Species, last.Health, last.Action, last.Move, last.Stage, last.Level);
+                    last.Kind, last.Id, last.Position + (velocity * (float)past), Yaw(last.Facing), lastSpeed, last.Emote, last.Species, last.Health, last.Action, last.Move, last.Stage, last.Level, last.Status);
             }
 
             SnapshotEntity a = _samples[newer - 1];
@@ -214,7 +215,7 @@ public sealed class RemoteInterpolation
             float turn = MathF.IEEERemainder(Yaw(b.Facing) - yawA, MathF.Tau);
             Vector3 step = b.Position - a.Position;
             float speed = new Vector2(step.X, step.Z).Length() / (float)(span / SimulationSettings.DefaultTicksPerSecond);
-            return new RemoteState(b.Kind, b.Id, Vector3.Lerp(a.Position, b.Position, t), yawA + (turn * t), speed, b.Emote, b.Species, b.Health, b.Action, b.Move, b.Stage, b.Level);
+            return new RemoteState(b.Kind, b.Id, Vector3.Lerp(a.Position, b.Position, t), yawA + (turn * t), speed, b.Emote, b.Species, b.Health, b.Action, b.Move, b.Stage, b.Level, b.Status);
         }
     }
 }

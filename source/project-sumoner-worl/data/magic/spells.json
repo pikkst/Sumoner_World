@@ -1,0 +1,10 @@
+// The player's first three spells (combat spec §8). Cast ticks at 30 per second: the telegraph before the spell takes effect.
+{
+  "schemaVersion": 1,
+  "kind": "spells",
+  "entries": [
+    { "id": "thornbolt", "runes": ["bolt", "thorns"], "mana": 10, "castTicks": 12 },
+    { "id": "entangle", "runes": ["burst", "roots"], "mana": 20, "castTicks": 24 },
+    { "id": "mend", "runes": ["ward", "growth"], "mana": 15, "castTicks": 30 }
+  ]
+}

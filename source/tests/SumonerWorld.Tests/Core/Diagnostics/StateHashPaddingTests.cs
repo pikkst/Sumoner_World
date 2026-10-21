@@ -24,7 +24,7 @@ public class StateHashPaddingTests
         typeof(SumonerWorld.Core.Bonding.PactAnswer), typeof(SumonerWorld.Core.Bonding.SigilCast),
         typeof(SumonerWorld.Core.Bonding.CompanionState), typeof(SumonerWorld.Core.Bonding.CompanionOrder),
         typeof(SumonerWorld.Core.Progression.CreatureGrowth), typeof(SumonerWorld.Core.Progression.PlayerProgress),
-        typeof(SumonerWorld.Core.Progression.CreatureSkills),
+        typeof(SumonerWorld.Core.Progression.CreatureSkills), typeof(SumonerWorld.Core.Combat.StatusEffects),
     };
 
     [Theory]

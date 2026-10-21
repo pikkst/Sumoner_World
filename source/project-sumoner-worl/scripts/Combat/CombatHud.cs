@@ -46,7 +46,7 @@ public sealed partial class CombatHud(GameClient client) : CanvasLayer
         _hint = new Label { Text = Keys };
         Label hint = _hint;
         hint.SetAnchorsPreset(Control.LayoutPreset.BottomLeft);
-        hint.Position = new Vector2(24, hint.Position.Y - 120);
+        hint.Position = new Vector2(24, hint.Position.Y - 140);
         hint.AddThemeFontSizeOverride("font_size", 14);
         hint.AddThemeColorOverride("font_outline_color", new Color(0, 0, 0));
         hint.AddThemeConstantOverride("outline_size", 5);
@@ -69,7 +69,7 @@ public sealed partial class CombatHud(GameClient client) : CanvasLayer
         _down!.Visible = own.Action == (byte)CombatAction.Down;
         _player!.Text = InteractionText.PlayerLine((Core.Progression.SummonerClass)own.Class, (Core.Progression.Rank)own.Rank, own.Level);
         _xp!.Size = new Vector2(BarWidth * own.Xp / 255f, 4);
-        _hint!.Text = client.LockOnAllowed ? Keys + "   Middle click / T: lock on" : Keys;
+        _hint!.Text = (client.LockOnAllowed ? Keys + "   Middle click / T: lock on" : Keys) + "\n" + InteractionText.SpellHints;
     }
 
     private ColorRect Bar(int row, Color colour)

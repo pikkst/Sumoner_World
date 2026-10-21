@@ -227,6 +227,17 @@ window. Combos are data (`data/combat/combos.json`).
 3. **No randomness in v1:** not answered directly; the stakeholder asked the team to fill open gaps, so v1 keeps **no random
    damage or critical hits** (§1). It can be revisited after the family sessions.
 
+- **M2-11 (runes and Primal v1):** runes (`data/magic/runes.json`: forms bolt, burst, ward; essences thorns, roots, growth),
+  spells (`data/magic/spells.json`: thornbolt, entangle, mend with §8's costs and cast times) and effects
+  (`data/combat/effects.json`: rooted 2 s, slowed 3 s at 50%, mending 4 s). The loader composes each spell into a move of the
+  same id (cast time = wind-up, form = shape: line, burst around a point ahead, ward on self or an own creature; essence =
+  damage, effect, healing), so new spells need no code. Players know every spell; `Cast` intent (protocol 14) with aim, burst
+  distance and ward target; the server checks mana and timing. A spell's wind-up shows as `Cast`. Resonance: a summoned
+  companion of a class sharing the school within 20 m makes it 10% cheaper. A stagger now interrupts any move (§7), so a cast
+  is lost with its mana. Players' own companions are never hit by their moves or spells. Rooted creatures stand still, slowed
+  ones go at half speed; mending heals over 4 s. Snapshots carry status marks (roots, slowed ring, mending glow on the body);
+  keys C / V / G. Creatures' spells (`foxfire`) come later.
+
 ## Changelog
 - **0.1 (2026-10-21):** First draft (M2 D1), for stakeholder approval.
 - **0.4 (2026-10-21, M2-02c):** lock-on (§11a) on Normal servers, none on Hardcore; protocol 8.

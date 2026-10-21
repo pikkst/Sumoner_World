@@ -48,7 +48,10 @@ public record struct Combatant(
 /// <param name="AimZ">Aim direction, Z.</param>
 /// <param name="Move">Index into <see cref="IDataRegistry.Moves"/>.</param>
 /// <param name="Hits">Targets hit so far (each at most once).</param>
-public record struct ActiveMove(ulong StartTick, float AimX, float AimZ, int Move, int Hits);
+/// <param name="Distance">Burst spells: how far ahead the circle's centre is, in metres (M2-11).</param>
+/// <param name="Reserved">Padding, always 0.</param>
+/// <param name="Target">Ward spells: the ally it is cast on (default = the caster).</param>
+public record struct ActiveMove(ulong StartTick, float AimX, float AimZ, int Move, int Hits, float Distance = 0, int Reserved = 0, Entity Target = default);
 
 /// <summary>A wild creature that gave up the fight (combat spec §6): it does not attack; left alone, it counts as spared.</summary>
 /// <param name="Since">Tick it yielded.</param>
@@ -188,9 +191,10 @@ public static class CombatRules
 
     /// <summary>
     /// Checks whether <paramref name="actor"/> may start <paramref name="move"/> now: it knows the move, is not already in a move
-    /// (<see cref="IntentRejectReason.OnCooldown"/>), is not defeated or yielding, and has the stamina and mana.
+    /// (<see cref="IntentRejectReason.OnCooldown"/>), is not defeated or yielding, and has the stamina and mana (<paramref name="mana"/>
+    /// overrides the move's cost, e.g. with resonance). Players know every spell (M2-11).
     /// </summary>
-    public static IntentResult CanStart(EcsWorld world, IDataRegistry data, Entity actor, int move)
+    public static IntentResult CanStart(EcsWorld world, IDataRegistry data, Entity actor, int move, int? mana = null)
     {
         ArgumentNullException.ThrowIfNull(world);
         ArgumentNullException.ThrowIfNull(data);
@@ -200,7 +204,8 @@ public static class CombatRules
         }
 
         ref Combatant combatant = ref world.GetComponent<Combatant>(actor);
-        if (!Knows(StatsOf(data, combatant), data.Moves[move].Id) && !LearnedMove(world, data, actor, combatant.Source, data.Moves[move].Id))
+        bool playerSpell = data.Moves[move].IsSpell && combatant.Source == PlayerSource;
+        if (!playerSpell && !Knows(StatsOf(data, combatant), data.Moves[move].Id) && !LearnedMove(world, data, actor, combatant.Source, data.Moves[move].Id))
         {
             return IntentResult.Reject(IntentRejectReason.InvalidArguments);
         }
@@ -216,25 +221,30 @@ public static class CombatRules
         }
 
         MoveDefinition definition = data.Moves[move];
-        return combatant.Stamina < definition.Stamina || combatant.Mana < definition.Mana
+        return combatant.Stamina < definition.Stamina || combatant.Mana < (mana ?? definition.Mana)
             ? IntentResult.Reject(IntentRejectReason.WrongState)
             : IntentResult.Applied();
     }
 
-    /// <summary>Starts a move that <see cref="CanStart"/> allowed: pays its cost and aims it along <paramref name="aim"/> (ground plane).</summary>
-    public static void Start(EcsWorld world, IDataRegistry data, Entity actor, int move, Vector3 aim, ulong now)
+    /// <summary>
+    /// Starts a move that <see cref="CanStart"/> allowed: pays its cost and aims it along <paramref name="aim"/> (ground plane). A
+    /// burst spell lands <paramref name="distance"/> metres ahead; a ward spell is cast on <paramref name="target"/> (default: the
+    /// caster).
+    /// </summary>
+    public static void Start(
+        EcsWorld world, IDataRegistry data, Entity actor, int move, Vector3 aim, ulong now, float distance = 0, Entity target = default, int? mana = null)
     {
         ArgumentNullException.ThrowIfNull(world);
         ArgumentNullException.ThrowIfNull(data);
         MoveDefinition definition = data.Moves[move];
         ref Combatant combatant = ref world.GetComponent<Combatant>(actor);
         combatant.Stamina -= definition.Stamina;
-        combatant.Mana -= definition.Mana;
+        combatant.Mana -= mana ?? definition.Mana;
         combatant.LastSpendTick = definition.Stamina > 0 ? now : combatant.LastSpendTick;
         var flat = new Vector2(aim.X, aim.Z);
         flat = flat.LengthSquared() > 0 ? Vector2.Normalize(flat) : Vector2.UnitY;
         world.Remove<Blocking>(actor);
-        world.Add(actor, new ActiveMove(now, flat.X, flat.Y, move, 0));
+        world.Add(actor, new ActiveMove(now, flat.X, flat.Y, move, 0, distance, 0, target));
     }
 
     /// <summary>Raises or lowers the guard (held button). Raising is refused while in a move, dodging, staggered or down.</summary>
@@ -290,13 +300,14 @@ public static class CombatRules
         return world.Has<Dodging>(actor) && now - world.GetComponent<Dodging>(actor).Since < (ulong)data.Combat.DodgeTicks;
     }
 
-    /// <summary>Knocks an entity off balance for the stagger time (refreshes a running stagger).</summary>
+    /// <summary>Knocks an entity off balance for the stagger time (refreshes a running stagger) and interrupts its move.</summary>
     public static void Stagger(EcsWorld world, IDataRegistry data, Entity actor, ulong now)
     {
         ArgumentNullException.ThrowIfNull(world);
         ArgumentNullException.ThrowIfNull(data);
         var until = new Staggered(now + (ulong)data.Combat.StaggerTicks);
         world.Remove<Blocking>(actor);
+        world.Remove<ActiveMove>(actor); // a stagger interrupts the action (combat spec §7); a spell's mana is spent
         if (world.Has<Staggered>(actor))
         {
             world.GetComponent<Staggered>(actor) = until;
@@ -342,7 +353,7 @@ public static class CombatRules
             ActiveMove move = world.GetComponent<ActiveMove>(entity);
             MoveDefinition definition = data.Moves[move.Move];
             ulong age = now - move.StartTick;
-            CombatAction phase = age < (ulong)definition.WindupTicks ? CombatAction.Windup
+            CombatAction phase = age < (ulong)definition.WindupTicks ? (definition.IsSpell ? CombatAction.Cast : CombatAction.Windup)
                 : age < (ulong)(definition.WindupTicks + definition.ActiveTicks) ? CombatAction.Strike
                 : CombatAction.Recover;
             return (phase, move.Move);

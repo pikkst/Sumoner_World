@@ -108,6 +108,12 @@ public enum IntentKind : byte
     Dismiss = 8,
 
     /// <summary>
+    /// Cast a spell (since protocol 14): argument = index in the spells data; target = aim heading in 1/256 turns (bits 0–7),
+    /// burst distance in decimetres (bits 8–23) and the ward's creature stable id (bits 24 and up, 0 = self).
+    /// </summary>
+    Cast = 11,
+
+    /// <summary>
     /// Teach a pacted creature a skill (since protocol 13): target = stable id, argument = node index in its species' tree; a
     /// refusal carries the node's <c>SkillState</c> as detail.
     /// </summary>
@@ -348,7 +354,9 @@ public enum SnapshotEntityKind : byte
 /// <param name="Rank">Their Summoner Rank (<c>Rank</c>, since protocol 12).</param>
 /// <param name="Class">Their class (<c>SummonerClass</c>, since protocol 12).</param>
 /// <param name="Xp">Progress to the next level, 0–255 (255 at the rank's cap).</param>
-public readonly record struct SnapshotVitals(byte Health, byte Stamina, byte Mana, byte Action, byte Level = 1, byte Rank = 0, byte Class = 0, byte Xp = 0);
+/// <param name="Status">Status effect bits (<c>StatusMarks</c>, since protocol 14).</param>
+public readonly record struct SnapshotVitals(
+    byte Health, byte Stamina, byte Mana, byte Action, byte Level = 1, byte Rank = 0, byte Class = 0, byte Xp = 0, byte Status = 0);
 
 /// <summary>One part's header: the tick, the receiver's own avatar (exact, for reconciliation) and how many entities follow.</summary>
 /// <param name="ServerTick">Tick the state is from.</param>
@@ -370,9 +378,10 @@ public readonly record struct SnapshotHeader(ulong ServerTick, uint AckedInput, 
 /// <param name="Move">The move in progress: index in the move data + 1; 0 = none (since protocol 7).</param>
 /// <param name="Stage">Creatures: life stage (<c>LifeStage</c>, since protocol 11).</param>
 /// <param name="Level">Creatures: level, 0 for players (since protocol 11).</param>
+/// <param name="Status">Status effects as bits (<c>StatusMarks</c>, since protocol 14).</param>
 public readonly record struct SnapshotEntity(
     SnapshotEntityKind Kind, ulong Id, Vector3 Position, byte Facing, byte Emote, byte Species = 0, byte Health = 255, byte Action = 0, byte Move = 0,
-    byte Stage = 0, byte Level = 0);
+    byte Stage = 0, byte Level = 0, byte Status = 0);
 
 /// <summary>
 /// Server → client, unreliable, 20 Hz (TDD §3.2): entities within the interest radius. A tick's state can span several parts, each
@@ -381,7 +390,7 @@ public readonly record struct SnapshotEntity(
 public static class Snapshot
 {
     /// <summary>Largest encoded entity, in bytes.</summary>
-    public const int MaxEntityBytes = 1 + 10 + (3 * 5) + 1 + 1 + 1 + 3 + 2;
+    public const int MaxEntityBytes = 1 + 10 + (3 * 5) + 1 + 1 + 1 + 3 + 3;
 
     /// <summary>Most entities per part.</summary>
     public const int MaxEntitiesPerPart = 64;
@@ -405,6 +414,7 @@ public static class Snapshot
         writer.WriteByte(own.Rank);
         writer.WriteByte(own.Class);
         writer.WriteByte(own.Xp);
+        writer.WriteByte(own.Status);
         writer.WriteByte(0);
         return writer.Written - 1;
     }
@@ -432,6 +442,7 @@ public static class Snapshot
         writer.WriteByte(entity.Move);
         writer.WriteByte(entity.Stage);
         writer.WriteByte(entity.Level);
+        writer.WriteByte(entity.Status);
     }
 
     /// <summary>A value as a fraction of its full value in 0–255, never 0 unless the value is 0 (a sliver of health still shows).</summary>
@@ -450,7 +461,8 @@ public static class Snapshot
 
         var own = new Vector3(reader.ReadSingle(), reader.ReadSingle(), reader.ReadSingle());
         var vitals = new SnapshotVitals(
-            reader.ReadByte(), reader.ReadByte(), reader.ReadByte(), reader.ReadByte(), reader.ReadByte(), reader.ReadByte(), reader.ReadByte(), reader.ReadByte());
+            reader.ReadByte(), reader.ReadByte(), reader.ReadByte(), reader.ReadByte(), reader.ReadByte(), reader.ReadByte(), reader.ReadByte(), reader.ReadByte(),
+            reader.ReadByte());
         int count = reader.ReadByte();
         return count > MaxEntitiesPerPart
             ? throw new MalformedMessageException($"Snapshot part with {count} entities (max {MaxEntitiesPerPart}).")
@@ -469,7 +481,8 @@ public static class Snapshot
         ulong id = reader.ReadVarUInt();
         var position = new Vector3(Dequantize(ref reader), Dequantize(ref reader), Dequantize(ref reader));
         return new SnapshotEntity(
-            kind, id, position, reader.ReadByte(), reader.ReadByte(), reader.ReadByte(), reader.ReadByte(), reader.ReadByte(), reader.ReadByte(), reader.ReadByte(), reader.ReadByte());
+            kind, id, position, reader.ReadByte(), reader.ReadByte(), reader.ReadByte(), reader.ReadByte(), reader.ReadByte(), reader.ReadByte(), reader.ReadByte(), reader.ReadByte(),
+            reader.ReadByte());
     }
 
     /// <summary>Heading of a direction in 1/256 turns (0 = +Z, clockwise seen from above).</summary>
