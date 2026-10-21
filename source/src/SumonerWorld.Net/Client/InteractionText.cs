@@ -16,6 +16,30 @@ public static class InteractionText
     /// <summary>The hint for the shout, shown all the time.</summary>
     public const string ShoutHint = "[Q] shout";
 
+    /// <summary>
+    /// Seconds between a Pact answer arriving and its line appearing: the creature shows its answer with its body first (it stops
+    /// to consider for half a second, then comes closer or turns away), the text follows (M2-05).
+    /// </summary>
+    public const double PactAnswerDelaySeconds = 1.5;
+
+    /// <summary>The keys shown at the bottom of the Pact menu.</summary>
+    public const string PactMenuHints = "[1-6] choose up to 3 promises   [Enter] offer   [Esc] cancel";
+
+    /// <summary>The Pact menu's title for a creature.</summary>
+    public static string PactMenuTitle(string creature) => $"Offer a Pact to the {creature}. What do you promise?";
+
+    /// <summary>A Pact Term as the player promises it (until localization, R39); unknown keys are shown as they are.</summary>
+    public static string PactTerm(string key) => key switch
+    {
+        "FeedDaily" => "I will feed you every day.",
+        "TerritoryNearSanctum" => "You may make your home near my Sanctum.",
+        "ShareOfLoot" => "You get a share of what we find.",
+        "FreedomAtNight" => "You are free to roam at night.",
+        "NoFightingKin" => "I will never ask you to fight your own kind.",
+        "ProtectYoung" => "I will protect your young.",
+        _ => key,
+    };
+
     /// <summary>The line shown for an intent's result; <paramref name="creature"/> is the target's display name (unused for Scare).</summary>
     public static string Result(IntentKind kind, IntentResult result, string creature)
     {

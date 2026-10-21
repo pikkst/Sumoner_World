@@ -1,4 +1,5 @@
 using Godot;
+using SumonerWorld.Core.Bonding;
 using SumonerWorld.Core.Data;
 using SumonerWorld.Core.Intents;
 using SumonerWorld.Game.Creatures;
@@ -9,9 +10,11 @@ using SumonerWorld.Net.Sessions;
 namespace SumonerWorld.Game.Playtest;
 
 /// <summary>
-/// The Memory Grove interactions (M1-23, QA plan B2) on the keyboard: E feed, F hit, R free from a snare, P offer a Pact (first
-/// term) to the nearest creature within <see cref="ReachMetres"/>, Q shout. A line at the bottom names the creature in reach and the
-/// keys; after each action a short line says what happened (<see cref="InteractionText"/>), never what the creature thinks.
+/// The Memory Grove interactions (M1-23, QA plan B2) on the keyboard: E feed, F hit, R free from a snare, P opens the
+/// <see cref="PactMenu"/> to offer a Pact (M2-05) to the nearest creature within <see cref="ReachMetres"/>, Q shout. A line at the
+/// bottom names the creature in reach and the keys; after each action a short line says what happened (<see cref="InteractionText"/>),
+/// never what the creature thinks. A Pact's answer line waits <see cref="InteractionText.PactAnswerDelaySeconds"/>, so the creature's
+/// body answers first.
 /// </summary>
 public sealed partial class InteractionControls : CanvasLayer
 {
@@ -19,13 +22,15 @@ public sealed partial class InteractionControls : CanvasLayer
     public const float ReachMetres = 5f;
 
     private const double FeedbackSeconds = 3.5;
-    private const byte FirstPactTerm = 0b1;
 
     private readonly GameClient _client;
     private readonly EntityViewSync _views;
     private readonly IDataRegistry _data;
     private readonly Func<Vector3> _player;
     private readonly List<(uint Sequence, IntentKind Kind, string Creature)> _pending = [];
+    private readonly List<(double ShowAt, string Line)> _delayed = [];
+    private (ulong Id, string Name) _pactTarget;
+    private double _clock;
     private Label? _prompt;
     private Label? _feedback;
     private double _feedbackLeft;
@@ -40,6 +45,9 @@ public sealed partial class InteractionControls : CanvasLayer
         Name = "Interactions";
         Layer = 5;
     }
+
+    /// <summary>The Pact menu.</summary>
+    public PactMenu Menu { get; private set; } = null!;
 
     /// <summary>The last interaction line shown.</summary>
     public string Feedback => _feedback?.Text ?? string.Empty;
@@ -58,22 +66,39 @@ public sealed partial class InteractionControls : CanvasLayer
             return;
         }
 
+        if (kind == IntentKind.OfferPact)
+        {
+            _pactTarget = Target;
+            Menu.Open(Target.Name);
+            return;
+        }
+
         ulong target = kind == IntentKind.Scare ? 0 : Target.Id;
-        byte argument = kind == IntentKind.OfferPact ? FirstPactTerm : (byte)0;
-        _pending.Add((_client.SendIntent(kind, target, argument), kind, Target.Name));
+        _pending.Add((_client.SendIntent(kind, target, 0), kind, Target.Name));
+    }
+
+    // The Pact menu's offer, to the creature that was in reach when it opened.
+    private void OfferPact(PactTerms terms)
+    {
+        if (_client.Session.State == ClientSessionState.InSession && _pactTarget.Id != 0)
+        {
+            _pending.Add((_client.SendIntent(IntentKind.OfferPact, _pactTarget.Id, terms.Mask), IntentKind.OfferPact, _pactTarget.Name));
+        }
     }
 
     /// <inheritdoc />
     public override void _Ready()
     {
-        _prompt = Line(new Vector2(0, -70));
-        _feedback = Line(new Vector2(0, -150));
+        _prompt = Line(new Vector2(0, -110));
+        _feedback = Line(new Vector2(0, -190));
+        Menu = new PactMenu(_data, OfferPact);
+        AddChild(Menu);
     }
 
     /// <inheritdoc />
     public override void _UnhandledInput(InputEvent @event)
     {
-        if (@event is not InputEventKey { Pressed: true, Echo: false } key)
+        if (@event is not InputEventKey { Pressed: true, Echo: false } key || Menu.IsOpen)
         {
             return;
         }
@@ -105,9 +130,20 @@ public sealed partial class InteractionControls : CanvasLayer
             (uint sequence, IntentKind kind, string creature) = _pending[i];
             if (_client.IntentResults.TryGetValue(sequence, out IntentResult result))
             {
-                _feedback!.Text = InteractionText.Result(kind, result, creature);
-                _feedbackLeft = FeedbackSeconds;
+                bool answered = kind == IntentKind.OfferPact && result.IsApplied;
+                _delayed.Add((_clock + (answered ? InteractionText.PactAnswerDelaySeconds : 0), InteractionText.Result(kind, result, creature)));
                 _pending.RemoveAt(i);
+            }
+        }
+
+        _clock += delta;
+        for (int i = _delayed.Count - 1; i >= 0; i--)
+        {
+            if (_clock >= _delayed[i].ShowAt)
+            {
+                _feedback!.Text = _delayed[i].Line;
+                _feedbackLeft = FeedbackSeconds;
+                _delayed.RemoveAt(i);
             }
         }
 

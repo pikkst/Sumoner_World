@@ -64,6 +64,7 @@ public sealed partial class ClientHost : Node
     private TestRegion? _region;
     private EntityViewSync? _views;
     private HumanoidRig? _avatar;
+    private InteractionControls? _interactions;
     private Vector3 _lastAvatarPosition;
     private float _avatarYaw;
     private float _avatarSpeed;
@@ -109,7 +110,7 @@ public sealed partial class ClientHost : Node
         int ticks = _accumulator!.Accumulate((long)(delta * NanosecondsPerSecond));
         for (int i = 0; i < ticks; i++)
         {
-            _client!.Tick(ReadMovement(), _region is null ? (byte)0 : CombatControls.Buttons);
+            _client!.Tick(ReadMovement(), _region is null || (_interactions?.Menu.IsOpen ?? false) ? (byte)0 : CombatControls.Buttons);
             if (++_ticks % StatusEveryTicks == 0 && _client.Prediction.IsInitialized)
             {
                 _log.Write(LogLevel.Info, "client.status", $"at {_client.Prediction.Position}, {_client.Entities.Count} entities in view, server tick {_client.LastSnapshotTick}");
@@ -158,7 +159,7 @@ public sealed partial class ClientHost : Node
         Core.Data.DataRegistry data = _data!;
         _views = new EntityViewSync(_client!, data, new QuadrupedEmotePresenter());
         AddChild(_views);
-        var controls = new InteractionControls(_client!, _views, data, AvatarCentre);
+        var controls = _interactions = new InteractionControls(_client!, _views, data, AvatarCentre);
         AddChild(controls);
         _lockOn = new LockOn(_client!, _views, () => _region?.Camera, AvatarCentre);
         AddChild(_lockOn);
@@ -168,7 +169,7 @@ public sealed partial class ClientHost : Node
         AddChild(new CombatHud(_client!));
         if (_options.SelfTest)
         {
-            _selfTest = new PlaytestSelfTest(controls, _combat, _lockOn, _client!, _orbit, () => _views.Shown > 0 && _elapsed > ScreenshotAfterSeconds, _log);
+            _selfTest = new PlaytestSelfTest(controls, _combat, _lockOn, _client!, _orbit, () => _views.Shown > 0 && _elapsed > ScreenshotAfterSeconds, _log, Capture);
             AddChild(_selfTest);
         }
 
@@ -180,6 +181,16 @@ public sealed partial class ClientHost : Node
 
         _avatar = HumanoidRig.Build(EntityViewSync.OwnRobe);
         AddChild(_avatar);
+    }
+
+    // The self-test's extra frames: next to the --screenshot file, with the step's name (nothing without --screenshot).
+    private void Capture(string name)
+    {
+        if (_options.Screenshot.Length > 0)
+        {
+            string path = System.IO.Path.ChangeExtension(_options.Screenshot, null) + $"-{name}.png";
+            _log.Write(LogLevel.Info, "client.screenshot", $"{path}: {GetViewport().GetTexture().GetImage().SavePng(path)}");
+        }
     }
 
     // Where the own character's body is (lock-on, aiming and interaction distances measure from here, not the feet).

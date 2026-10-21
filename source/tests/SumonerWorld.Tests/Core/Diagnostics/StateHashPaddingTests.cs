@@ -21,6 +21,7 @@ public class StateHashPaddingTests
         typeof(CurrentEmote), typeof(CurrentGoal), typeof(GroupRef),
         typeof(Opinion), typeof(Personality),
         typeof(Combatant), typeof(ActiveMove), typeof(Yielding), typeof(Blocking), typeof(Dodging), typeof(Staggered),
+        typeof(SumonerWorld.Core.Bonding.PactAnswer),
     };
 
     [Theory]
