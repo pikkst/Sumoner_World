@@ -49,14 +49,18 @@ public sealed class CreatureSubjectResolver(IEcsWorld world) : ISubjectResolver
         focus.Has != 0 && TryResolve(focus.Entity, out MemorySubject subject) ? subject : null;
 }
 
-/// <summary>AI LOD (AI Bible §9.1): every half second each creature's tier is set from its distance to the nearest player.</summary>
-public sealed class LodSystem(IEcsWorld world, IAiLodPolicy policy) : ISimulationSystem
+/// <summary>
+/// AI LOD (AI Bible §9.1): every half second each creature's tier is set from its distance to the nearest player; a summoned creature
+/// is always T0 (§10.4).
+/// </summary>
+public sealed class LodSystem(IEcsWorld world, IAiLodPolicy policy, Bonding.IBondingRules? bonding = null) : ISimulationSystem
 {
     private const int Interval = 15;
 
     private readonly ComponentStore<AiTier> _tiers = world.Store<AiTier>();
     private readonly ComponentStore<Position> _positions = world.Store<Position>();
     private readonly ComponentStore<PlayerAvatar> _players = world.Store<PlayerAvatar>();
+    private readonly ComponentStore<MindRef> _minds = world.Store<MindRef>();
 
     /// <inheritdoc />
     public SimulationStage Stage => SimulationStage.Perception;
@@ -81,7 +85,8 @@ public sealed class LodSystem(IEcsWorld world, IAiLodPolicy policy) : ISimulatio
                 nearest = MathF.Min(nearest, Vector3.Distance(position, _positions.Get(players[p]).Value));
             }
 
-            tiers[i] = new AiTier(policy.Classify(tiers[i].Tier, nearest, engaged: false, loaded: true));
+            bool summoned = bonding is not null && bonding.GetBond(_minds.Get(creatures[i]).Handle).Summoned;
+            tiers[i] = new AiTier(policy.Classify(tiers[i].Tier, nearest, engaged: summoned, loaded: true));
         }
     }
 }

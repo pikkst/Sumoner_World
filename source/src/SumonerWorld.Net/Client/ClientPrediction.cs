@@ -51,7 +51,7 @@ public readonly record struct DodgePrediction(int Ticks, int SpeedPercent);
 /// <summary>
 /// Prediction with a ring of up to 64 unacknowledged inputs (≈ 2 s at 30 Hz); older ones are dropped. With <see cref="Dodge"/>
 /// set, pressing the dodge button dashes like the server does (along the movement, or the last direction moved); while
-/// <see cref="Frozen"/> (down or staggered, from the snapshot) the character does not move. Each input remembers how it was
+/// <see cref="Frozen"/> (down, staggered or casting a sigil, from the snapshot) the character does not move. Each input remembers how it was
 /// predicted, so a replay repeats the same steps; when the server decided otherwise, reconciliation corrects it.
 /// </summary>
 public sealed class ClientPrediction : IClientPrediction

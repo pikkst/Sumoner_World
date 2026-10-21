@@ -72,6 +72,7 @@ public sealed record CreatureServices(AiLodPolicy Lod, CreatureSubjectResolver R
 /// <param name="Intents">Creature intents.</param>
 /// <param name="Movement">Movement.</param>
 /// <param name="Separation">Keeps bodies apart after movement.</param>
+/// <param name="Summoning">Summoning sigils finishing: creatures arrive at their summoner's side (M2-06).</param>
 /// <param name="Attacks">Creatures' attack intents (M2-03).</param>
 /// <param name="Combat">Moves and hits (combat spec §4).</param>
 /// <param name="Vitals">Regeneration, yield, defeat (combat spec §5, §6).</param>
@@ -86,6 +87,7 @@ public sealed record CreatureSystems(
     CreatureIntentSystem Intents,
     MovementSystem Movement,
     SeparationSystem Separation,
+    SummoningSystem Summoning,
     CreatureAttackSystem Attacks,
     CombatSystem Combat,
     VitalsSystem Vitals,
@@ -100,7 +102,7 @@ public sealed record CreatureSystems(
         (CreatureIntentSystem intents, MovementSystem movement) = BodySystems(world, sizes);
         return new CreatureSystems(
             new JobApplySystem(world.Jobs),
-            new LodSystem(world.World, world.Services.Lod),
+            new LodSystem(world.World, world.Services.Lod, world.Services.Bonding),
             perception,
             decision,
             new BehaviourSystem(world.World, world.Services.Runner, world.Services.Lod, world.Services.Resolver),
@@ -108,6 +110,7 @@ public sealed record CreatureSystems(
             intents,
             movement,
             new SeparationSystem(world.World, world.Grid, sizes, world.Settings.Ground),
+            new SummoningSystem(world),
             new CreatureAttackSystem(world),
             new CombatSystem(world),
             new VitalsSystem(world),
@@ -146,6 +149,7 @@ public sealed record CreatureSystems(
         scheduler.Register(Intents);
         scheduler.Register(Movement);
         scheduler.Register(Separation);
+        scheduler.Register(Summoning);
         scheduler.Register(Attacks);
         scheduler.Register(Combat);
         scheduler.Register(Vitals);
@@ -437,8 +441,7 @@ public sealed class CreatureWorld : IDisposable
         hash.Add<Entity>(World.Store<Combatant>().Entities);
         hash.Add<Combatant>(World.Store<Combatant>().Components);
         CombatState.AddTo(ref hash, World);
-        hash.Add<Entity>(World.Store<PactAnswer>().Entities);
-        hash.Add<PactAnswer>(World.Store<PactAnswer>().Components);
+        BondingComponents.AddTo(ref hash, World);
         Minds.AddTo(ref hash);
         bonding.AddTo(ref hash);
         Reputation.AddTo(ref hash);
@@ -463,7 +466,7 @@ public sealed class CreatureWorld : IDisposable
         world.Register<SpeciesRef>();
         world.Register<PlayerAvatar>();
         world.Register<Snared>();
-        world.Register<PactAnswer>();
+        BondingComponents.Register(world);
         world.Register<Combatant>();
         CombatState.Register(world);
         return world;

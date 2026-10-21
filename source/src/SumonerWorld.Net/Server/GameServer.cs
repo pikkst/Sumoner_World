@@ -64,6 +64,9 @@ public sealed class GameServer : IServerSessionHandler
     /// <summary>Dev reports go out twice a second.</summary>
     public const int DevReportEveryTicks = 15;
 
+    /// <summary>Ticks between checks whether a player's companion list changed (half a second).</summary>
+    public const int CompanionCheckTicks = 15;
+
     private readonly CreatureWorld _world;
     private readonly ITransport _transport;
     private readonly ILog _log;
@@ -71,7 +74,6 @@ public sealed class GameServer : IServerSessionHandler
     private readonly ServerEndpoint _endpoint;
     private readonly SimulationScheduler _scheduler;
     private readonly IntentDeduplicator _dedupe = new();
-    private readonly CooldownTracker _cooldowns = new();
     private readonly List<PlayerSlot> _players = [];
     private readonly Dictionary<ConnectionId, PlayerSlot> _byConnection = [];
     private readonly Dictionary<ulong, PlayerSlot> _bySession = [];
@@ -80,6 +82,8 @@ public sealed class GameServer : IServerSessionHandler
     private readonly byte[] _buffer = new byte[Protocol.MaxMessageSize];
     private readonly IntentRequestCodec _intentCodec = new();
     private readonly IntentAckCodec _ackCodec = new();
+    private readonly CompanionListSender _companions;
+    private readonly PlayerIntents _intents;
     private readonly SnapshotSender _snapshots;
     private readonly ITransactionJournal? _journal;
     private readonly Queue<(IntentId Id, IntentResult Result)> _pendingAcks = new();
@@ -112,6 +116,8 @@ public sealed class GameServer : IServerSessionHandler
         Movement = new MovementModel(settings.Movement);
         Transactions = new TransactionProcessor(_dedupe);
         _snapshots = new SnapshotSender(world, transport, settings.InterestRadius);
+        _companions = new CompanionListSender(world, transport);
+        _intents = new PlayerIntents(world, Transactions);
         _dev = settings.DevTools ? new DevToolsHost(world, transport, metrics) : null;
         _scheduler = new SimulationScheduler(world.Clock, world.Events, _dev?.Metrics ?? metrics);
         _scheduler.Register(new PlayerInputSystem(this));
@@ -240,6 +246,17 @@ public sealed class GameServer : IServerSessionHandler
             }
         }
 
+        if (tick % CompanionCheckTicks == 0)
+        {
+            foreach (PlayerSlot player in _players)
+            {
+                if (player.Connection is ConnectionId connection && player.InWorld)
+                {
+                    _companions.Update(connection, player.Account);
+                }
+            }
+        }
+
         if (tick % IntentDeduplicator.MaxIdleTicks == 0)
         {
             _dedupe.Prune(tick);
@@ -296,6 +313,7 @@ public sealed class GameServer : IServerSessionHandler
 
         player.Connection = connection;
         _byConnection.Add(connection, player);
+        _companions.Forget(player.Account); // the new connection gets the list again
         player.Inputs.Reset();
         player.Intents.Clear();
         if (!player.InWorld)
@@ -324,7 +342,8 @@ public sealed class GameServer : IServerSessionHandler
         }
 
         _players.Remove(player);
-        _cooldowns.Forget(player.Account);
+        _intents.Forget(player.Account);
+        _companions.Forget(player.Account);
         _dedupe.Forget(player.Session);
     }
 
@@ -420,6 +439,13 @@ public sealed class GameServer : IServerSessionHandler
         EcsWorld world = _world.World;
         var move = new MoveInput(input.MoveX, input.MoveZ);
         Vector3 direction = MovementModel.Direction(move);
+        if (world.Has<SigilCast>(player.Avatar))
+        {
+            // Drawing a summoning sigil holds the player still and ignores guard and dodge until it is done (M2-06).
+            player.LastButtons = input.Buttons;
+            return;
+        }
+
         CombatRules.SetBlock(world, player.Avatar, (input.Buttons & PlayerButtons.Block) != 0, now);
         bool dodgePressed = (input.Buttons & PlayerButtons.Dodge) != 0 && (player.LastButtons & PlayerButtons.Dodge) == 0;
         player.LastButtons = input.Buttons;
@@ -464,7 +490,7 @@ public sealed class GameServer : IServerSessionHandler
             {
                 var id = new IntentId(player.Session, request.Sequence);
                 int duplicatesBefore = Transactions.Duplicates;
-                IntentResult result = Execute(id, player, request, now, out Entity? changed);
+                IntentResult result = _intents.Execute(id, player.Avatar, request, now, out Entity? changed);
                 if (_journal is null)
                 {
                     SendAck(connection, request.Sequence, result);
@@ -511,47 +537,10 @@ public sealed class GameServer : IServerSessionHandler
         _transport.Send(connection, Channel.ReliableOrdered, writer.WrittenSpan);
     }
 
-    private IntentResult Execute(IntentId id, PlayerSlot player, IntentRequest request, ulong now, out Entity? changed)
-    {
-        changed = null;
-        switch (request.Kind)
-        {
-            case IntentKind.OfferPact:
-                var target = new StableId(request.Target);
-                var offer = new OfferPactTransaction(_world, _cooldowns, player.Avatar, target, new PactTerms(request.Argument));
-                IntentResult result = Transactions.Execute(id, ref offer, now);
-                changed = _world.TryFindCreature(target, out Entity creature) ? creature : null;
-                return result;
-            case IntentKind.Feed:
-                var feed = new FeedTransaction(_world, _cooldowns, player.Avatar, new StableId(request.Target));
-                return Changed(Transactions.Execute(id, ref feed, now), request.Target, out changed);
-            case IntentKind.Hit:
-                var hit = new HitTransaction(_world, player.Avatar, new StableId(request.Target));
-                return Changed(Transactions.Execute(id, ref hit, now), request.Target, out changed);
-            case IntentKind.Help:
-                var help = new HelpTransaction(_world, _cooldowns, player.Avatar, new StableId(request.Target));
-                return Changed(Transactions.Execute(id, ref help, now), request.Target, out changed);
-            case IntentKind.Scare:
-                var scare = new ScareTransaction(_world, _cooldowns, player.Avatar);
-                return Transactions.Execute(id, ref scare, now);
-            case IntentKind.Attack when request.Target <= byte.MaxValue:
-                var attack = new AttackTransaction(_world, player.Avatar, request.Argument, (byte)request.Target);
-                return Transactions.Execute(id, ref attack, now);
-            default:
-                return IntentResult.Reject(IntentRejectReason.InvalidArguments);
-        }
-    }
-
-    // The journal saves the target creature right away; creatures that died, and witnesses, wait for the next checkpoint.
-    private IntentResult Changed(IntentResult result, ulong target, out Entity? changed)
-    {
-        changed = _world.TryFindCreature(new StableId(target), out Entity creature) ? creature : null;
-        return result;
-    }
-
     private sealed class PlayerSlot(ulong account, ulong session)
     {
         public const int MaxQueuedIntents = 32;
+
 
         public ulong Account { get; } = account;
 

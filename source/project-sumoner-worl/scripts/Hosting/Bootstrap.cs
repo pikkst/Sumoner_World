@@ -1,4 +1,5 @@
 using Godot;
+using SumonerWorld.Core.Diagnostics;
 using SumonerWorld.Game.Diagnostics;
 using SumonerWorld.Game.Playtest;
 
@@ -51,6 +52,11 @@ public sealed partial class Bootstrap : Node
                 var server = new ServerHost(options, log);
                 var client = new ClientHost(options, log);
                 AddChild(server);
+                if (options.SelfTest)
+                {
+                    log.Write(LogLevel.Info, "selftest.fixture", $"companion given: {SelfTestFixture.GiveCompanion(server.Server!, options.Account)}");
+                }
+
                 AddChild(client);
                 AddChild(new PlaytestRecorder(server.Server!, () => client.Camera, options.Account, log));
                 break;

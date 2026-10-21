@@ -1,5 +1,7 @@
 using System.Numerics;
+using SumonerWorld.Core.Bonding;
 using SumonerWorld.Core.Cognition;
+using SumonerWorld.Core.Cognition.Memory;
 using SumonerWorld.Core.Combat;
 using SumonerWorld.Core.Diagnostics;
 using SumonerWorld.Core.Ecs;
@@ -223,6 +225,37 @@ public class AuthoritativeLoopTests
         Assert.False(journal.Entries[1].IsNew);
         Assert.Empty(journal.Entries[1].Changed);
         Assert.Equal(1, lan.Server.PendingAcks);
+    }
+
+    [Fact]
+    public void A_player_sees_their_companions_summons_one_and_stands_still_while_drawing_the_sigil()
+    {
+        using var lan = new Lan(0);
+        StableId creature = lan.SpawnCreature(lan.Settings.SpawnPoint + new Vector3(40, 0, 0));
+        Assert.True(lan.World.TryFindCreature(creature, out Entity entity));
+        MindHandle mind = lan.World.World.GetComponent<MindRef>(entity).Handle;
+        lan.World.Services.Bonding.Restore(mind, new BondState(OwnershipState.Pacted, 1001, PactTerms.Of(0), 0, 1, false, 0, 0, false));
+        GameClient alice = lan.Join(1001);
+        lan.Run(30, _ => MoveInput.None);
+        Assert.Equal([new CompanionEntry(creature.Value, (byte)lan.World.SpeciesIndex("mossback"), false)], alice.Companions);
+
+        uint summon = alice.SendIntent(IntentKind.Summon, creature.Value, 0);
+        lan.Run(12, _ => new MoveInput(1000, 0));
+        Assert.True(alice.IntentResults[summon].IsApplied);
+        Assert.Equal((byte)CombatAction.Cast, alice.OwnVitals.Action);
+        Assert.True(alice.Prediction.Frozen);
+        Vector3 casting = lan.ServerPosition(1001);
+        lan.Run(10, _ => new MoveInput(1000, 0));
+        Assert.Equal(casting, lan.ServerPosition(1001));
+
+        lan.Run(40, _ => MoveInput.None);
+        Assert.True(Assert.Single(alice.Companions).Summoned);
+        Assert.True(Vector3.Distance(lan.World.World.GetComponent<Position>(entity).Value, lan.ServerPosition(1001)) < 5, "it came to her side");
+
+        uint dismiss = alice.SendIntent(IntentKind.Dismiss, creature.Value, 0);
+        lan.Run(30, _ => MoveInput.None);
+        Assert.True(alice.IntentResults[dismiss].IsApplied);
+        Assert.False(Assert.Single(alice.Companions).Summoned);
     }
 
     [Fact]

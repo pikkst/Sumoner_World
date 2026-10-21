@@ -179,4 +179,13 @@ public sealed record CombatDefinition
 
     /// <summary>Ticks a stagger (poise break, parry, guard break) lasts.</summary>
     public required int StaggerTicks { get; init; }
+
+    /// <summary>Mana a summon costs (AI Bible §10.4, M2-06).</summary>
+    public required int SummonManaCost { get; init; }
+
+    /// <summary>Ticks the summoning sigil takes before the creature arrives.</summary>
+    public required int SummonCastTicks { get; init; }
+
+    /// <summary>Active summons a player may have (AI Bible §10.4: starting value 2; the rank sets it from M2-20).</summary>
+    public required int BondCapacity { get; init; }
 }

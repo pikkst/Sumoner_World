@@ -97,6 +97,78 @@ public enum IntentKind : byte
     /// argument = move slot (0 basic, 1 heavy).
     /// </summary>
     Attack = 6,
+
+    /// <summary>
+    /// Call a pacted creature with a summoning sigil (since protocol 9): target = stable id. A refusal carries a <c>SummonRefusal</c>
+    /// as detail.
+    /// </summary>
+    Summon = 7,
+
+    /// <summary>Send a summoned creature back (since protocol 9): target = stable id.</summary>
+    Dismiss = 8,
+}
+
+/// <summary>One of the receiver's pacted creatures.</summary>
+/// <param name="Id">Stable id.</param>
+/// <param name="Species">Species index.</param>
+/// <param name="Summoned">At the player's side.</param>
+public readonly record struct CompanionEntry(ulong Id, byte Species, bool Summoned);
+
+/// <summary>Server → client, reliable (since protocol 9): the receiver's pacted creatures, oldest Pact first by id.</summary>
+/// <param name="Entries">At most <see cref="MaxEntries"/>.</param>
+public readonly record struct CompanionList(IReadOnlyList<CompanionEntry> Entries)
+{
+    /// <summary>Most companions sent.</summary>
+    public const int MaxEntries = 32;
+}
+
+/// <summary>Codec for <see cref="CompanionList"/>.</summary>
+public sealed class CompanionListCodec : IMessageCodec<CompanionList>
+{
+    /// <inheritdoc />
+    public MessageType Type => MessageType.CompanionList;
+
+    /// <inheritdoc />
+    public void Write(ref MessageWriter writer, in CompanionList message)
+    {
+        ArgumentNullException.ThrowIfNull(message.Entries);
+        ArgumentOutOfRangeException.ThrowIfGreaterThan(message.Entries.Count, CompanionList.MaxEntries);
+        Protocol.WriteHeader(ref writer, Type);
+        writer.WriteByte((byte)message.Entries.Count);
+        foreach (CompanionEntry entry in message.Entries)
+        {
+            writer.WriteVarUInt(entry.Id);
+            writer.WriteByte(entry.Species);
+            writer.WriteByte(entry.Summoned ? (byte)1 : (byte)0);
+        }
+    }
+
+    /// <inheritdoc />
+    public CompanionList Read(ref MessageReader reader)
+    {
+        int count = reader.ReadByte();
+        if (count > CompanionList.MaxEntries)
+        {
+            throw new MalformedMessageException($"Companion list of {count} (max {CompanionList.MaxEntries}).");
+        }
+
+        var entries = new CompanionEntry[count];
+        for (int i = 0; i < count; i++)
+        {
+            ulong id = reader.ReadVarUInt();
+            byte species = reader.ReadByte();
+            byte summoned = reader.ReadByte();
+            if (summoned > 1)
+            {
+                throw new MalformedMessageException($"Companion {id} has summoned flag {summoned}.");
+            }
+
+            entries[i] = new CompanionEntry(id, species, summoned == 1);
+        }
+
+        reader.EnsureEnd();
+        return new CompanionList(entries);
+    }
 }
 
 /// <summary>Bits of <see cref="PlayerInput.Buttons"/> (since protocol 7). Values are part of the protocol.</summary>

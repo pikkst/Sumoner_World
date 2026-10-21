@@ -116,6 +116,9 @@ public enum CombatAction : byte
 
     /// <summary>A creature that yielded.</summary>
     Yield = 8,
+
+    /// <summary>A player drawing a summoning sigil (since protocol 9, M2-06).</summary>
+    Cast = 9,
 }
 
 /// <summary>Published for every hit that lands (feedback, telemetry, AI).</summary>
@@ -202,7 +205,7 @@ public static class CombatRules
             return IntentResult.Reject(IntentRejectReason.OnCooldown);
         }
 
-        if (combatant.Health == 0 || world.Has<Yielding>(actor) || world.Has<Downed>(actor) || world.Has<Staggered>(actor) || world.Has<Dodging>(actor))
+        if (world.Has<Bonding.SigilCast>(actor) || combatant.Health == 0 || world.Has<Yielding>(actor) || world.Has<Downed>(actor) || world.Has<Staggered>(actor) || world.Has<Dodging>(actor))
         {
             return IntentResult.Reject(IntentRejectReason.WrongState);
         }
@@ -322,6 +325,11 @@ public static class CombatRules
         if (IsEvading(world, data, entity, now))
         {
             return (CombatAction.Dodge, -1);
+        }
+
+        if (world.Has<Bonding.SigilCast>(entity))
+        {
+            return (CombatAction.Cast, -1);
         }
 
         if (world.Has<ActiveMove>(entity))

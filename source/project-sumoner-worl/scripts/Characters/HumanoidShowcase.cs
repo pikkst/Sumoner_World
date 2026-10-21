@@ -28,6 +28,7 @@ public sealed partial class HumanoidShowcase : Node3D
         ("stagger", CombatAction.Stagger, 0),
         ("yield", CombatAction.Yield, 0),
         ("down", CombatAction.Down, 0),
+        ("cast", CombatAction.Cast, 0),
     ];
 
     private readonly Heightfield _ground;

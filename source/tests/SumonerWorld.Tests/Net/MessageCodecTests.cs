@@ -52,6 +52,9 @@ public class MessageCodecTests
         Assert.Equal(intent, RoundTrip(new IntentRequestCodec(), intent));
         var ack = new IntentAck(5, IntentResult.Reject(IntentRejectReason.OnCooldown));
         Assert.Equal(ack, RoundTrip(new IntentAckCodec(), ack));
+        CompanionEntry[] companions = [new(77, 1, true), new(9_000_000_001, 0, false)];
+        Assert.Equal(companions, RoundTrip(new CompanionListCodec(), new CompanionList(companions)).Entries);
+        Assert.Empty(RoundTrip(new CompanionListCodec(), new CompanionList([])).Entries);
     }
 
     [Fact]

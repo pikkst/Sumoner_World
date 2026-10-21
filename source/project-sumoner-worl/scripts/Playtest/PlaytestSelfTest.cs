@@ -17,14 +17,16 @@ namespace SumonerWorld.Game.Playtest;
 /// <see cref="Done"/> lets the host take its screenshot afterwards.
 /// </summary>
 public sealed partial class PlaytestSelfTest(
-    InteractionControls controls, CombatControls combat, LockOn lockOn, GameClient client, OrbitCamera camera, Func<bool> worldShown, ILog log, Action<string> capture)
+    InteractionControls controls,
+    CompanionBar companions,
+    CombatControls combat, LockOn lockOn, GameClient client, OrbitCamera camera, Func<bool> worldShown, ILog log, Action<string> capture)
     : Node
 {
     private const double WalkLimitSeconds = 8;
     private const float CloseMetres = 3f; // inside the basic attack's reach of a mossback (2 m + its 1.6 m body)
     private const double StepSeconds = 1.2;
     private const double WatchSeconds = 6;
-    private const int LastStep = 12;
+    private const int LastStep = 15;
 
     private double _clock;
     private double _walking;
@@ -130,6 +132,19 @@ public sealed partial class PlaytestSelfTest(
             case 12:
                 Press(Key.Space, pressed: false);
                 log.Write(LogLevel.Info, "selftest.dodge", $"after the dodge: stamina {client.OwnVitals.Stamina}/255, health {client.OwnVitals.Health}/255");
+                PressKey(Key.Z);
+                break;
+            case 13:
+                log.Write(LogLevel.Info, "selftest.summon", $"action {(SumonerWorld.Core.Combat.CombatAction)client.OwnVitals.Action}, mana {client.OwnVitals.Mana}/255; {controls.Feedback}");
+                capture("sigil");
+                break;
+            case 14:
+                log.Write(LogLevel.Info, "selftest.summon", $"{OneLine(companions.Shown)} | {CompanionDistance()}");
+                capture("summoned");
+                PressKey(Key.X);
+                break;
+            case 15:
+                log.Write(LogLevel.Info, "selftest.summon", $"{OneLine(companions.Shown)} | {controls.Feedback}");
                 break;
             default:
                 Done = true;
@@ -141,6 +156,21 @@ public sealed partial class PlaytestSelfTest(
     {
         Press(key, pressed: true);
         Press(key, pressed: false);
+    }
+
+    private static string OneLine(string text) => text.Replace("\n", "; ", StringComparison.Ordinal);
+
+    private string CompanionDistance()
+    {
+        foreach (SumonerWorld.Net.Messages.CompanionEntry companion in client.Companions)
+        {
+            if (client.Entities.TryGetValue((SumonerWorld.Net.Messages.SnapshotEntityKind.Creature, companion.Id), out SumonerWorld.Net.Messages.SnapshotEntity entity))
+            {
+                return $"companion #{companion.Id} {System.Numerics.Vector3.Distance(entity.Position, client.Prediction.Position):F1} m away";
+            }
+        }
+
+        return "no companion in view";
     }
 
     private string TargetEmote() =>

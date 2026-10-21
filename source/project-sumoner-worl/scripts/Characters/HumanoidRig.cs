@@ -49,6 +49,9 @@ public sealed partial class HumanoidRig : Node3D
     /// <summary>Staff pivot (at the right hand; local +Y runs from the grip to the glowing tip).</summary>
     public Node3D Staff { get; private set; } = null!;
 
+    /// <summary>The summoning sigil at the feet, shown while casting (M2-06).</summary>
+    public Node3D Sigil { get; private set; } = null!;
+
     /// <summary>The rig's own animation time in seconds.</summary>
     public double Clock { get; set; }
 
@@ -110,7 +113,10 @@ public sealed partial class HumanoidRig : Node3D
         // The staff is gripped in the right hand; the pose turns it at the wrist (upright at rest, swung forward in a strike).
         Node3D staff = rig.Staff = Pivot(rig.Elbows[1], "Staff", new Vector3(0, -ArmSegment - 0.04f, 0.02f));
         Part(staff, new CylinderMesh { TopRadius = 0.025f, BottomRadius = 0.03f, Height = 1.4f, RadialSegments = 5 }, wood, new Vector3(0, 0.25f, 0), Vector3.Zero);
-        Part(staff, new SphereMesh { Radius = 0.06f, Height = 0.12f, RadialSegments = 6, Rings = 3 }, Glow(new Color(0.72f, 0.88f, 0.35f)), new Vector3(0, 0.98f, 0), Vector3.Zero);
+        Part(staff, new SphereMesh { Radius = 0.06f, Height = 0.12f, RadialSegments = 6, Rings = 3 }, Glow(Characters.Sigil.Primal), new Vector3(0, 0.98f, 0), Vector3.Zero);
+        rig.Sigil = Characters.Sigil.Build(1.2f);
+        rig.Sigil.Visible = false;
+        rig.AddChild(rig.Sigil);
         return rig;
     }
 

@@ -365,7 +365,10 @@ Bond level can **go down**. It is recalculated once per in-game day and immediat
 - **Acceptance (`PactEvaluator`):** `Score = Σ term value + 3×Trust + 3×Respect + reputation/5 − 3×Fear − 300 (grudge: a negative core memory about the player)`; accepted when `Score ≥ species pactThreshold`. **No randomness.** Every part is returned (`PactDecision`) so the UI can show why. Term value = `base + need × needWeight/100 + Σ factor × trait/10` from `data/ai/pact_terms.json`; offers carry 1–3 terms; a term's position in the file is its saved bit and must never change.
 - **Leaving:** the third broken term, or Trust < −50 for 3 in-game days (`DailyUpdate`). A creature with Temper > 40 turns hostile when it leaves.
 - **Bond level:** highest level in `data/ai/bond_levels.json` whose Trust, Affection, core-memories-about-owner and days-bonded requirements are met; recalculated by `DailyUpdate`, after a broken term, and on demand. It goes down when care stops.
-- **Summoning:** owner only, `Pacted` only (not Sanctum residents), active summons < Bond Capacity (1–5).
+- **Summoning:** owner only, `Pacted` only (not Sanctum residents), active summons < Bond Capacity (1–5). In play (M2-06): the
+  `Summon` intent costs `summonManaCost` mana and holds the player in a sigil for `summonCastTicks` (`data/combat/combat.json`),
+  then the creature arrives at the player's side from wherever it is; Bond Capacity is `bondCapacity` (2) until the rank sets it
+  (M2-20); a summoned creature is always AI LOD T0; `Dismiss` returns it to its own life where it stands.
 - **Death:** `Deceased` on Hardcore, `Fallen` otherwise; only the owner revives a Fallen creature. `BondedDied` memories for companions are written by the caller (it knows the companions).
 - **Obedience (`ObedienceModel`):** `450 + 60×bond level + 2×Trust + 2×Respect + Loyalty − 2×Fear − danger/2 − 200 (conflicts with its memories)`; ≥ 600 Obey, ≥ 400 Improvise, ≥ 200 Hesitate, else Refuse; danger ≥ 800 with Loyalty < 50 → Refuse (suicidal); knowing a better tactic turns Obey into Improvise. Weights in `ObedienceSettings` for playtest tuning.
 - **Atomicity:** each operation changes the bond in one step on the server; in multiplayer it runs inside the transaction processor (M1-15, R27/R34).
