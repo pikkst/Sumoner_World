@@ -369,6 +369,11 @@ Bond level can **go down**. It is recalculated once per in-game day and immediat
   `Summon` intent costs `summonManaCost` mana and holds the player in a sigil for `summonCastTicks` (`data/combat/combat.json`),
   then the creature arrives at the player's side from wherever it is; Bond Capacity is `bondCapacity` (2) until the rank sets it
   (M2-20); a summoned creature is always AI LOD T0; `Dismiss` returns it to its own life where it stands.
+- **Companion behaviour (M2-07, `CompanionSystem`):** while summoned, a companion follows (within 4 m, keeping 1.5 m personal
+  space, running when more than 10 m behind, drawn back beyond 60 m), defends its summoner unprompted and helps in the
+  summoner's fights (`CompanionAlertSystem` takes the foe from the tick's hits), lets a yielding or downed foe go (the summoner's
+  spare is respected) and stays within a 20 m leash. Independent companions (Loyalty < 0) roam on their own mind when the
+  summoner stands still for 10 s. A companion never attacks its own summoner. Commands and the obedience answer follow in M2-08.
 - **Death:** `Deceased` on Hardcore, `Fallen` otherwise; only the owner revives a Fallen creature. `BondedDied` memories for companions are written by the caller (it knows the companions).
 - **Obedience (`ObedienceModel`):** `450 + 60×bond level + 2×Trust + 2×Respect + Loyalty − 2×Fear − danger/2 − 200 (conflicts with its memories)`; ≥ 600 Obey, ≥ 400 Improvise, ≥ 200 Hesitate, else Refuse; danger ≥ 800 with Loyalty < 50 → Refuse (suicidal); knowing a better tactic turns Obey into Improvise. Weights in `ObedienceSettings` for playtest tuning.
 - **Atomicity:** each operation changes the bond in one step on the server; in multiplayer it runs inside the transaction processor (M1-15, R27/R34).

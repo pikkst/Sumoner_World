@@ -69,12 +69,14 @@ public sealed record CreatureServices(AiLodPolicy Lod, CreatureSubjectResolver R
 /// <param name="Decision">Utility AI.</param>
 /// <param name="Behaviour">Behaviour trees.</param>
 /// <param name="PactAnswers">Creatures answering a Pact offer with their body (M2-05), in place of their trees.</param>
+/// <param name="Companions">Summoned companions following, defending and roaming (M2-07), in place of their trees.</param>
 /// <param name="Intents">Creature intents.</param>
 /// <param name="Movement">Movement.</param>
 /// <param name="Separation">Keeps bodies apart after movement.</param>
 /// <param name="Summoning">Summoning sigils finishing: creatures arrive at their summoner's side (M2-06).</param>
 /// <param name="Attacks">Creatures' attack intents (M2-03).</param>
 /// <param name="Combat">Moves and hits (combat spec §4).</param>
+/// <param name="CompanionAlerts">Hits that give summoned companions a foe (M2-07).</param>
 /// <param name="Vitals">Regeneration, yield, defeat (combat spec §5, §6).</param>
 /// <param name="ReputationFlush">Reputation aggregation.</param>
 public sealed record CreatureSystems(
@@ -84,12 +86,14 @@ public sealed record CreatureSystems(
     DecisionSystem Decision,
     BehaviourSystem Behaviour,
     PactAnswerSystem PactAnswers,
+    CompanionSystem Companions,
     CreatureIntentSystem Intents,
     MovementSystem Movement,
     SeparationSystem Separation,
     SummoningSystem Summoning,
     CreatureAttackSystem Attacks,
     CombatSystem Combat,
+    CompanionAlertSystem CompanionAlerts,
     VitalsSystem Vitals,
     ReputationFlushSystem ReputationFlush)
 {
@@ -107,12 +111,14 @@ public sealed record CreatureSystems(
             decision,
             new BehaviourSystem(world.World, world.Services.Runner, world.Services.Lod, world.Services.Resolver),
             new PactAnswerSystem(world),
+            new CompanionSystem(world),
             intents,
             movement,
             new SeparationSystem(world.World, world.Grid, sizes, world.Settings.Ground),
             new SummoningSystem(world),
             new CreatureAttackSystem(world),
             new CombatSystem(world),
+            new CompanionAlertSystem(world),
             new VitalsSystem(world),
             new ReputationFlushSystem(world.Reputation));
     }
@@ -146,12 +152,14 @@ public sealed record CreatureSystems(
         scheduler.Register(Decision);
         scheduler.Register(Behaviour);
         scheduler.Register(PactAnswers);
+        scheduler.Register(Companions);
         scheduler.Register(Intents);
         scheduler.Register(Movement);
         scheduler.Register(Separation);
         scheduler.Register(Summoning);
         scheduler.Register(Attacks);
         scheduler.Register(Combat);
+        scheduler.Register(CompanionAlerts);
         scheduler.Register(Vitals);
         scheduler.Register(ReputationFlush);
     }

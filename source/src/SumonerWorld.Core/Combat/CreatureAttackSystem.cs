@@ -11,7 +11,7 @@ namespace SumonerWorld.Core.Combat;
 /// Carries out the behaviour trees' <c>attack</c> intents (AI Bible §7.3, combat spec §9, M2-03): the creature turns to its focus
 /// and starts the first of its species' moves whose shape reaches it (so a bogfox bites up close and pounces from farther away),
 /// through the same <see cref="CombatRules"/> as players. Nothing happens when no move reaches, the focus is already down, the
-/// creature is snared, or <see cref="CombatRules.CanStart"/> refuses (in a move, tired, staggered, yielding); the tree simply tries
+/// creature is snared, the focus is the summoner it is pacted to, or <see cref="CombatRules.CanStart"/> refuses (in a move, tired, staggered, yielding); the tree simply tries
 /// again on its next cycle.
 /// </summary>
 public sealed class CreatureAttackSystem : ISimulationSystem
@@ -22,6 +22,8 @@ public sealed class CreatureAttackSystem : ISimulationSystem
     private readonly ComponentStore<Position> _positions;
     private readonly ComponentStore<Combatant> _combatants;
     private readonly ComponentStore<Snared> _snared;
+    private readonly ComponentStore<PlayerAvatar> _players;
+    private readonly ComponentStore<MindRef> _minds;
     private readonly int[][] _movesBySource;
 
     /// <summary>Creates the system for a world.</summary>
@@ -34,6 +36,8 @@ public sealed class CreatureAttackSystem : ISimulationSystem
         _positions = _ecs.Store<Position>();
         _combatants = _ecs.Store<Combatant>();
         _snared = _ecs.Store<Snared>();
+        _players = _ecs.Store<PlayerAvatar>();
+        _minds = _ecs.Store<MindRef>();
         _movesBySource = [.. world.Data.Species.Select(species => species.Combat.Moves.Select(world.Data.MoveIndex).ToArray())];
     }
 
@@ -55,11 +59,23 @@ public sealed class CreatureAttackSystem : ISimulationSystem
         }
     }
 
+    // A companion never attacks the player it is pacted to (M2-07), whatever its own mind wants.
+    private bool IsOwnSummoner(Entity actor, Entity target)
+    {
+        if (!_players.Has(target) || !_minds.Has(actor))
+        {
+            return false;
+        }
+
+        Bonding.BondState bond = _world.Services.Bonding.GetBond(_minds.Get(actor).Handle);
+        return bond.State == Bonding.OwnershipState.Pacted && bond.Owner == _players.Get(target).AccountId;
+    }
+
     private void TryAttack(Entity actor, ulong now)
     {
         FocusRef focus = _focus.Get(actor);
         if (focus.Has == 0 || _snared.Has(actor) || !_combatants.Has(actor) || !_positions.Has(focus.Entity)
-            || !_combatants.Has(focus.Entity) || _combatants.Get(focus.Entity).Health == 0)
+            || !_combatants.Has(focus.Entity) || _combatants.Get(focus.Entity).Health == 0 || IsOwnSummoner(actor, focus.Entity))
         {
             return;
         }

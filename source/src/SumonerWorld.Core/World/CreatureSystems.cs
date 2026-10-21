@@ -247,7 +247,7 @@ public sealed class DecisionSystem(
 
 /// <summary>
 /// Behaviour trees (AI Bible §7.3) at each creature's tier rate, with its current focus; paused while the creature answers a Pact
-/// offer (<see cref="Bonding.PactAnswerSystem"/>).
+/// offer (<see cref="Bonding.PactAnswerSystem"/>) and while a summoned companion follows or fights (<see cref="Bonding.CompanionSystem"/>).
 /// </summary>
 public sealed class BehaviourSystem(IEcsWorld world, IBehaviourTreeRunner runner, IAiLodPolicy policy, CreatureSubjectResolver resolver) : ISimulationSystem
 {
@@ -258,6 +258,7 @@ public sealed class BehaviourSystem(IEcsWorld world, IBehaviourTreeRunner runner
     private readonly ComponentStore<FocusRef> _focus = world.Store<FocusRef>();
     private readonly ComponentStore<MindRef> _minds = world.Store<MindRef>();
     private readonly ComponentStore<Bonding.PactAnswer> _answers = world.Store<Bonding.PactAnswer>();
+    private readonly ComponentStore<Bonding.CompanionState> _companions = world.Store<Bonding.CompanionState>();
 
     /// <inheritdoc />
     public SimulationStage Stage => SimulationStage.Behaviour;
@@ -269,7 +270,8 @@ public sealed class BehaviourSystem(IEcsWorld world, IBehaviourTreeRunner runner
         Span<CurrentGoal> goals = _goals.Components;
         for (int i = 0; i < entities.Length; i++)
         {
-            if (!policy.IsDue(_tiers.Get(entities[i]).Tier, AiActivity.Behaviour, entities[i].Index, tick.Index) || _answers.Has(entities[i]))
+            if (!policy.IsDue(_tiers.Get(entities[i]).Tier, AiActivity.Behaviour, entities[i].Index, tick.Index) || _answers.Has(entities[i])
+                || (_companions.Has(entities[i]) && _companions.Get(entities[i]).Mode != (int)Bonding.CompanionMode.Roam))
             {
                 continue;
             }
