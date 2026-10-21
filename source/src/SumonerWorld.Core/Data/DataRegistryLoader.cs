@@ -38,6 +38,9 @@ public static partial class DataRegistryLoader
     /// <summary>File kind for <see cref="CombatDefinition"/> (exactly one file).</summary>
     public const string CombatKind = "combat";
 
+    /// <summary>File kind for <see cref="SkillTreeDefinition"/> (any number of files, M2-10).</summary>
+    public const string SkillTreesKind = "skillTrees";
+
     private const int MaxTermValue = 300;
 
     private const int MaxSpeedPercent = 500;
@@ -98,6 +101,7 @@ public static partial class DataRegistryLoader
         private readonly List<(MoveDefinition Entry, string Where)> _moves = [];
         private readonly List<(CombatStatsDefinition Stats, string Where)> _combatants = [];
         private CombatDefinition? _combat;
+        private readonly List<(SkillTreeDefinition Entry, string Where)> _skillTrees = [];
         private readonly Dictionary<string, string> _speciesSources = new(StringComparer.Ordinal);
         private readonly Dictionary<string, List<string>> _filesByKind = new(StringComparer.Ordinal);
 
@@ -173,8 +177,17 @@ public static partial class DataRegistryLoader
                 case CombatKind:
                     AddCombat(file);
                     break;
+                case SkillTreesKind:
+                    foreach ((SkillTreeDefinition entry, int index) in ReadEntries<SkillTreeDefinition>(file, Errors))
+                    {
+                        string where = $"{file.Path}: entries[{index}]";
+                        ValidateSkillTree(entry, where, Errors);
+                        _skillTrees.Add((entry, where));
+                    }
+
+                    break;
                 default:
-                    Errors.Add($"{file.Path}: unknown kind '{kind}'. Known kinds: {MemoryEventTypesKind}, {SpeciesKind}, {OpinionWeightsKind}, {GoalsKind}, {BehaviourTreesKind}, {PactTermsKind}, {BondLevelsKind}, {MovesKind}, {CombatKind}.");
+                    Errors.Add($"{file.Path}: unknown kind '{kind}'. Known kinds: {MemoryEventTypesKind}, {SpeciesKind}, {OpinionWeightsKind}, {GoalsKind}, {BehaviourTreesKind}, {PactTermsKind}, {BondLevelsKind}, {MovesKind}, {CombatKind}, {SkillTreesKind}.");
                     break;
             }
         }
@@ -195,6 +208,7 @@ public static partial class DataRegistryLoader
             ValidateUniqueMemoryEventTypes(_memoryEventTypes, Errors);
             ValidateOpinionWeightReferences(_opinionWeights, _memoryEventTypes, Errors);
             ValidateMoveReferences(_moves, _combatants, Errors);
+            ValidateSkillTreeReferences(_skillTrees, _species, _moves, Errors);
 
             if (Errors.Count > 0)
             {
@@ -210,7 +224,8 @@ public static partial class DataRegistryLoader
                 _pactTerms,
                 [.. _bondLevels.OrderBy(level => level.Level)],
                 [.. _moves.Select(item => item.Entry).OrderBy(definition => definition.Id, StringComparer.Ordinal)],
-                _combat!);
+                _combat!,
+                [.. _skillTrees.Select(item => item.Entry).OrderBy(definition => definition.Species, StringComparer.Ordinal)]);
         }
 
         private void AddSpecies(DataFile file)

@@ -9,7 +9,8 @@ namespace SumonerWorld.Core.Combat;
 
 /// <summary>
 /// Carries out the behaviour trees' <c>attack</c> intents (AI Bible §7.3, combat spec §9, M2-03): the creature turns to its focus
-/// and starts the first of its species' moves whose shape reaches it (so a bogfox bites up close and pounces from farther away),
+/// and starts the first move whose shape reaches it and that it can pay for: the moves of its active skills first (M2-10), then its
+/// species' moves (so a bogfox bites up close and pounces from farther away),
 /// through the same <see cref="CombatRules"/> as players. Nothing happens when no move reaches, the focus is already down, the
 /// creature is snared, the focus is the summoner it is pacted to, or <see cref="CombatRules.CanStart"/> refuses (in a move, tired, staggered, yielding); the tree simply tries
 /// again on its next cycle.
@@ -25,6 +26,9 @@ public sealed class CreatureAttackSystem : ISimulationSystem
     private readonly ComponentStore<PlayerAvatar> _players;
     private readonly ComponentStore<MindRef> _minds;
     private readonly int[][] _movesBySource;
+    private readonly int[] _skillMoves = new int[Progression.SkillRules.Slots(Progression.LifeStage.Elder)];
+    private readonly ComponentStore<Progression.CreatureSkills> _skillsStore;
+    private readonly ComponentStore<Progression.CreatureGrowth> _growthStore;
 
     /// <summary>Creates the system for a world.</summary>
     public CreatureAttackSystem(CreatureWorld world)
@@ -38,6 +42,8 @@ public sealed class CreatureAttackSystem : ISimulationSystem
         _snared = _ecs.Store<Snared>();
         _players = _ecs.Store<PlayerAvatar>();
         _minds = _ecs.Store<MindRef>();
+        _skillsStore = _ecs.Store<Progression.CreatureSkills>();
+        _growthStore = _ecs.Store<Progression.CreatureGrowth>();
         _movesBySource = [.. world.Data.Species.Select(species => species.Combat.Moves.Select(world.Data.MoveIndex).ToArray())];
     }
 
@@ -85,22 +91,25 @@ public sealed class CreatureAttackSystem : ISimulationSystem
         var flat = new Vector2(to.X - from.X, to.Z - from.Z);
         Vector2 aim = flat.LengthSquared() > 0 ? Vector2.Normalize(flat) : Vector2.UnitY;
         float radius = _world.Sizes.RadiusOf(focus.Entity);
-        foreach (int move in _movesBySource[_combatants.Get(actor).Source])
+        int source = _combatants.Get(actor).Source;
+        int skills = _skillsStore.Has(actor) && _growthStore.Has(actor)
+            ? Progression.SkillRules.ActiveMoves(
+                _world.Data, _world.Data.SkillTreeOf(source), _skillsStore.Get(actor).Learned, (Progression.LifeStage)_growthStore.Get(actor).Stage, _skillMoves)
+            : 0;
+        int[] species = _movesBySource[source];
+        for (int i = 0; i < skills + species.Length; i++)
         {
+            int move = i < skills ? _skillMoves[i] : species[i - skills];
             MoveDefinition definition = _world.Data.Moves[move];
-            if (!CombatSystem.InShape(definition.Shape, from, aim, to, radius))
+            if (!CombatSystem.InShape(definition.Shape, from, aim, to, radius) || !CombatRules.CanStart(_ecs, _world.Data, actor, move).IsApplied)
             {
                 continue;
             }
 
-            if (CombatRules.CanStart(_ecs, _world.Data, actor, move).IsApplied)
-            {
-                var direction = new Vector3(aim.X, 0, aim.Y);
-                CombatRules.Start(_ecs, _world.Data, actor, move, direction, now);
-                _ecs.GetComponent<Facing>(actor) = new Facing(direction);
-                Started++;
-            }
-
+            var direction = new Vector3(aim.X, 0, aim.Y);
+            CombatRules.Start(_ecs, _world.Data, actor, move, direction, now);
+            _ecs.GetComponent<Facing>(actor) = new Facing(direction);
+            Started++;
             return;
         }
     }

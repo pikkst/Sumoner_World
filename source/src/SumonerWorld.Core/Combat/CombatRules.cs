@@ -200,7 +200,7 @@ public static class CombatRules
         }
 
         ref Combatant combatant = ref world.GetComponent<Combatant>(actor);
-        if (!Knows(StatsOf(data, combatant), data.Moves[move].Id))
+        if (!Knows(StatsOf(data, combatant), data.Moves[move].Id) && !LearnedMove(world, data, actor, combatant.Source, data.Moves[move].Id))
         {
             return IntentResult.Reject(IntentRejectReason.InvalidArguments);
         }
@@ -354,6 +354,26 @@ public static class CombatRules
     private static bool CanDefend(EcsWorld world, Entity actor) =>
         world.Has<Combatant>(actor) && world.GetComponent<Combatant>(actor).Health > 0
         && !world.Has<Downed>(actor) && !world.Has<Staggered>(actor) && !world.Has<Yielding>(actor);
+
+    // A move a creature learned from its skill tree (M2-10).
+    private static bool LearnedMove(EcsWorld world, IDataRegistry data, Entity actor, int source, string moveId)
+    {
+        if (!world.Has<Progression.CreatureSkills>(actor) || data.SkillTreeOf(source) is not SkillTreeDefinition tree)
+        {
+            return false;
+        }
+
+        ulong learned = world.GetComponent<Progression.CreatureSkills>(actor).Learned;
+        for (int i = 0; i < tree.Nodes.Count; i++)
+        {
+            if ((learned & (1UL << i)) != 0 && tree.Nodes[i].Move == moveId)
+            {
+                return true;
+            }
+        }
+
+        return false;
+    }
 
     private static bool Knows(CombatStatsDefinition stats, string moveId)
     {

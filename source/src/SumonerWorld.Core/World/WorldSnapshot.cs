@@ -27,8 +27,17 @@ public sealed record WorldSnapshot(
 /// <param name="Mind">Mind state.</param>
 /// <param name="Bond">Bond with its owner (wild when unowned).</param>
 /// <param name="Growth">Tier, level, stage and experience (M2-09); null in saves from before it existed.</param>
+/// <param name="Skills">Learned skills and spent points (M2-10); null in saves from before they existed.</param>
 public sealed record CreatureSave(
-    StableId Id, string Species, Vector3 Position, Vector3 Facing, int Group, MindState Mind, BondState Bond, Progression.CreatureGrowth? Growth = null);
+    StableId Id,
+    string Species,
+    Vector3 Position,
+    Vector3 Facing,
+    int Group,
+    MindState Mind,
+    BondState Bond,
+    Progression.CreatureGrowth? Growth = null,
+    Progression.CreatureSkills? Skills = null);
 
 /// <summary>One saved reputation score.</summary>
 /// <param name="Species">Species data id.</param>

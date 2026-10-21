@@ -44,6 +44,9 @@ internal static class SaveMapping
                 TravelCm = growth.TravelCm,
             }
             : null,
+        Skills = save.Skills is CreatureSkills skills
+            ? new SkillsRecord { Learned = skills.Learned, Spent = skills.Spent, UnspentSince = skills.UnspentSince, PickedItself = skills.PickedItself }
+            : null,
     };
 
     public static CreatureSave FromRecord(StableId id, CreatureRecord record)
@@ -65,7 +68,8 @@ internal static class SaveMapping
                 (OwnershipState)bond.State, bond.Owner, new PactTerms(bond.Terms), bond.BrokenTerms, bond.BondLevel, bond.Summoned, bond.PactTick, bond.DistrustSinceTick, bond.Distrustful),
             record.Growth is GrowthRecord growth
                 ? new CreatureGrowth(growth.Tier, growth.Level, growth.Stage, growth.CombatXp, growth.WorkXp, growth.TravelXp, growth.TravelCm)
-                : null);
+                : null,
+            record.Skills is SkillsRecord skills ? new CreatureSkills(skills.Learned, skills.UnspentSince, 0, skills.Spent, skills.PickedItself) : null);
     }
 
     private static MindRecord ToRecord(MindState mind) => new()

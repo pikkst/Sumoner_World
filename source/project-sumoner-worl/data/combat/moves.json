@@ -20,6 +20,24 @@
       "damage": 12, "damageType": "physical", "stamina": 25, "poise": 25, "tags": ["pounce"] },
     { "id": "peck", "windupTicks": 8, "activeTicks": 3, "recoveryTicks": 12,
       "shape": { "kind": "arc", "reachCm": 120, "angleDeg": 90 },
-      "damage": 4, "damageType": "physical", "stamina": 8, "poise": 5, "tags": ["bite"] }
+      "damage": 4, "damageType": "physical", "stamina": 8, "poise": 5, "tags": ["bite"] },
+    { "id": "horn_toss", "windupTicks": 16, "activeTicks": 4, "recoveryTicks": 18,
+      "shape": { "kind": "arc", "reachCm": 220, "angleDeg": 100 },
+      "damage": 16, "damageType": "physical", "stamina": 25, "poise": 45, "tags": ["skill", "heavy"] },
+    { "id": "stomp", "windupTicks": 18, "activeTicks": 4, "recoveryTicks": 20,
+      "shape": { "kind": "circle", "reachCm": 250 },
+      "damage": 12, "damageType": "physical", "stamina": 30, "poise": 50, "tags": ["skill", "area"] },
+    { "id": "feint", "windupTicks": 5, "activeTicks": 3, "recoveryTicks": 8,
+      "shape": { "kind": "arc", "reachCm": 160, "angleDeg": 90 },
+      "damage": 5, "damageType": "physical", "stamina": 8, "poise": 15, "tags": ["skill", "bite"] },
+    { "id": "lunge", "windupTicks": 10, "activeTicks": 5, "recoveryTicks": 16,
+      "shape": { "kind": "line", "reachCm": 450, "widthCm": 100 },
+      "damage": 14, "damageType": "physical", "stamina": 22, "poise": 25, "tags": ["skill", "pounce"] },
+    { "id": "talon_dive", "windupTicks": 14, "activeTicks": 5, "recoveryTicks": 16,
+      "shape": { "kind": "line", "reachCm": 500, "widthCm": 100 },
+      "damage": 10, "damageType": "physical", "stamina": 18, "poise": 20, "tags": ["skill"] },
+    { "id": "wing_buffet", "windupTicks": 10, "activeTicks": 4, "recoveryTicks": 14,
+      "shape": { "kind": "arc", "reachCm": 180, "angleDeg": 160 },
+      "damage": 6, "damageType": "physical", "stamina": 14, "poise": 35, "tags": ["skill"] }
   ]
 }

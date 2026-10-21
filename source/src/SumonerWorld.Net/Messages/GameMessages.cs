@@ -108,6 +108,12 @@ public enum IntentKind : byte
     Dismiss = 8,
 
     /// <summary>
+    /// Teach a pacted creature a skill (since protocol 13): target = stable id, argument = node index in its species' tree; a
+    /// refusal carries the node's <c>SkillState</c> as detail.
+    /// </summary>
+    LearnSkill = 10,
+
+    /// <summary>
     /// Command every summoned companion (since protocol 10): argument = <c>CompanionCommand</c>, target = the creature to attack
     /// (Attack) or 0; detail = companions doing it (low 4 bits) and refusing (high 4 bits).
     /// </summary>
@@ -120,7 +126,37 @@ public enum IntentKind : byte
 /// <param name="Summoned">At the player's side.</param>
 /// <param name="Level">Its level (since protocol 11).</param>
 /// <param name="Stage">Its life stage (<c>LifeStage</c>, since protocol 11).</param>
-public readonly record struct CompanionEntry(ulong Id, byte Species, bool Summoned, byte Level = 1, byte Stage = 0);
+/// <param name="BondLevel">Its bond level (since protocol 13).</param>
+/// <param name="Points">Skill points it can spend (since protocol 13).</param>
+/// <param name="Learned">Learned skill bits (since protocol 13).</param>
+/// <param name="Affinity">How much it likes each branch of its tree, in branch order (since protocol 13).</param>
+public readonly record struct CompanionEntry(
+    ulong Id, byte Species, bool Summoned, byte Level = 1, byte Stage = 0, byte BondLevel = 0, byte Points = 0, ulong Learned = 0, Affinities Affinity = default);
+
+/// <summary>Up to four branch affinities (−128…127), in branch order.</summary>
+/// <param name="Count">How many branches.</param>
+/// <param name="A">First.</param>
+/// <param name="B">Second.</param>
+/// <param name="C">Third.</param>
+/// <param name="D">Fourth.</param>
+public readonly record struct Affinities(byte Count, sbyte A, sbyte B, sbyte C, sbyte D)
+{
+    /// <summary>The affinity of branch <paramref name="index"/>.</summary>
+    public sbyte this[int index] => index switch
+    {
+        0 => A,
+        1 => B,
+        2 => C,
+        _ => D,
+    };
+
+    /// <summary>Builds from values (clamped to a signed byte).</summary>
+    public static Affinities Of(ReadOnlySpan<int> values)
+    {
+        static sbyte At(ReadOnlySpan<int> v, int i) => i < v.Length ? (sbyte)Math.Clamp(v[i], sbyte.MinValue, sbyte.MaxValue) : (sbyte)0;
+        return new Affinities((byte)Math.Min(values.Length, 4), At(values, 0), At(values, 1), At(values, 2), At(values, 3));
+    }
+}
 
 /// <summary>Server → client, reliable (since protocol 9): the receiver's pacted creatures, oldest Pact first by id.</summary>
 /// <param name="Entries">At most <see cref="MaxEntries"/>.</param>
@@ -150,6 +186,14 @@ public sealed class CompanionListCodec : IMessageCodec<CompanionList>
             writer.WriteByte(entry.Summoned ? (byte)1 : (byte)0);
             writer.WriteByte(entry.Level);
             writer.WriteByte(entry.Stage);
+            writer.WriteByte(entry.BondLevel);
+            writer.WriteByte(entry.Points);
+            writer.WriteVarUInt(entry.Learned);
+            writer.WriteByte(entry.Affinity.Count);
+            for (int a = 0; a < entry.Affinity.Count; a++)
+            {
+                writer.WriteByte(unchecked((byte)entry.Affinity[a]));
+            }
         }
     }
 
@@ -163,6 +207,7 @@ public sealed class CompanionListCodec : IMessageCodec<CompanionList>
         }
 
         var entries = new CompanionEntry[count];
+        Span<int> affinity = stackalloc int[4];
         for (int i = 0; i < count; i++)
         {
             ulong id = reader.ReadVarUInt();
@@ -173,7 +218,23 @@ public sealed class CompanionListCodec : IMessageCodec<CompanionList>
                 throw new MalformedMessageException($"Companion {id} has summoned flag {summoned}.");
             }
 
-            entries[i] = new CompanionEntry(id, species, summoned == 1, reader.ReadByte(), reader.ReadByte());
+            byte level = reader.ReadByte();
+            byte stage = reader.ReadByte();
+            byte bondLevel = reader.ReadByte();
+            byte points = reader.ReadByte();
+            ulong learned = reader.ReadVarUInt();
+            int branches = reader.ReadByte();
+            if (branches > 4)
+            {
+                throw new MalformedMessageException($"Companion {id} has {branches} branch affinities (max 4).");
+            }
+
+            for (int b = 0; b < branches; b++)
+            {
+                affinity[b] = unchecked((sbyte)reader.ReadByte());
+            }
+
+            entries[i] = new CompanionEntry(id, species, summoned == 1, level, stage, bondLevel, points, learned, Affinities.Of(affinity[..branches]));
         }
 
         reader.EnsureEnd();

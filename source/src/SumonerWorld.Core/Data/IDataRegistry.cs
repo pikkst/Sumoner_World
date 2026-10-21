@@ -35,6 +35,12 @@ public interface IDataRegistry
     /// <summary>Combat rules and the player's base stats (combat spec §2, §5, §6).</summary>
     CombatDefinition Combat { get; }
 
+    /// <summary>Skill trees, ordered by species id (companions spec §5).</summary>
+    IReadOnlyList<SkillTreeDefinition> SkillTrees { get; }
+
+    /// <summary>The skill tree of the species at this index in <see cref="Species"/>, or null when it has none.</summary>
+    SkillTreeDefinition? SkillTreeOf(int species);
+
     /// <summary>Index of the move with this id in <see cref="Moves"/>. Throws <see cref="KeyNotFoundException"/> if unknown.</summary>
     int MoveIndex(string id);
 

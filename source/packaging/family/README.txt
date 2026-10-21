@@ -38,6 +38,8 @@ The game plays on the local dev server, which runs in Docker on this PC. Nothing
    Commands for your companions: 1 attack (the creature you locked on with T, or the one near you),
    2 guard me, 3 hold here, 4 come back. Watch how they answer: a companion that trusts you
    obeys at once; one that is unsure pauses or does it its own way; one may even refuse.
+   K opens the companion panel: your companion's level, bond and skill tree. Teach it a skill with
+   1-9 or a click. It likes some branches more than others; a branch it dislikes costs 2 points.
    P opens the Pact menu: choose up to 3 promises with the number keys 1-6 (or click them),
    then Enter (or "Offer the Pact"); Esc closes it. Watch the creature: it answers first with
    its body (it comes closer, or turns away), then a line tells you its answer.

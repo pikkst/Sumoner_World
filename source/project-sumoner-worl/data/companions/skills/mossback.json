@@ -1,0 +1,172 @@
+// Grazer tank: Vanguard charges in, Guardian shields the herd, Earthshaker shakes the ground. Node order is the saved bit order: append only. Starting values (companions spec §5).
+{
+  "schemaVersion": 1,
+  "kind": "skillTrees",
+  "entries": [
+    {
+      "species": "mossback",
+      "branches": [
+        {
+          "id": "vanguard",
+          "traits": [
+            {
+              "trait": "boldness",
+              "factor": 5
+            },
+            {
+              "trait": "temper",
+              "factor": 3
+            }
+          ],
+          "roles": [
+            {
+              "role": "combat",
+              "factor": 5
+            }
+          ]
+        },
+        {
+          "id": "guardian",
+          "traits": [
+            {
+              "trait": "loyalty",
+              "factor": 5
+            },
+            {
+              "trait": "temper",
+              "factor": -4
+            }
+          ],
+          "roles": [
+            {
+              "role": "combat",
+              "factor": 2
+            },
+            {
+              "role": "work",
+              "factor": 3
+            }
+          ]
+        },
+        {
+          "id": "earthshaker",
+          "traits": [
+            {
+              "trait": "temper",
+              "factor": 5
+            },
+            {
+              "trait": "curiosity",
+              "factor": -2
+            }
+          ],
+          "roles": [
+            {
+              "role": "combat",
+              "factor": 4
+            }
+          ]
+        }
+      ],
+      "nodes": [
+        {
+          "id": "horn_toss",
+          "branch": "vanguard",
+          "level": 2,
+          "move": "horn_toss"
+        },
+        {
+          "id": "thick_hide",
+          "branch": "guardian",
+          "level": 2,
+          "passive": {
+            "stat": "guard",
+            "amount": 2
+          }
+        },
+        {
+          "id": "rooted",
+          "branch": "earthshaker",
+          "level": 3,
+          "passive": {
+            "stat": "poise",
+            "amount": 20
+          }
+        },
+        {
+          "id": "battering_ram",
+          "branch": "vanguard",
+          "level": 4,
+          "requires": [
+            "horn_toss"
+          ],
+          "passive": {
+            "stat": "power",
+            "amount": 10
+          }
+        },
+        {
+          "id": "herd_shield",
+          "branch": "guardian",
+          "level": 4,
+          "bondLevel": 2,
+          "requires": [
+            "thick_hide"
+          ],
+          "passive": {
+            "stat": "health",
+            "amount": 15
+          }
+        },
+        {
+          "id": "stomp",
+          "branch": "earthshaker",
+          "level": 5,
+          "requires": [
+            "rooted"
+          ],
+          "move": "stomp"
+        },
+        {
+          "id": "unstoppable",
+          "branch": "vanguard",
+          "level": 7,
+          "requires": [
+            "battering_ram"
+          ],
+          "passive": {
+            "stat": "poise",
+            "amount": 30
+          }
+        },
+        {
+          "id": "old_bark",
+          "branch": "guardian",
+          "level": 7,
+          "stage": "grown",
+          "requires": [
+            "herd_shield"
+          ],
+          "passive": {
+            "stat": "guard",
+            "amount": 3
+          }
+        },
+        {
+          "id": "quake_heart",
+          "branch": "earthshaker",
+          "level": 8,
+          "bondLevel": 3,
+          "stage": "grown",
+          "requires": [
+            "stomp"
+          ],
+          "passive": {
+            "stat": "power",
+            "amount": 15
+          }
+        }
+      ]
+    }
+  ]
+}

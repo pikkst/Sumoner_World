@@ -141,6 +141,15 @@ contract v1.0.0); combat spec v0.4 (D1)
   a creature of another class always refuses (`WrongClass`, remembered as `PactRefused`, "does not answer to your kind of
   summoner"), and the level difference table adds to the score. Progress is saved with the player and shown in the HUD
   ("Elf · Rank F · Level 1" and an experience bar; protocol 12).
+- **M2-10 (skill trees):** one tree per slice species in `data/companions/skills/` (mossback Vanguard / Guardian / Earthshaker,
+  bogfox Scout / Trickster / Pack, hollow owl Watcher / Silent Wing / Wise One; nine nodes each, the hollow owl stands in for the
+  pixie). A node teaches a move (new moves `horn_toss`, `stomp`, `feint`, `lunge`, `talon_dive`, `wing_buffet`) or gives a passive
+  (health or power in percent, guard, poise or stamina). Points 1 per 2 levels; slots 2/3/4 by stage; the active skills' moves are
+  tried first in a fight. Branch affinity = traits and the share of each role in its experience; warm at +20 or more, cold at −20
+  or less (cost 2, Grudge for a moment). Unspent points for 3 in-game days: it picks the first available node of the branch it
+  likes most. The companion panel (K) shows level, stage, bond, points, slots and the tree with warm/cold branches; the server
+  checks every choice (`LearnSkill` intent, protocol 13). Skills are saved with the creature. Respec (gold) waits for M2-13;
+  behaviour skills and "use skill" commands come later.
 
 ## Changelog
 - **0.2 (2026-10-21):** approved with the stakeholder's answers: three life stages (young, grown, elder) and levels; creatures

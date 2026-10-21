@@ -2,6 +2,7 @@ using SumonerWorld.Core.Bonding;
 using SumonerWorld.Core.Combat;
 using SumonerWorld.Core.Ecs;
 using SumonerWorld.Core.Intents;
+using SumonerWorld.Core.Progression;
 using SumonerWorld.Core.Transactions;
 using SumonerWorld.Core.World;
 using SumonerWorld.Net.Messages;
@@ -44,6 +45,9 @@ internal sealed class PlayerIntents(CreatureWorld world, TransactionProcessor tr
             case IntentKind.Dismiss:
                 var dismiss = new DismissTransaction(world, avatar, target);
                 return Changed(transactions.Execute(id, ref dismiss, now), target, out changed);
+            case IntentKind.LearnSkill:
+                var learn = new LearnSkillTransaction(world, avatar, target, request.Argument);
+                return Changed(transactions.Execute(id, ref learn, now), target, out changed);
             case IntentKind.Command:
                 var command = new CommandTransaction(world, avatar, (CompanionCommand)request.Argument, target);
                 return transactions.Execute(id, ref command, now);

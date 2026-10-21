@@ -196,6 +196,7 @@ public sealed class WorldSaveTests : IDisposable
             world.World.GetComponent<MindRef>(first).Handle,
             new BondState(OwnershipState.Pacted, 1001, PactTerms.Of(0), 0, 1, false, 500, 0, false));
         world.World.GetComponent<SumonerWorld.Core.Progression.CreatureGrowth>(first) = new(1, 7, 2, 300, 15, 40, 2_500);
+        world.World.GetComponent<SumonerWorld.Core.Progression.CreatureSkills>(first) = new(0b101, 9_000, 0, 2, 1);
         world.DespawnPlayerAvatar(player);
         return world;
     }
@@ -209,7 +210,7 @@ public sealed class WorldSaveTests : IDisposable
         {
             CreatureSave a = expected.Creatures[i];
             CreatureSave b = actual.Creatures[i];
-            Assert.Equal((a.Id, a.Species, a.Position, a.Facing, a.Group, a.Bond, a.Growth), (b.Id, b.Species, b.Position, b.Facing, b.Group, b.Bond, b.Growth));
+            Assert.Equal((a.Id, a.Species, a.Position, a.Facing, a.Group, a.Bond, a.Growth, a.Skills), (b.Id, b.Species, b.Position, b.Facing, b.Group, b.Bond, b.Growth, b.Skills));
             Assert.Equal((a.Mind.Birth, a.Mind.Current), (b.Mind.Birth, b.Mind.Current));
             Assert.Equal(a.Mind.CoreRecords, b.Mind.CoreRecords);
             Assert.Equal(a.Mind.EpisodicRecords, b.Mind.EpisodicRecords);
