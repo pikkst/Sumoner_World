@@ -66,10 +66,13 @@ internal sealed class SnapshotSender(CreatureWorld world, ITransport transport, 
         byte health = _combatants.Has(entity) ? Snapshot.Fraction(c.Health, c.MaxHealth) : byte.MaxValue;
         (CombatAction action, int move) = CombatRules.ActionOf(world.World, world.Data, entity, tick);
         return _players.Has(entity)
-            ? new SnapshotEntity(SnapshotEntityKind.Player, _players.Get(entity).AccountId, position, facing, 0, 0, health, (byte)action, (byte)(move + 1))
+            ? new SnapshotEntity(
+                SnapshotEntityKind.Player, _players.Get(entity).AccountId, position, facing, 0, 0, health, (byte)action, (byte)(move + 1), 0, 0,
+                (byte)StatusRules.FlagsOf(world.World, entity, tick))
             : new SnapshotEntity(
                 SnapshotEntityKind.Creature, _ids.Get(entity).Value, position, facing, (byte)_emotes.Get(entity).Value, (byte)_species.Get(entity).Index,
-                health, (byte)action, (byte)(move + 1), (byte)_growth.Get(entity).Stage, (byte)_growth.Get(entity).Level);
+                health, (byte)action, (byte)(move + 1), (byte)_growth.Get(entity).Stage, (byte)_growth.Get(entity).Level,
+                (byte)StatusRules.FlagsOf(world.World, entity, tick));
     }
 
     private SnapshotVitals Vitals(Entity avatar, ulong tick)
@@ -82,7 +85,7 @@ internal sealed class SnapshotSender(CreatureWorld world, ITransport transport, 
         byte xp = p.Level >= Core.Progression.GrowthRules.Cap((Core.Progression.Rank)p.Rank) ? byte.MaxValue : Snapshot.Fraction(p.Xp - from, to - from);
         return new SnapshotVitals(
             Snapshot.Fraction(c.Health, c.MaxHealth), Snapshot.Fraction(c.Stamina, c.MaxStamina), Snapshot.Fraction(c.Mana, c.MaxMana), (byte)action,
-            (byte)p.Level, (byte)p.Rank, (byte)p.Class, xp);
+            (byte)p.Level, (byte)p.Rank, (byte)p.Class, xp, (byte)StatusRules.FlagsOf(world.World, avatar, tick));
     }
 
     private void Flush(ConnectionId connection, ref MessageWriter writer, int countOffset, int count)

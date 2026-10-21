@@ -21,6 +21,12 @@ public enum MoveShapeKind
 
     /// <summary>All around the attacker: radius <c>reachCm</c>.</summary>
     Circle,
+
+    /// <summary>A circle of <c>radiusCm</c> around a point the caster chose up to <c>reachCm</c> ahead (Burst spells, M2-11).</summary>
+    Burst,
+
+    /// <summary>No area: it takes effect on the caster or the ally it names within <c>reachCm</c> (Ward spells, M2-11).</summary>
+    Ward,
 }
 
 /// <summary>A move's hit area.</summary>
@@ -37,6 +43,9 @@ public sealed record MoveShapeDefinition
 
     /// <summary>For <see cref="MoveShapeKind.Line"/>: the strip's width in centimetres.</summary>
     public int WidthCm { get; init; }
+
+    /// <summary>For <see cref="MoveShapeKind.Burst"/>: the circle's radius in centimetres.</summary>
+    public int RadiusCm { get; init; }
 }
 
 /// <summary>
@@ -77,6 +86,18 @@ public sealed record MoveDefinition
 
     /// <summary>Tags for combos and the AI (<c>heavy</c>, <c>charge</c>, <c>bite</c>, …).</summary>
     public IReadOnlyList<string> Tags { get; init; } = [];
+
+    /// <summary>A status effect it puts on what it hits (spells, M2-11), if any.</summary>
+    public string? Effect { get; init; }
+
+    /// <summary>Health it heals over its effect's time (ward spells).</summary>
+    public int Heal { get; init; }
+
+    /// <summary>The magic school of a spell (resonance), empty for other moves.</summary>
+    public string School { get; init; } = string.Empty;
+
+    /// <summary>True for spells (moves built from runes); everyone with a spell book may cast them.</summary>
+    public bool IsSpell => School.Length > 0;
 
     /// <summary>Whole length of the move in ticks.</summary>
     public int TotalTicks => WindupTicks + ActiveTicks + RecoveryTicks;

@@ -16,6 +16,7 @@ public static class CombatState
         world.Register<Blocking>();
         world.Register<Dodging>();
         world.Register<Staggered>();
+        world.Register<StatusEffects>();
     }
 
     /// <summary>Adds the hashed components, with the entities that hold them.</summary>
@@ -32,5 +33,7 @@ public static class CombatState
         hash.Add<Dodging>(world.Store<Dodging>().Components);
         hash.Add<Entity>(world.Store<Staggered>().Entities);
         hash.Add<Staggered>(world.Store<Staggered>().Components);
+        hash.Add<Entity>(world.Store<StatusEffects>().Entities);
+        hash.Add<StatusEffects>(world.Store<StatusEffects>().Components);
     }
 }

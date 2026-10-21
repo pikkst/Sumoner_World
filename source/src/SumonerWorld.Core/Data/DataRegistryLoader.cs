@@ -41,6 +41,15 @@ public static partial class DataRegistryLoader
     /// <summary>File kind for <see cref="SkillTreeDefinition"/> (any number of files, M2-10).</summary>
     public const string SkillTreesKind = "skillTrees";
 
+    /// <summary>File kind for <see cref="RuneDefinition"/> (M2-11).</summary>
+    public const string RunesKind = "runes";
+
+    /// <summary>File kind for <see cref="SpellDefinition"/> (M2-11).</summary>
+    public const string SpellsKind = "spells";
+
+    /// <summary>File kind for <see cref="EffectDefinition"/> (M2-11).</summary>
+    public const string EffectsKind = "effects";
+
     private const int MaxTermValue = 300;
 
     private const int MaxSpeedPercent = 500;
@@ -102,6 +111,9 @@ public static partial class DataRegistryLoader
         private readonly List<(CombatStatsDefinition Stats, string Where)> _combatants = [];
         private CombatDefinition? _combat;
         private readonly List<(SkillTreeDefinition Entry, string Where)> _skillTrees = [];
+        private readonly List<RuneDefinition> _runes = [];
+        private readonly List<(SpellDefinition Entry, string Where)> _spells = [];
+        private readonly List<EffectDefinition> _effects = [];
         private readonly Dictionary<string, string> _speciesSources = new(StringComparer.Ordinal);
         private readonly Dictionary<string, List<string>> _filesByKind = new(StringComparer.Ordinal);
 
@@ -177,6 +189,29 @@ public static partial class DataRegistryLoader
                 case CombatKind:
                     AddCombat(file);
                     break;
+                case RunesKind:
+                    foreach ((RuneDefinition entry, int index) in ReadEntries<RuneDefinition>(file, Errors))
+                    {
+                        ValidateRune(entry, $"{file.Path}: entries[{index}]", Errors);
+                        _runes.Add(entry);
+                    }
+
+                    break;
+                case SpellsKind:
+                    foreach ((SpellDefinition entry, int index) in ReadEntries<SpellDefinition>(file, Errors))
+                    {
+                        _spells.Add((entry, $"{file.Path}: entries[{index}]"));
+                    }
+
+                    break;
+                case EffectsKind:
+                    foreach ((EffectDefinition entry, int index) in ReadEntries<EffectDefinition>(file, Errors))
+                    {
+                        ValidateEffect(entry, $"{file.Path}: entries[{index}]", Errors);
+                        _effects.Add(entry);
+                    }
+
+                    break;
                 case SkillTreesKind:
                     foreach ((SkillTreeDefinition entry, int index) in ReadEntries<SkillTreeDefinition>(file, Errors))
                     {
@@ -187,7 +222,7 @@ public static partial class DataRegistryLoader
 
                     break;
                 default:
-                    Errors.Add($"{file.Path}: unknown kind '{kind}'. Known kinds: {MemoryEventTypesKind}, {SpeciesKind}, {OpinionWeightsKind}, {GoalsKind}, {BehaviourTreesKind}, {PactTermsKind}, {BondLevelsKind}, {MovesKind}, {CombatKind}, {SkillTreesKind}.");
+                    Errors.Add($"{file.Path}: unknown kind '{kind}'. Known kinds: {MemoryEventTypesKind}, {SpeciesKind}, {OpinionWeightsKind}, {GoalsKind}, {BehaviourTreesKind}, {PactTermsKind}, {BondLevelsKind}, {MovesKind}, {CombatKind}, {SkillTreesKind}, {RunesKind}, {SpellsKind}, {EffectsKind}.");
                     break;
             }
         }
@@ -207,6 +242,7 @@ public static partial class DataRegistryLoader
             ValidateTreeReferences(_trees, _goals, Errors);
             ValidateUniqueMemoryEventTypes(_memoryEventTypes, Errors);
             ValidateOpinionWeightReferences(_opinionWeights, _memoryEventTypes, Errors);
+            _moves.AddRange(ComposeSpells(_spells, _runes, _effects, Errors));
             ValidateMoveReferences(_moves, _combatants, Errors);
             ValidateSkillTreeReferences(_skillTrees, _species, _moves, Errors);
 
@@ -225,7 +261,9 @@ public static partial class DataRegistryLoader
                 [.. _bondLevels.OrderBy(level => level.Level)],
                 [.. _moves.Select(item => item.Entry).OrderBy(definition => definition.Id, StringComparer.Ordinal)],
                 _combat!,
-                [.. _skillTrees.Select(item => item.Entry).OrderBy(definition => definition.Species, StringComparer.Ordinal)]);
+                [.. _skillTrees.Select(item => item.Entry).OrderBy(definition => definition.Species, StringComparer.Ordinal)],
+                [.. _spells.Select(item => item.Entry).OrderBy(definition => definition.Id, StringComparer.Ordinal)],
+                [.. _effects.OrderBy(definition => definition.Id, StringComparer.Ordinal)]);
         }
 
         private void AddSpecies(DataFile file)

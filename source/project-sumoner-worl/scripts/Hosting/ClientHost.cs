@@ -1,5 +1,4 @@
 using Godot;
-using SumonerWorld.Core.Combat;
 using SumonerWorld.Core.Diagnostics;
 using SumonerWorld.Core.Movement;
 using SumonerWorld.Core.Simulation;
@@ -48,9 +47,6 @@ public sealed partial class ClientHost : Node
     private const int ExitRejected = 2;
     private const int StatusEveryTicks = 150;
     private const double ScreenshotAfterSeconds = 8;
-    private const float BodyCentre = 0.9f;
-    private const float TurnRate = 14f;
-    private const float SpeedSmoothing = 8f;
 
     private readonly HostOptions _options;
     private readonly ILog _log;
@@ -63,19 +59,15 @@ public sealed partial class ClientHost : Node
     private long _ticks;
     private TestRegion? _region;
     private EntityViewSync? _views;
-    private HumanoidRig? _avatar;
+    private OwnAvatar? _avatar;
     private InteractionControls? _interactions;
     private CompanionBar? _companionBar;
     private CompanionPanel? _companionPanel;
-    private Vector3 _lastAvatarPosition;
-    private float _avatarYaw;
-    private float _avatarSpeed;
     private DevToolsLayer? _devTools;
     private PlaytestSelfTest? _selfTest;
     private OrbitCamera? _orbit;
     private CombatControls? _combat;
     private LockOn? _lockOn;
-    private byte _ownHealth = byte.MaxValue;
     private Core.Data.DataRegistry? _data;
     private bool _inspectRequested;
     private double _devToolsStarted;
@@ -166,7 +158,12 @@ public sealed partial class ClientHost : Node
         _lockOn = new LockOn(_client!, _views, () => _region?.Camera, AvatarCentre);
         AddChild(_lockOn);
         _combat = new CombatControls(
-            _client!, () => _region?.Camera, () => _lockOn.TryGetTarget(out Vector3 target) && _avatar is not null ? (AvatarCentre(), target) : null);
+            _client!,
+            data,
+            () => _region?.Camera,
+            () => _lockOn.TryGetTarget(out Vector3 target) && _avatar is not null ? (AvatarCentre(), target) : null,
+            () => _lockOn.Target,
+            controls.Send);
         AddChild(_combat);
         AddChild(new CombatHud(_client!));
         _companionBar = new CompanionBar(_client!, data, _views, controls, () => _lockOn?.Target ?? 0);
@@ -185,7 +182,7 @@ public sealed partial class ClientHost : Node
             AddChild(_devTools);
         }
 
-        _avatar = HumanoidRig.Build(EntityViewSync.OwnRobe);
+        _avatar = new OwnAvatar(_client!);
         AddChild(_avatar);
     }
 
@@ -200,16 +197,7 @@ public sealed partial class ClientHost : Node
     }
 
     // Where the own character's body is (lock-on, aiming and interaction distances measure from here, not the feet).
-    private Vector3 AvatarCentre() => _avatar is null ? Vector3.Zero : _avatar.GlobalPosition + new Vector3(0, BodyCentre, 0);
-
-    // The own character faces where it runs, and the camera's way while it fights, blocks or is locked on (attacks go that way).
-    private float AvatarYaw(Vector3 moved, float cameraYaw, double delta)
-    {
-        bool fighting = _client!.OwnVitals.Action != (byte)CombatAction.None || (_lockOn?.TryGetTarget(out _) ?? false);
-        float wanted = !fighting && moved.LengthSquared() > 1e-6f ? Mathf.Atan2(moved.X, moved.Z) : fighting ? cameraYaw : _avatarYaw;
-        _avatarYaw = Mathf.LerpAngle(_avatarYaw, wanted, 1 - Mathf.Exp(-TurnRate * (float)delta));
-        return _avatarYaw;
-    }
+    private Vector3 AvatarCentre() => _avatar?.Centre ?? Vector3.Zero;
 
     private void FollowAvatar()
     {
@@ -218,27 +206,10 @@ public sealed partial class ClientHost : Node
             return;
         }
 
-        System.Numerics.Vector3 p = _client.Prediction.Position;
-        var feet = new Vector3(p.X, p.Y, p.Z);
-        var position = feet + new Vector3(0, BodyCentre, 0);
-        double delta = GetProcessDeltaTime();
-        Vector3 moved = new Vector3(feet.X - _lastAvatarPosition.X, 0, feet.Z - _lastAvatarPosition.Z);
-        // Prediction steps at 30 Hz while frames may come faster, so the measured speed is smoothed before it drives the gait.
-        float measured = delta > 0 && moved.Length() < 2 ? moved.Length() / (float)delta : 0;
-        _avatarSpeed = Mathf.Lerp(_avatarSpeed, measured, 1 - Mathf.Exp(-SpeedSmoothing * (float)delta));
-        _lastAvatarPosition = feet;
-        _avatar.Position = feet;
         Basis look = camera.GlobalBasis;
-        CombatPose.Apply(_avatar, _client.OwnVitals.Action, AvatarYaw(moved, Mathf.Atan2(-look.Z.X, -look.Z.Z), delta), _elapsed);
-        HumanoidAnimator.Animate(_avatar, (CombatAction)_client.OwnVitals.Action, _avatarSpeed, delta);
-        if (_client.OwnVitals.Health < _ownHealth)
-        {
-            CombatPose.Hit(_avatar);
-            HumanoidAnimator.Hit(_avatar);
-        }
-
-        _ownHealth = _client.OwnVitals.Health;
-        CombatPose.Settle(_avatar, delta);
+        (string, float)? spell = _combat?.LastSpell is (string id, float distance, _) ? (id, distance) : null;
+        _avatar.Follow(Mathf.Atan2(-look.Z.X, -look.Z.Z), _lockOn?.TryGetTarget(out _) ?? false, spell, GetProcessDeltaTime());
+        Vector3 position = _avatar.Centre;
         _orbit!.Focus = _lockOn is not null && _lockOn.TryGetTarget(out Vector3 locked) ? locked : null;
         _orbit.Place(camera, position);
         StartDevTools();

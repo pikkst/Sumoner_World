@@ -38,6 +38,15 @@ public interface IDataRegistry
     /// <summary>Skill trees, ordered by species id (companions spec §5).</summary>
     IReadOnlyList<SkillTreeDefinition> SkillTrees { get; }
 
+    /// <summary>Spells (runes composed into moves of the same id), ordered by id (combat spec §8).</summary>
+    IReadOnlyList<SpellDefinition> Spells { get; }
+
+    /// <summary>Status effects, ordered by id (combat spec §7).</summary>
+    IReadOnlyList<EffectDefinition> Effects { get; }
+
+    /// <summary>The effect with this id, or null.</summary>
+    EffectDefinition? EffectOf(string id);
+
     /// <summary>The skill tree of the species at this index in <see cref="Species"/>, or null when it has none.</summary>
     SkillTreeDefinition? SkillTreeOf(int species);
 

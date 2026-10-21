@@ -31,6 +31,7 @@ public sealed partial class EntityViewSync : Node3D
     private readonly HashSet<(SnapshotEntityKind, ulong)> _seen = [];
     private readonly List<(SnapshotEntityKind, ulong)> _gone = [];
     private readonly Dictionary<Node3D, (HealthBar3D Bar, byte Health)> _health = [];
+    private readonly Dictionary<Node3D, (StatusMarksView Marks, byte Action)> _marks = [];
     private double _time;
 
     /// <summary>Creates the sync for a client; <paramref name="data"/> maps species indices to roles.</summary>
@@ -86,6 +87,7 @@ public sealed partial class EntityViewSync : Node3D
             }
 
             ShowHealth(view, state.Health, delta);
+            ShowSpells(view, state);
         }
 
         foreach (var key in _views.Keys)
@@ -156,6 +158,25 @@ public sealed partial class EntityViewSync : Node3D
         CombatPose.Settle(view, delta, SizeOf(view));
         bar.SetHealth(health);
         _health[view] = (bar, health);
+    }
+
+    // Status marks on every body, and a thornbolt's streak when someone's cast turns into the spell's flight (M2-11).
+    private void ShowSpells(Node3D view, RemoteState state)
+    {
+        if (!_marks.TryGetValue(view, out (StatusMarksView Marks, byte Action) shown))
+        {
+            shown = (new StatusMarksView(state.Kind == SnapshotEntityKind.Creature ? 1.1f : 0.6f), 0);
+            view.AddChild(shown.Marks);
+        }
+
+        shown.Marks.Show((StatusMarks)state.Status);
+        bool flight = shown.Action == (byte)CombatAction.Cast && state.Action is (byte)CombatAction.Strike or (byte)CombatAction.Recover;
+        if (flight && state.Move > 0 && state.Move - 1 < _data.Moves.Count && _data.Moves[state.Move - 1].Tags.Contains("bolt"))
+        {
+            AddChild(new BoltStreak(view.Position, state.Yaw, _data.Moves[state.Move - 1].Shape.ReachCm / 100f));
+        }
+
+        _marks[view] = (shown.Marks, state.Action);
     }
 
     private static float SizeOf(Node3D view) => view is CreatureRig rig ? rig.Size : 1f;

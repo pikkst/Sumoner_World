@@ -75,10 +75,7 @@ public sealed record CreatureServices(AiLodPolicy Lod, CreatureSubjectResolver R
 /// <param name="Movement">Movement.</param>
 /// <param name="Separation">Keeps bodies apart after movement.</param>
 /// <param name="Summoning">Summoning sigils finishing: creatures arrive at their summoner's side (M2-06).</param>
-/// <param name="Attacks">Creatures' attack intents (M2-03).</param>
-/// <param name="Combat">Moves and hits (combat spec §4).</param>
-/// <param name="CompanionAlerts">Hits that give summoned companions a foe (M2-07).</param>
-/// <param name="Vitals">Regeneration, yield, defeat (combat spec §5, §6).</param>
+/// <param name="Fight">Attacks, hits, companion alerts, status effects and vitals.</param>
 /// <param name="Growth">Companion experience, levels and life stages (M2-09).</param>
 /// <param name="Skills">Skill upkeep: picking unspent points, reluctance (M2-10).</param>
 /// <param name="ReputationFlush">Reputation aggregation.</param>
@@ -94,10 +91,7 @@ public sealed record CreatureSystems(
     MovementSystem Movement,
     SeparationSystem Separation,
     SummoningSystem Summoning,
-    CreatureAttackSystem Attacks,
-    CombatSystem Combat,
-    CompanionAlertSystem CompanionAlerts,
-    VitalsSystem Vitals,
+    FightSystems Fight,
     GrowthSystem Growth,
     SkillSystem Skills,
     ReputationFlushSystem ReputationFlush)
@@ -121,14 +115,20 @@ public sealed record CreatureSystems(
             movement,
             new SeparationSystem(world.World, world.Grid, sizes, world.Settings.Ground),
             new SummoningSystem(world),
-            new CreatureAttackSystem(world),
-            new CombatSystem(world),
-            new CompanionAlertSystem(world),
-            new VitalsSystem(world),
+            FightSystems.Create(world),
             new GrowthSystem(world),
             new SkillSystem(world),
             new ReputationFlushSystem(world.Reputation));
     }
+
+    /// <summary>Creatures' attack intents (M2-03).</summary>
+    public CreatureAttackSystem Attacks => Fight.Attacks;
+
+    /// <summary>Moves and hits (combat spec §4).</summary>
+    public CombatSystem Combat => Fight.Combat;
+
+    /// <summary>Regeneration, yield, defeat (combat spec §5, §6).</summary>
+    public VitalsSystem Vitals => Fight.Vitals;
 
     private static (PerceptionSystem Perception, DecisionSystem Decision) MindSystems(CreatureWorld world)
     {
@@ -164,14 +164,28 @@ public sealed record CreatureSystems(
         scheduler.Register(Movement);
         scheduler.Register(Separation);
         scheduler.Register(Summoning);
-        scheduler.Register(Attacks);
-        scheduler.Register(Combat);
-        scheduler.Register(CompanionAlerts);
-        scheduler.Register(Vitals);
+        scheduler.Register(Fight.Attacks);
+        scheduler.Register(Fight.Combat);
+        scheduler.Register(Fight.Alerts);
+        scheduler.Register(Fight.Status);
+        scheduler.Register(Fight.Vitals);
         scheduler.Register(Growth);
         scheduler.Register(Skills);
         scheduler.Register(ReputationFlush);
     }
+}
+
+/// <summary>The fight systems, in tick order (combat spec §4–§7).</summary>
+/// <param name="Attacks">Creatures' attack intents (M2-03).</param>
+/// <param name="Combat">Moves and hits (combat spec §4).</param>
+/// <param name="Alerts">Hits that give summoned companions a foe (M2-07).</param>
+/// <param name="Status">Status effects over time: mending, expiry (M2-11).</param>
+/// <param name="Vitals">Regeneration, yield, defeat (combat spec §5, §6).</param>
+public sealed record FightSystems(CreatureAttackSystem Attacks, CombatSystem Combat, CompanionAlertSystem Alerts, StatusSystem Status, VitalsSystem Vitals)
+{
+    /// <summary>Builds them for a world.</summary>
+    public static FightSystems Create(CreatureWorld world) =>
+        new(new CreatureAttackSystem(world), new CombatSystem(world), new CompanionAlertSystem(world), new StatusSystem(world.World), new VitalsSystem(world));
 }
 
 /// <summary>

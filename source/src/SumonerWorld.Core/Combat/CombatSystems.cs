@@ -32,6 +32,7 @@ public sealed class CombatSystem : ISimulationSystem
     private readonly ComponentStore<Blocking> _blocking;
     private readonly ComponentStore<Staggered> _staggered;
     private readonly ComponentStore<Facing> _facings;
+    private readonly ComponentStore<MindRef> _minds;
     private readonly Entity[] _hits;
     private readonly Entity[] _candidates = new Entity[MaxCandidates];
 
@@ -50,6 +51,7 @@ public sealed class CombatSystem : ISimulationSystem
         _blocking = _ecs.Store<Blocking>();
         _staggered = _ecs.Store<Staggered>();
         _facings = _ecs.Store<Facing>();
+        _minds = _ecs.Store<MindRef>();
         _hits = new Entity[world.Settings.EntityCapacity * MaxHitsPerMove];
     }
 
@@ -57,7 +59,7 @@ public sealed class CombatSystem : ISimulationSystem
     public SimulationStage Stage => SimulationStage.Combat;
 
     /// <summary>True when a body of radius <paramref name="radius"/> at <paramref name="target"/> is inside the move's shape.</summary>
-    public static bool InShape(MoveShapeDefinition shape, Vector3 attacker, Vector2 aim, Vector3 target, float radius)
+    public static bool InShape(MoveShapeDefinition shape, Vector3 attacker, Vector2 aim, Vector3 target, float radius, float burstDistance = 0)
     {
         ArgumentNullException.ThrowIfNull(shape);
         float reach = shape.ReachCm / CentimetresPerMetre;
@@ -76,6 +78,11 @@ public sealed class CombatSystem : ISimulationSystem
                 float along = Vector2.Dot(offset, aim);
                 float across = MathF.Abs((offset.X * aim.Y) - (offset.Y * aim.X));
                 return along >= -radius && along - radius <= reach && across <= (shape.WidthCm / CentimetresPerMetre / 2f) + radius;
+            case MoveShapeKind.Burst:
+                Vector2 centre = aim * Math.Clamp(burstDistance, 0, reach);
+                return Vector2.Distance(offset, centre) - radius <= shape.RadiusCm / CentimetresPerMetre;
+            case MoveShapeKind.Ward:
+                return false;
             default:
                 return distance - radius <= reach;
         }
@@ -111,13 +118,19 @@ public sealed class CombatSystem : ISimulationSystem
         Vector3 at = _positions.Get(attacker).Value;
         var aim = new Vector2(move.AimX, move.AimZ);
         float reach = definition.Shape.ReachCm / CentimetresPerMetre;
-        int found = _world.Grid.QueryRadius(at, reach + _world.Sizes.Largest, _candidates).Count;
+        if (definition.Shape.Kind == MoveShapeKind.Ward)
+        {
+            Ward(attacker, ref move, definition, now);
+            return;
+        }
+
+        int found = _world.Grid.QueryRadius(at, reach + (definition.Shape.RadiusCm / CentimetresPerMetre) + _world.Sizes.Largest, _candidates).Count;
         for (int n = 0; n < found && move.Hits < MaxHitsPerMove; n++)
         {
             Entity target = _candidates[n];
             if (target == attacker || !_combatants.Has(target) || _combatants.Get(target).Health == 0 || Friendly(attacker, target)
                 || AlreadyHit(attacker, move.Hits, target)
-                || !InShape(definition.Shape, at, aim, _positions.Get(target).Value, _world.Sizes.RadiusOf(target)))
+                || !InShape(definition.Shape, at, aim, _positions.Get(target).Value, _world.Sizes.RadiusOf(target), move.Distance))
             {
                 continue;
             }
@@ -147,7 +160,12 @@ public sealed class CombatSystem : ISimulationSystem
             return;
         }
 
-        int damage = CombatRules.Damage(definition.Damage, _combatants.Get(attacker).Power, CombatRules.ResistTo(victim, definition.DamageType), victim.Guard);
+        int damage = definition.Damage == 0 ? 0 : CombatRules.Damage(definition.Damage, _combatants.Get(attacker).Power, CombatRules.ResistTo(victim, definition.DamageType), victim.Guard);
+        if (definition.Effect is string effect && !guarded)
+        {
+            StatusRules.Apply(_ecs, _world.Data, target, effect, now);
+        }
+
         if (guarded)
         {
             damage = damage * rules.BlockDamagePerMille / PerMille;
@@ -217,10 +235,43 @@ public sealed class CombatSystem : ISimulationSystem
         return Vector2.Dot(Vector2.Normalize(flat), Vector2.Normalize(new Vector2(facing.X, facing.Z))) >= MathF.Cos(arcDeg * MathF.PI / 360f);
     }
 
-    // PvE: players do not hurt players; a herd or pack does not hurt its own members (companions come with M2-07).
+    // PvE: players do not hurt players; a herd or pack does not hurt its own members; a player does not hurt their own companions
+    // (combat spec §4: area spells skip them too).
     private bool Friendly(Entity attacker, Entity target) =>
         (_players.Has(attacker) && _players.Has(target))
-        || (_groups.Has(attacker) && _groups.Has(target) && _groups.Get(attacker).Group == _groups.Get(target).Group);
+        || (_groups.Has(attacker) && _groups.Has(target) && _groups.Get(attacker).Group == _groups.Get(target).Group)
+        || (_players.Has(attacker) && _minds.Has(target) && OwnedBy(target, _players.Get(attacker).AccountId))
+        || (_players.Has(target) && _minds.Has(attacker) && OwnedBy(attacker, _players.Get(target).AccountId));
+
+    private bool OwnedBy(Entity creature, ulong account)
+    {
+        Bonding.BondState bond = _world.Services.Bonding.GetBond(_minds.Get(creature).Handle);
+        return bond.State == Bonding.OwnershipState.Pacted && bond.Owner == account;
+    }
+
+    // A ward takes effect once, on the ally the caster named if it is still there and in reach, otherwise on the caster.
+    private void Ward(Entity caster, ref ActiveMove move, MoveDefinition definition, ulong now)
+    {
+        if (move.Hits > 0)
+        {
+            return;
+        }
+
+        Entity target = move.Target;
+        bool ally = target != default && _ecs.IsAlive(target) && _combatants.Has(target) && _positions.Has(target)
+            && Vector3.Distance(_positions.Get(target).Value, _positions.Get(caster).Value) <= definition.Shape.ReachCm / CentimetresPerMetre;
+        target = ally ? target : caster;
+        move.Hits = 1;
+        if (definition.Effect is string effect)
+        {
+            StatusRules.Apply(_ecs, _world.Data, target, effect, now, definition.Heal);
+        }
+
+        if (target != caster && _players.Has(caster) && _ecs.Has<MindRef>(target))
+        {
+            PlayerInteractions.Remember(_world, target, "HealedBy", _players.Get(caster).AccountId, now);
+        }
+    }
 
     private bool AlreadyHit(Entity attacker, int hits, Entity target)
     {

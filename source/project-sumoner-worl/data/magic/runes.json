@@ -1,0 +1,13 @@
+// Runes (combat spec §8, GDD §4): a spell is a form rune and an essence rune. Starting values.
+{
+  "schemaVersion": 1,
+  "kind": "runes",
+  "entries": [
+    { "id": "bolt", "slot": "form", "form": "bolt", "rangeCm": 2000, "widthCm": 80 },
+    { "id": "burst", "slot": "form", "form": "burst", "rangeCm": 1500, "radiusCm": 300 },
+    { "id": "ward", "slot": "form", "form": "ward", "rangeCm": 1500 },
+    { "id": "thorns", "slot": "essence", "damage": 12, "damageType": "primal", "effect": "slowed", "school": "primal" },
+    { "id": "roots", "slot": "essence", "damage": 0, "damageType": "primal", "effect": "rooted", "school": "primal" },
+    { "id": "growth", "slot": "essence", "heal": 30, "effect": "mending", "school": "primal" }
+  ]
+}

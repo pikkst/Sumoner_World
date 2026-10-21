@@ -27,6 +27,9 @@ The game plays on the local dev server, which runs in Docker on this PC. Nothing
    Left click              attack where you look (hold the button longer for a heavy attack)
    Shift (hold)            block; raised just before a hit, it parries
    Space                   dodge
+   C / V / G               spells: thornbolt (a thorn that hurts and slows), entangle (roots creatures
+                           where you aim, or on the creature you locked on), mend (heals you, or your
+                           locked-on companion). They cost mana (the blue bar).
    Middle click or T       lock the camera on the nearest creature in front (again to let go);
                            your attacks then aim at it by themselves
    Near a creature, a line at the bottom shows what you can do:

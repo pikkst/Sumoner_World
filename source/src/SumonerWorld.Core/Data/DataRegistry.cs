@@ -20,8 +20,12 @@ public sealed class DataRegistry : IDataRegistry
         IReadOnlyList<BondLevelDefinition> bondLevels,
         IReadOnlyList<MoveDefinition> moves,
         CombatDefinition combat,
-        IReadOnlyList<SkillTreeDefinition> skillTrees)
+        IReadOnlyList<SkillTreeDefinition> skillTrees,
+        IReadOnlyList<SpellDefinition> spells,
+        IReadOnlyList<EffectDefinition> effects)
     {
+        Spells = spells;
+        Effects = effects;
         SkillTrees = skillTrees;
         _treeBySpecies = [.. species.Select(definition => skillTrees.FirstOrDefault(tree => tree.Species == definition.Id))];
         Moves = moves;
@@ -67,6 +71,26 @@ public sealed class DataRegistry : IDataRegistry
 
     /// <inheritdoc />
     public IReadOnlyList<SkillTreeDefinition> SkillTrees { get; }
+
+    /// <inheritdoc />
+    public IReadOnlyList<SpellDefinition> Spells { get; }
+
+    /// <inheritdoc />
+    public IReadOnlyList<EffectDefinition> Effects { get; }
+
+    /// <inheritdoc />
+    public EffectDefinition? EffectOf(string id)
+    {
+        foreach (EffectDefinition effect in Effects)
+        {
+            if (effect.Id == id)
+            {
+                return effect;
+            }
+        }
+
+        return null;
+    }
 
     /// <inheritdoc />
     public SkillTreeDefinition? SkillTreeOf(int species) => (uint)species < (uint)_treeBySpecies.Length ? _treeBySpecies[species] : null;

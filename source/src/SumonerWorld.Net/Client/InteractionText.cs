@@ -65,6 +65,9 @@ public static class InteractionText
     /// <summary>The player's level line in the HUD, e.g. <c>Elf · Rank F · Level 3</c> (M2-09).</summary>
     public static string PlayerLine(SummonerClass summonerClass, Rank rank, int level) => $"{summonerClass} · Rank {rank} · Level {level}";
 
+    /// <summary>The spell keys (M2-11), shown with the combat keys.</summary>
+    public const string SpellHints = "C: thornbolt   V: entangle   G: mend";
+
     /// <summary>The companion keys, shown under the companion list.</summary>
     public const string CompanionHints = "[Z] call   [X] send back\n[1] attack   [2] guard me   [3] hold here   [4] come back";
 
@@ -112,6 +115,16 @@ public static class InteractionText
                 SummonRefusal.Busy => "Not now.",
                 SummonRefusal.AlreadySummoned => $"The {creature} is already with you.",
                 SummonRefusal.NotPacted => $"The {creature} is not bonded to you.",
+                _ => "Nothing happens.",
+            };
+        }
+
+        if (kind == IntentKind.Cast)
+        {
+            return result.IsApplied ? $"{creature}!" : result.Reason switch
+            {
+                IntentRejectReason.WrongState => "Not enough mana, or busy.",
+                IntentRejectReason.OnCooldown => "Not so fast.",
                 _ => "Nothing happens.",
             };
         }

@@ -45,6 +45,10 @@ internal sealed class PlayerIntents(CreatureWorld world, TransactionProcessor tr
             case IntentKind.Dismiss:
                 var dismiss = new DismissTransaction(world, avatar, target);
                 return Changed(transactions.Execute(id, ref dismiss, now), target, out changed);
+            case IntentKind.Cast:
+                var cast = new CastTransaction(
+                    world, avatar, request.Argument, (byte)(request.Target & 0xFF), ((request.Target >> 8) & 0xFFFF) / 10f, new StableId(request.Target >> 24));
+                return transactions.Execute(id, ref cast, now);
             case IntentKind.LearnSkill:
                 var learn = new LearnSkillTransaction(world, avatar, target, request.Argument);
                 return Changed(transactions.Execute(id, ref learn, now), target, out changed);

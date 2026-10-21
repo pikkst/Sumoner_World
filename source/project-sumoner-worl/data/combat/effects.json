@@ -1,0 +1,10 @@
+// Status effects v1 (combat spec §7): they refresh, never stack. Ticks at 30 per second.
+{
+  "schemaVersion": 1,
+  "kind": "effects",
+  "entries": [
+    { "id": "rooted", "ticks": 60, "speedPercent": 0, "tags": ["rooted"] },
+    { "id": "slowed", "ticks": 90, "speedPercent": 50, "tags": ["slowed"] },
+    { "id": "mending", "ticks": 120, "tags": ["mending"] }
+  ]
+}

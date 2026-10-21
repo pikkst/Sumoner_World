@@ -409,11 +409,13 @@ public sealed class CreatureIntentSystem(
 /// <summary>
 /// Moves entities along their paths (<see cref="IPathSink"/>: waypoint by waypoint, distances measured on the ground plane), keeps them
 /// on the terrain (<see cref="Heightfield"/>; flat at their own height without one), turns them to face the way they go, updates the
-/// spatial index and reports arrival at the last waypoint, or failure when no path was found.
+/// spatial index and reports arrival at the last waypoint, or failure when no path was found. Rooted creatures stand still and slowed
+/// ones go slower (combat spec §7).
 /// </summary>
 public sealed class MovementSystem(IEcsWorld world, ISpatialIndex grid, IBehaviourTreeRunner runner, Heightfield? ground, int entityCapacity)
     : ISimulationSystem, IPathSink
 {
+    private readonly ComponentStore<StatusEffects> _status = world.Store<StatusEffects>();
     private readonly Vector3[] _paths = new Vector3[entityCapacity * PathPlanner.MaxWaypoints];
     private readonly byte[] _pathCounts = new byte[entityCapacity];
     private readonly byte[] _pathNext = new byte[entityCapacity];
@@ -433,7 +435,8 @@ public sealed class MovementSystem(IEcsWorld world, ISpatialIndex grid, IBehavio
         Span<MoveTarget> targets = _targets.Components;
         for (int i = 0; i < entities.Length; i++)
         {
-            if (targets[i].Active == 0 || _snared.Has(entities[i]))
+            int speedPercent = _status.Has(entities[i]) ? _status.Get(entities[i]).SpeedPercent(tick.Index) : 100;
+            if (targets[i].Active == 0 || _snared.Has(entities[i]) || speedPercent == 0)
             {
                 continue;
             }
@@ -442,7 +445,8 @@ public sealed class MovementSystem(IEcsWorld world, ISpatialIndex grid, IBehavio
             Vector3 toTarget = targets[i].Target - position.Value;
             toTarget.Y = 0;
             float distance = toTarget.Length();
-            if (distance <= targets[i].Speed)
+            float speed = targets[i].Speed * speedPercent / 100f;
+            if (distance <= speed)
             {
                 position = new Position(OnGround(targets[i].Target with { Y = position.Value.Y }));
                 int index = entities[i].Index;
@@ -459,7 +463,7 @@ public sealed class MovementSystem(IEcsWorld world, ISpatialIndex grid, IBehavio
             else
             {
                 Vector3 direction = toTarget / distance;
-                position = new Position(OnGround(position.Value + (direction * targets[i].Speed)));
+                position = new Position(OnGround(position.Value + (direction * speed)));
                 _facings.Get(entities[i]) = new Facing(direction);
             }
 
