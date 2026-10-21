@@ -19,7 +19,7 @@ namespace SumonerWorld.Game.Hosting;
 /// <summary>
 /// Connects to a server with a dev ticket and runs the <see cref="GameClient"/> at 30 Hz: WASD moves the own character with
 /// prediction. With a display it shows the dev region, every creature and player the server sends (<see cref="EntityViewSync"/>,
-/// interpolated, posed by their emotes) and a camera behind the own character; <see cref="HostOptions.Screenshot"/> saves a frame
+/// interpolated, posed by their emotes) and a camera behind the own character that the right mouse button turns (<see cref="OrbitCamera"/>); <see cref="HostOptions.Screenshot"/> saves a frame
 /// once creatures are on screen and quits. <see cref="InteractionControls"/> give the Memory Grove keys (M1-23); with
 /// <see cref="HostOptions.SelfTest"/> a <see cref="PlaytestSelfTest"/> uses them first. In dev builds and with <see cref="HostOptions.DevTools"/> the <see cref="DevToolsLayer"/>
 /// adds the dev overlay (F3; shown at start with <c>--dev-tools</c>) and the AI Inspector (F4, click, Tab;
@@ -60,6 +60,7 @@ public sealed partial class ClientHost : Node
     private Node3D? _avatar;
     private DevToolsLayer? _devTools;
     private PlaytestSelfTest? _selfTest;
+    private OrbitCamera? _orbit;
     private bool _inspectRequested;
     private double _devToolsStarted;
 
@@ -137,6 +138,8 @@ public sealed partial class ClientHost : Node
     {
         _region = new TestRegion(Core.World.DevRegion.Chunks, _log) { FreeFly = false };
         AddChild(_region);
+        _orbit = new OrbitCamera();
+        AddChild(_orbit);
         Core.Data.DataRegistry data = GameData.Load();
         _views = new EntityViewSync(_client!, data, new QuadrupedEmotePresenter());
         AddChild(_views);
@@ -144,7 +147,7 @@ public sealed partial class ClientHost : Node
         AddChild(controls);
         if (_options.SelfTest)
         {
-            _selfTest = new PlaytestSelfTest(controls, () => _views.Shown > 0 && _elapsed > ScreenshotAfterSeconds, _log);
+            _selfTest = new PlaytestSelfTest(controls, _orbit, () => _views.Shown > 0 && _elapsed > ScreenshotAfterSeconds, _log);
             AddChild(_selfTest);
         }
 
@@ -172,8 +175,7 @@ public sealed partial class ClientHost : Node
         System.Numerics.Vector3 p = _client.Prediction.Position;
         var position = new Vector3(p.X, p.Y + 0.9f, p.Z);
         _avatar.Position = position;
-        camera.Position = position + new Vector3(0, 5, -10);
-        camera.LookAt(position + new Vector3(0, 1, 0), Vector3.Up);
+        _orbit!.Place(camera, position);
         StartDevTools();
         if (_options.Screenshot.Length > 0 && _views!.Shown > 0 && _elapsed > ScreenshotAfterSeconds && DevToolsReady() && (_selfTest?.Done ?? true))
         {

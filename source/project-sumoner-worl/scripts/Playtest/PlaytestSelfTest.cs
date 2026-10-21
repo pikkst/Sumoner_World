@@ -1,16 +1,17 @@
 using Godot;
 using SumonerWorld.Core.Diagnostics;
+using SumonerWorld.Game.Hosting;
 
 namespace SumonerWorld.Game.Playtest;
 
 /// <summary>
 /// Plays the start of a Memory Grove session through the real controls (<c>--self-test</c>, M1-23): queues key events, so input
 /// goes the same way as a tester's. Holds W until a creature is in reach (the snared calf 12 m ahead), then R (free it),
-/// E (feed it) and Q (shout), one second apart, logs what the interaction line says, and watches for <see cref="WatchSeconds"/> so
-/// the creature can react. <see cref="Done"/> lets the host take
+/// E (feed it) and Q (shout), one second apart, logs what the interaction line says, then turns the camera a quarter round with a
+/// right-button drag and watches for <see cref="WatchSeconds"/> so the creature can react. <see cref="Done"/> lets the host take
 /// its screenshot afterwards.
 /// </summary>
-public sealed partial class PlaytestSelfTest(InteractionControls controls, Func<bool> worldShown, ILog log) : Node
+public sealed partial class PlaytestSelfTest(InteractionControls controls, OrbitCamera camera, Func<bool> worldShown, ILog log) : Node
 {
     private const double WalkLimitSeconds = 8;
     private const double StepSeconds = 1.2;
@@ -60,9 +61,14 @@ public sealed partial class PlaytestSelfTest(InteractionControls controls, Func<
             Press(Steps[_step], pressed: true);
             Press(Steps[_step], pressed: false);
             _step++;
+            if (_step == Steps.Length)
+            {
+                OrbitCamera.DragForTest(Mathf.Pi / 2 / OrbitCamera.Sensitivity);
+            }
         }
         else
         {
+            log.Write(LogLevel.Info, "selftest.camera", $"after the right-drag the camera is at {Mathf.RadToDeg(camera.Yaw):F0}° around the character");
             Done = true;
         }
     }
