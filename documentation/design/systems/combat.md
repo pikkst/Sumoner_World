@@ -1,5 +1,5 @@
 # Sumoner World - Combat & Magic v1 (D1)
-Version: **0.3** (M2 D1, M2-01, M2-02a) · Date: 2026-10-21 · Owners: Sr Game Designer (feel, values) + Mechanics Developer (contract, server) ·
+Version: **0.4** (M2 D1, M2-01, M2-02a, M2-02c) · Date: 2026-10-21 · Owners: Sr Game Designer (feel, values) + Mechanics Developer (contract, server) ·
 Status: **Approved by stakeholder 2026-10-21** (§13 answers recorded)
 Rules: R08, R11, R15, R21, R27, R28, R30–R33, R50 · Related: GDD v0.2 §3 Combat, §4 Magic, §9 Death, §10 Companions;
 AI Bible v0.1 §4 (memory events), §7–8 (decisions, learning), §10 (Bonding); TDD v0.1 §1 (budgets), §2 (tick stages), §3 (net)
@@ -167,6 +167,16 @@ window. Combos are data (`data/combat/combos.json`).
 - **Children:** no blood or gore anywhere. A defeated creature lies down and fades; the death is shown through the others'
   grief, not through injury.
 
+## 11a. Lock-on (stakeholder, 2026-10-21)
+- **Middle mouse button or T** locks the camera on the nearest creature in front of it within 25 m; pressing again releases it,
+  as do the target leaving view, going farther than 25 m or being defeated. A red marker floats over the target.
+- While locked, the camera swings behind the character to keep the target in view (dragging does not turn it), WASD circles
+  the target, and **attacks aim at the target**, so players can think about timing and combos instead of aiming. This helps
+  the family's younger players most.
+- **Hardcore servers have no lock-on:** aiming is part of the challenge. The server tells the client in its welcome
+  (`ServerRules.LockOn`, protocol 8); `--hardcore` / `SW_HARDCORE` starts a Hardcore server. Lock-on is aim assistance on the
+  client: the server still checks every attack, and an attack aimed by hand works the same on both presets.
+
 ## 12. Budgets and tests
 - **Budget:** the combat & magic stage and status effects together ≤ **2.0 ms per tick** on the server (TDD §1). The B5 gate
   gets a combat scenario (two herds and a pack fighting) with 0 B allocated per tick.
@@ -212,6 +222,7 @@ window. Combos are data (`data/combat/combos.json`).
 
 ## Changelog
 - **0.1 (2026-10-21):** First draft (M2 D1), for stakeholder approval.
+- **0.4 (2026-10-21, M2-02c):** lock-on (§11a) on Normal servers, none on Hardcore; protocol 8.
 - **0.3 (2026-10-21, M2-02a):** defence implemented (§12a); protocol 7.
 - **0.2 (2026-10-21, M2-01):** implementation notes (§12a); mossback guard 4 → 2 (a flat 4 left light hits at 4 damage).
 - **0.1 approved (2026-10-21):** yield and spare confirmed; Normal is the default server preset; no randomness in v1 kept.

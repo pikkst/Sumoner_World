@@ -9,13 +9,14 @@ namespace SumonerWorld.Game.Playtest;
 /// <summary>
 /// Plays the start of a Memory Grove session through the real controls (<c>--self-test</c>, M1-23, M2-02b): queues input events,
 /// so input goes the same way as a tester's. Holds W until a creature is within 3 m (the snared calf 12 m ahead), then, one step
-/// apart: a left click (a basic attack at the calf while it is still snared, so its health bar shows), R (free it), E (feed it),
-/// Q (shout), a right-button drag that turns the camera a quarter round, and Space held for a dodge. It logs the interaction line, the attack's
+/// apart: a left click (a basic attack at the calf while it is still snared, so its health bar shows), T (lock on to it), a right-drag that the
+/// lock ignores, T again (let go), R (free it), E (feed it), Q (shout), a right-button drag that turns the camera a quarter round, and Space held for a
+/// dodge. It logs the interaction line, the attack's
 /// result and the calf's health, and the own stamina, then watches for <see cref="WatchSeconds"/> so the creature can react. <see cref="Done"/> lets the host take
 /// its screenshot afterwards.
 /// </summary>
 public sealed partial class PlaytestSelfTest(
-    InteractionControls controls, CombatControls combat, GameClient client, OrbitCamera camera, Func<bool> worldShown, ILog log) : Node
+    InteractionControls controls, CombatControls combat, LockOn lockOn, GameClient client, OrbitCamera camera, Func<bool> worldShown, ILog log) : Node
 {
     private const double WalkLimitSeconds = 8;
     private const float CloseMetres = 3f; // inside the basic attack's reach of a mossback (2 m + its 1.6 m body)
@@ -45,7 +46,7 @@ public sealed partial class PlaytestSelfTest(
         }
 
         _clock += delta;
-        if (_clock < (_step <= 6 ? StepSeconds : WatchSeconds))
+        if (_clock < (_step <= 8 ? StepSeconds : WatchSeconds))
         {
             return;
         }
@@ -79,21 +80,30 @@ public sealed partial class PlaytestSelfTest(
                 break;
             case 1:
                 log.Write(LogLevel.Info, "selftest.attack", $"attack: {combat.LastResult?.ToString() ?? "no answer"}; {controls.Target.Name} health {TargetHealth()}/255");
+                PressKey(Key.T);
+                break;
+            case 2:
+                log.Write(LogLevel.Info, "selftest.lock", $"lock-on allowed {client.LockOnAllowed}, target #{lockOn.Target}, camera at {Mathf.RadToDeg(camera.Yaw):F0}°");
+                OrbitCamera.DragForTest(Mathf.Pi / 2 / OrbitCamera.Sensitivity); // ignored while locked
+                break;
+            case 3:
+                log.Write(LogLevel.Info, "selftest.lock", $"after a drag while locked the camera is at {Mathf.RadToDeg(camera.Yaw):F0}° (target #{lockOn.Target})");
+                PressKey(Key.T);
                 PressKey(Interactions[0]);
                 break;
-            case <= 3:
+            case <= 5:
                 log.Write(LogLevel.Info, "selftest.feedback", controls.Feedback);
-                PressKey(Interactions[_step - 1]);
+                PressKey(Interactions[_step - 3]);
                 break;
-            case 4:
+            case 6:
                 log.Write(LogLevel.Info, "selftest.feedback", controls.Feedback);
                 OrbitCamera.DragForTest(Mathf.Pi / 2 / OrbitCamera.Sensitivity);
                 break;
-            case 5:
+            case 7:
                 log.Write(LogLevel.Info, "selftest.camera", $"after the right-drag the camera is at {Mathf.RadToDeg(camera.Yaw):F0}° around the character");
                 Press(Key.Space, pressed: true);
                 break;
-            case 6:
+            case 8:
                 Press(Key.Space, pressed: false);
                 log.Write(LogLevel.Info, "selftest.dodge", $"after the dodge: stamina {client.OwnVitals.Stamina}/255, health {client.OwnVitals.Health}/255");
                 break;

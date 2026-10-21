@@ -20,6 +20,8 @@ services:
       SW_WORLD: /data/world.db
       # Dev overlay + AI Inspector (M1-22): shows creature minds to every client. Never set on a public server.
       SW_DEV_TOOLS: "1"
+      # Hardcore preset (no lock-on, GDD §9): uncomment to try it. Normal is the default.
+      # SW_HARDCORE: "1"
     volumes:
       - world-data:/data
     restart: unless-stopped

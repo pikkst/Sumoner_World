@@ -46,6 +46,7 @@ public class MessageCodecTests
     {
         Assert.Equal(new Hello(42, "dev-token"), RoundTrip(new HelloCodec(), new Hello(42, "dev-token")));
         Assert.Equal(new Welcome(7, 9_000_001, 123_456, true), RoundTrip(new WelcomeCodec(), new Welcome(7, 9_000_001, 123_456, true)));
+        Assert.Equal(ServerRules.LockOn, RoundTrip(new WelcomeCodec(), new Welcome(7, 1, 2, false, ServerRules.LockOn)).Rules);
         Assert.Equal(new Rejected(RejectReason.ServerFull, "16/16"), RoundTrip(new RejectedCodec(), new Rejected(RejectReason.ServerFull, "16/16")));
         var intent = new IntentRequest(5, IntentKind.OfferPact, 123_456, 0b11);
         Assert.Equal(intent, RoundTrip(new IntentRequestCodec(), intent));

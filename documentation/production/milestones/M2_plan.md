@@ -127,6 +127,7 @@ M2-15 (after B and D) → M2-16 → M2-17 → M2-18.
 | M1-25 | **Done** 2026-10-21: gate report, GO |
 | GDD 0.3 | 2026-10-21: Academy, rank and faction added to M2 (D4, M2-19 to M2-22) |
 | D1 | **Done** 2026-10-21: `documentation/design/systems/combat.md` approved (yield and spare; Normal preset default; no randomness in v1) |
+| M2-02c | **Done** 2026-10-21 (merged under standing approval): lock-on (stakeholder request): middle click / T, camera keeps the target in view, attacks aim at it; off on Hardcore servers (`--hardcore`, protocol 8 welcome rules) |
 | M2-02b | **Done** 2026-10-21 (merged under standing approval): combat controls (left click / hold for heavy, Shift block, Space dodge), dash prediction, HUD bars, health bars and hit feedback; M2-02 complete |
 | M2-02a | **Done** 2026-10-21 (merged under standing approval): block, parry, dodge, poise stagger, heavy attack and aimed `Attack` intent on the server; protocol 7 snapshots with health, combat action and move, and own vitals |
 | M2-01 | **Done** 2026-10-21 (merged under standing approval): Combat contract v1.0.0 in Core: combat data (moves, rules, species stats), `Combatant`, moves with wind-up/active/recovery and arc/line/circle hits, damage formula, regeneration, yield and spare, defeat and kin memories; the F key attacks with the player's basic move |

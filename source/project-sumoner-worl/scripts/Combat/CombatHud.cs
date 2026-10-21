@@ -17,7 +17,10 @@ public sealed partial class CombatHud(GameClient client) : CanvasLayer
     private ColorRect? _health;
     private ColorRect? _stamina;
     private ColorRect? _mana;
+    private const string Keys = "Left click: attack (hold: heavy)   Shift: block   Space: dodge";
+
     private Label? _down;
+    private Label? _hint;
 
     /// <inheritdoc />
     public override void _Ready()
@@ -26,7 +29,8 @@ public sealed partial class CombatHud(GameClient client) : CanvasLayer
         _health = Bar(0, new Color(0.78f, 0.22f, 0.2f));
         _stamina = Bar(1, new Color(0.85f, 0.75f, 0.3f));
         _mana = Bar(2, new Color(0.3f, 0.5f, 0.9f));
-        var hint = new Label { Text = "Left click: attack (hold: heavy)   Shift: block   Space: dodge" };
+        _hint = new Label { Text = Keys };
+        Label hint = _hint;
         hint.SetAnchorsPreset(Control.LayoutPreset.BottomLeft);
         hint.Position = new Vector2(24, hint.Position.Y - 120);
         hint.AddThemeFontSizeOverride("font_size", 14);
@@ -49,6 +53,7 @@ public sealed partial class CombatHud(GameClient client) : CanvasLayer
         _stamina!.Size = new Vector2(BarWidth * own.Stamina / 255f, BarHeight);
         _mana!.Size = new Vector2(BarWidth * own.Mana / 255f, BarHeight);
         _down!.Visible = own.Action == (byte)CombatAction.Down;
+        _hint!.Text = client.LockOnAllowed ? Keys + "   Middle click / T: lock on" : Keys;
     }
 
     private ColorRect Bar(int row, Color colour)

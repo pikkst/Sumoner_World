@@ -42,7 +42,7 @@ public enum HostMode
 /// <c>--self-test</c> (client: walk to the nearest creature and use the interaction keys as input events),
 /// <c>--playtest</c> (the Memory Grove playtest: a local server on <see cref="PlaytestPort"/> plus the client, fresh world).
 /// Environment: <c>SW_SERVER_MODE</c> (any value starts the server), <c>SW_PORT</c>, <c>SW_DEV_SECRET</c>, <c>SW_MAX_PLAYERS</c>,
-/// <c>SW_LOG_LEVEL</c>, <c>SW_DEV_TOOLS</c> (any value: as <c>--dev-tools</c>).
+/// <c>SW_LOG_LEVEL</c>, <c>SW_DEV_TOOLS</c> (any value: as <c>--dev-tools</c>), <c>SW_HARDCORE</c> (any value: as <c>--hardcore</c>).
 /// </remarks>
 public sealed record HostOptions
 {
@@ -118,6 +118,9 @@ public sealed record HostOptions
     /// <summary>Dev tools (M1-22): the server answers dev overlay and AI Inspector requests; the client shows them.</summary>
     public bool DevTools { get; init; }
 
+    /// <summary>Run the server with the Hardcore preset (<c>--hardcore</c> or <c>SW_HARDCORE</c>): no lock-on.</summary>
+    public bool Hardcore { get; init; }
+
     /// <summary>
     /// Client: open the AI Inspector at start: <c>nearest</c>, a stable id, or through the controls as input events (<c>click</c>:
     /// F3 hides the overlay, then a left click on the nearest creature; <c>tab</c>: Tab twice). Empty for none.
@@ -145,6 +148,7 @@ public sealed record HostOptions
             LogLevel = environment("SW_LOG_LEVEL") is string level ? Enum.Parse<LogLevel>(level, ignoreCase: true) : LogLevel.Info,
             WorldPath = environment("SW_WORLD") ?? string.Empty,
             DevTools = !string.IsNullOrEmpty(environment("SW_DEV_TOOLS")),
+            Hardcore = !string.IsNullOrEmpty(environment("SW_HARDCORE")),
         };
 
         foreach (string argument in arguments)
@@ -169,6 +173,7 @@ public sealed record HostOptions
             "--max-players" => options with { MaxPlayers = ParseInt(value, argument) },
             "--exit-on-welcome" => options with { ExitOnWelcome = true },
             "--dev-tools" => options with { DevTools = true },
+            "--hardcore" => options with { Hardcore = true },
             "--self-test" => options with { SelfTest = true },
             "--inspect" when value is "nearest" or "click" or "tab" || ulong.TryParse(value, NumberStyles.None, CultureInfo.InvariantCulture, out _) => options with { DevTools = true, Inspect = value },
             "--world" when value.Length > 0 => options with { WorldPath = value },

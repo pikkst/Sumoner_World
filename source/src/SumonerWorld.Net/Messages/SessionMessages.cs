@@ -14,7 +14,19 @@ public readonly record struct Hello(ulong ResumeToken, string AuthTicket)
 /// <param name="AccountId">The player's account id (what creatures remember).</param>
 /// <param name="ServerTick">Server tick at the time of sending.</param>
 /// <param name="Resumed">True when an earlier session continues (unanswered intents may be resent); false for a new one.</param>
-public readonly record struct Welcome(ulong SessionToken, ulong AccountId, ulong ServerTick, bool Resumed);
+/// <param name="Rules">What this server allows the client (since protocol 8).</param>
+public readonly record struct Welcome(ulong SessionToken, ulong AccountId, ulong ServerTick, bool Resumed, ServerRules Rules = ServerRules.None);
+
+/// <summary>Server rules a client follows (GDD §9 presets). Values are part of the protocol.</summary>
+[Flags]
+public enum ServerRules : byte
+{
+    /// <summary>Nothing extra allowed.</summary>
+    None = 0,
+
+    /// <summary>The camera may lock on to a target and attacks aim at it (combat spec §11a). Off on Hardcore servers.</summary>
+    LockOn = 1,
+}
 
 /// <summary>Server → client: the session was refused.</summary>
 /// <param name="Reason">Why.</param>
@@ -76,12 +88,13 @@ public sealed class WelcomeCodec : IMessageCodec<Welcome>
         writer.WriteUInt64(message.AccountId);
         writer.WriteVarUInt(message.ServerTick);
         writer.WriteBool(message.Resumed);
+        writer.WriteByte((byte)message.Rules);
     }
 
     /// <inheritdoc />
     public Welcome Read(ref MessageReader reader)
     {
-        var message = new Welcome(reader.ReadUInt64(), reader.ReadUInt64(), reader.ReadVarUInt(), reader.ReadBool());
+        var message = new Welcome(reader.ReadUInt64(), reader.ReadUInt64(), reader.ReadVarUInt(), reader.ReadBool(), (ServerRules)reader.ReadByte());
         reader.EnsureEnd();
         return message;
     }

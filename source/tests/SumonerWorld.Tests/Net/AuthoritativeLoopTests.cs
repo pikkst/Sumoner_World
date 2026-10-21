@@ -118,6 +118,18 @@ public class AuthoritativeLoopTests
         Assert.True(alice.Entities[(SnapshotEntityKind.Creature, fox.Value)].Health < byte.MaxValue);
     }
 
+    [Theory]
+    [InlineData(false, true)]
+    [InlineData(true, false)]
+    public void Normal_servers_allow_lock_on_and_hardcore_servers_do_not(bool hardcore, bool allowed)
+    {
+        using var lan = new Lan(0, settings: new GameServerSettings { Hardcore = hardcore });
+        GameClient alice = lan.Join(1001);
+        lan.Run(10, _ => MoveInput.None);
+
+        Assert.Equal(allowed, alice.LockOnAllowed);
+    }
+
     [Fact]
     public void An_intent_over_the_network_is_applied_once_and_resending_it_returns_the_first_result()
     {

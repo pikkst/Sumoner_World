@@ -53,6 +53,9 @@ public sealed class ServerEndpoint : ITransportHandler
     /// <summary>The current server tick, sent in <see cref="Welcome"/> (set by <see cref="Update"/>).</summary>
     public ulong ServerTick { get; private set; }
 
+    /// <summary>The rules sent to every client in its <see cref="Welcome"/> (set by the game server).</summary>
+    public ServerRules Rules { get; set; }
+
     /// <summary>Players with a connected session.</summary>
     public int PlayerCount => _byConnection.Count;
 
@@ -211,7 +214,7 @@ public sealed class ServerEndpoint : ITransportHandler
     private void SendWelcome(ConnectionId connection, SessionRecord session, bool resumed)
     {
         var writer = new MessageWriter(_buffer);
-        _welcome.Write(ref writer, new Welcome(session.Token, session.Account, ServerTick, resumed));
+        _welcome.Write(ref writer, new Welcome(session.Token, session.Account, ServerTick, resumed, Rules));
         _transport.Send(connection, Channel.ReliableOrdered, writer.WrittenSpan);
     }
 
