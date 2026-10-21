@@ -7,6 +7,7 @@ using SumonerWorld.Core.Cognition.Memory;
 using SumonerWorld.Core.Cognition.Opinions;
 using SumonerWorld.Core.Data.Definitions;
 using SumonerWorld.Core.Ecs;
+using SumonerWorld.Core.Progression;
 using SumonerWorld.Core.Simulation;
 using SumonerWorld.Core.World;
 
@@ -227,7 +228,8 @@ public sealed class DevInspectionCodec : IMessageCodec<DevInspection>
         + 1 + (CreatureInspection.MaxOpinions * (1 + 10 + (4 * 2)))
         + 1 + (CreatureInspection.MaxGoals * (3 + 5))
         + 3 + 1
-        + 1 + 1 + 1 + 5 + 1 + 10;
+        + 1 + 1 + 1 + 5 + 1 + 10
+        + 1 + (7 * 5);
 
     /// <inheritdoc />
     public MessageType Type => MessageType.DevInspection;
@@ -296,6 +298,18 @@ public sealed class DevInspectionCodec : IMessageCodec<DevInspection>
             writer.WriteByte((byte)command.Reason);
             writer.WriteVarUInt(command.AgeTicks);
         }
+
+        writer.WriteBool(inspection.Growth is not null);
+        if (inspection.Growth is CreatureGrowth growth)
+        {
+            writer.WriteVarInt(growth.Tier);
+            writer.WriteVarInt(growth.Level);
+            writer.WriteVarInt(growth.Stage);
+            writer.WriteVarInt(growth.CombatXp);
+            writer.WriteVarInt(growth.WorkXp);
+            writer.WriteVarInt(growth.TravelXp);
+            writer.WriteVarInt(growth.TravelCm);
+        }
     }
 
     /// <inheritdoc />
@@ -353,10 +367,20 @@ public sealed class DevInspectionCodec : IMessageCodec<DevInspection>
                 ReadEnum<ObedienceReason>(reader.ReadByte()),
                 reader.ReadVarUInt())
             : null;
+        CreatureGrowth? growth = reader.ReadBool()
+            ? new CreatureGrowth(
+                (int)reader.ReadVarInt(0, (long)Rank.God),
+                (int)reader.ReadVarInt(1, GrowthRules.MaxLevel),
+                (int)reader.ReadVarInt(0, (long)LifeStage.Elder),
+                (int)reader.ReadVarInt(0, int.MaxValue),
+                (int)reader.ReadVarInt(0, int.MaxValue),
+                (int)reader.ReadVarInt(0, int.MaxValue),
+                (int)reader.ReadVarInt(0, int.MaxValue))
+            : null;
         reader.EnsureEnd();
         return new DevInspection(requested, new CreatureInspection(
             tick, id, species, group, tier, position, emote, goal, focus, focusDistance, birth, personality, emotions, needs, core, episodic,
-            memories, opinions, goals, treeGoal, treeNode, command));
+            memories, opinions, goals, treeGoal, treeNode, command, growth));
     }
 
     private static int Emotion(int value) => Math.Clamp(value, 0, EmotionState.Max);

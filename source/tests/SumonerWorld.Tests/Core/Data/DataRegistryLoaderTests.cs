@@ -92,7 +92,7 @@ public class DataRegistryLoaderTests
         MemoryEventTypeDefinition pactBroken = registry.GetMemoryEventType(11);
         Assert.Equal(-80, pactBroken.Valence);
         Assert.Equal(90, pactBroken.HalfLifeDays);
-        Assert.Equal(21, registry.MemoryEventTypes.Count);
+        Assert.Equal(22, registry.MemoryEventTypes.Count);
     }
 
     [Fact]

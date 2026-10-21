@@ -3,6 +3,7 @@ using SumonerWorld.Core.Cognition.Appraisal;
 using SumonerWorld.Core.Combat;
 using SumonerWorld.Core.Data;
 using SumonerWorld.Core.Data.Definitions;
+using SumonerWorld.Core.Progression;
 using SumonerWorld.Game.Characters;
 using SumonerWorld.Game.Combat;
 using SumonerWorld.Net.Client;
@@ -72,6 +73,11 @@ public sealed partial class EntityViewSync : Node3D
             CombatPose.Apply(view, state.Action, state.Yaw, _time);
             if (view is CreatureRig rig)
             {
+                if (rig.Stage != (LifeStage)state.Stage)
+                {
+                    rig.SetStage((LifeStage)state.Stage);
+                }
+
                 _presenter.Present(rig, (Emote)state.Emote, state.Speed, delta);
             }
             else if (view is HumanoidRig humanoid)
@@ -140,17 +146,19 @@ public sealed partial class EntityViewSync : Node3D
         (HealthBar3D bar, byte before) = _health[view];
         if (health < before)
         {
-            CombatPose.Hit(view);
+            CombatPose.Hit(view, SizeOf(view));
             if (view is HumanoidRig humanoid)
             {
                 HumanoidAnimator.Hit(humanoid);
             }
         }
 
-        CombatPose.Settle(view, delta);
+        CombatPose.Settle(view, delta, SizeOf(view));
         bar.SetHealth(health);
         _health[view] = (bar, health);
     }
+
+    private static float SizeOf(Node3D view) => view is CreatureRig rig ? rig.Size : 1f;
 
     private void Return(Node3D view)
     {

@@ -46,6 +46,43 @@ public sealed record CreatureRecord
     /// <summary>Bond.</summary>
     [Key(5)]
     public BondRecord Bond { get; init; } = new();
+
+    /// <summary>Growth (M2-09); null in saves from before it existed.</summary>
+    [Key(6)]
+    public GrowthRecord? Growth { get; init; }
+}
+
+/// <summary>A creature's growth: tier, level, stage and experience per role (companions spec §9).</summary>
+[MessagePackObject]
+public sealed record GrowthRecord
+{
+    /// <summary>Tier.</summary>
+    [Key(0)]
+    public byte Tier { get; init; }
+
+    /// <summary>Level.</summary>
+    [Key(1)]
+    public int Level { get; init; }
+
+    /// <summary>Life stage.</summary>
+    [Key(2)]
+    public byte Stage { get; init; }
+
+    /// <summary>Combat experience.</summary>
+    [Key(3)]
+    public int CombatXp { get; init; }
+
+    /// <summary>Work experience.</summary>
+    [Key(4)]
+    public int WorkXp { get; init; }
+
+    /// <summary>Travel experience.</summary>
+    [Key(5)]
+    public int TravelXp { get; init; }
+
+    /// <summary>Distance toward the next travel point, in centimetres.</summary>
+    [Key(6)]
+    public int TravelCm { get; init; }
 }
 
 /// <summary>A creature's mind: personality (boldness, loyalty, curiosity, temper), memories, opinion baselines, needs.</summary>

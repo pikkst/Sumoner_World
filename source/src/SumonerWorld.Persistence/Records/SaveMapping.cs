@@ -5,6 +5,7 @@ using SumonerWorld.Core.Cognition.Memory;
 using SumonerWorld.Core.Cognition.Opinions;
 using SumonerWorld.Core.Data.Definitions;
 using SumonerWorld.Core.Ecs;
+using SumonerWorld.Core.Progression;
 using SumonerWorld.Core.World;
 
 namespace SumonerWorld.Persistence.Records;
@@ -31,6 +32,18 @@ internal static class SaveMapping
             DistrustSinceTick = save.Bond.DistrustSinceTick,
             Distrustful = save.Bond.Distrustful,
         },
+        Growth = save.Growth is CreatureGrowth growth
+            ? new GrowthRecord
+            {
+                Tier = (byte)growth.Tier,
+                Level = growth.Level,
+                Stage = (byte)growth.Stage,
+                CombatXp = growth.CombatXp,
+                WorkXp = growth.WorkXp,
+                TravelXp = growth.TravelXp,
+                TravelCm = growth.TravelCm,
+            }
+            : null,
     };
 
     public static CreatureSave FromRecord(StableId id, CreatureRecord record)
@@ -49,7 +62,10 @@ internal static class SaveMapping
             record.Group,
             FromRecord(record.Mind),
             new BondState(
-                (OwnershipState)bond.State, bond.Owner, new PactTerms(bond.Terms), bond.BrokenTerms, bond.BondLevel, bond.Summoned, bond.PactTick, bond.DistrustSinceTick, bond.Distrustful));
+                (OwnershipState)bond.State, bond.Owner, new PactTerms(bond.Terms), bond.BrokenTerms, bond.BondLevel, bond.Summoned, bond.PactTick, bond.DistrustSinceTick, bond.Distrustful),
+            record.Growth is GrowthRecord growth
+                ? new CreatureGrowth(growth.Tier, growth.Level, growth.Stage, growth.CombatXp, growth.WorkXp, growth.TravelXp, growth.TravelCm)
+                : null);
     }
 
     private static MindRecord ToRecord(MindState mind) => new()

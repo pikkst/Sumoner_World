@@ -30,6 +30,10 @@ public sealed class EventBus : IEventBus
         _buffers.Add(buffer);
     }
 
+    /// <summary>True when the event type is registered (systems that bring their own events register them once).</summary>
+    public bool IsRegistered<TEvent>()
+        where TEvent : struct => _buffersByType.ContainsKey(typeof(TEvent));
+
     /// <inheritdoc />
     public void Publish<TEvent>(in TEvent gameEvent)
         where TEvent : struct => GetBuffer<TEvent>().Add(in gameEvent);

@@ -121,6 +121,22 @@ contract v1.0.0); combat spec v0.4 (D1)
 - **Companion panel:** portrait, level and XP bar, tier, life stage, bond level (as a name), skill tree with warm/cold affinity
   colours, equipment slots, and a "story so far" line from its strongest memories.
 
+## 11. Implementation notes (M2-09a)
+- **Data:** species carry `class`, `tier` and wild `levels` (min–max); the growth numbers of §3–4 are the `growth` block of
+  `data/combat/combat.json`. A wild creature gets a level in its species' range from its stable id (no random draw) and is grown;
+  the Memory Grove calf is young.
+- **Stats:** species stats are a grown creature's at level 1; each level adds 6% health and 4% power; a young creature has the
+  grown bonus (+20% health) taken off, an elder gets +20% power. A change keeps the creature's health share.
+- **Experience** (summoned companions only): combat from damage dealt and taken (1 per 2) and +20 when its foe is defeated;
+  travel 1 per 50 m walked at the summoner's side (summon arrivals and catch-ups do not count); work waits for Sanctum tasks.
+- **Growing up:** when §4's level and bond conditions are met, the companion grows while its summoner rests (stands still 5 s,
+  no fight): Affection, a `GrewUp` core memory (event type 22), and a visible change: young creatures are 62% size, elders
+  115% with a pale mane (`--showcase=stages`).
+- **Shown:** snapshots and the companion list carry level and stage (protocol 11); the companion list reads "hollow owl Lv 3
+  (young): with you"; the AI Inspector shows level, cap, tier, stage and experience per role.
+- **Saved:** growth is part of the creature record; creatures saved before it existed migrate as §9 says (pacted: level 1, young).
+- The class rule and the level difference in Pacts follow in M2-09b, with the player's level and rank.
+
 ## Changelog
 - **0.2 (2026-10-21):** approved with the stakeholder's answers: three life stages (young, grown, elder) and levels; creatures
   never die of old age; tier caps the level (same scale as player ranks) and is tied to the summoner's rank; creatures bound to

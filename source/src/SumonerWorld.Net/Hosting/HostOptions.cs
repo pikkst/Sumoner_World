@@ -35,7 +35,7 @@ public enum HostMode
 /// <c>--benchmark-out=dir</c>, <c>--benchmark-players=16</c>, <c>--warmup-ticks=900</c>, <c>--measure-ticks=18000</c> (server, B2),
 /// <c>--region</c>, <c>--region-chunks=8</c>, <c>--screenshot=file.png</c> (region: save a frame after streaming settled, then quit),
 /// <c>--benchmark=B3</c> (region: fly the B3 route, write results to <c>--benchmark-out</c>, then quit),
-/// <c>--showcase=grazer|predator|player</c>, <c>--showcase-distance=30</c> (region: the six emotes, or the player animations, in a row seen from that distance),
+/// <c>--showcase=grazer|predator|player|stages</c>, <c>--showcase-distance=30</c> (region: the six emotes, the player animations or the life stages, in rows seen from that distance),
 /// <c>--dev-tools</c> (server: answer the dev overlay and AI Inspector; client: show them), <c>--inspect=nearest|click|tab|id</c>
 /// (client: open the AI Inspector on start; <c>click</c> and <c>tab</c> go through the real controls as input events; with
 /// <c>--screenshot</c> for a picture of it).
@@ -106,7 +106,7 @@ public sealed record HostOptions
     /// <summary>Region: save one frame here once streaming has settled, then quit (empty = keep running).</summary>
     public string Screenshot { get; init; } = string.Empty;
 
-    /// <summary>Region: showcase model (<c>grazer</c> or <c>predator</c> emotes, <c>player</c> animations), empty for none.</summary>
+    /// <summary>Region: showcase model (<c>grazer</c> or <c>predator</c> emotes, <c>player</c> animations, <c>stages</c>), empty for none.</summary>
     public string Showcase { get; init; } = string.Empty;
 
     /// <summary>Region: showcase camera distance in metres (style guide §4: emotes must read at 30 m).</summary>
@@ -180,7 +180,7 @@ public sealed record HostOptions
             "--region" => options with { Mode = HostMode.Region },
             "--playtest" => options with { Mode = HostMode.Playtest, Port = PlaytestPort, Address = "127.0.0.1" },
             "--benchmark" when value == "B3" => options with { Mode = HostMode.Region, Benchmark = value },
-            "--showcase" when value is "grazer" or "predator" or "player" => options with { Mode = HostMode.Region, Showcase = value },
+            "--showcase" when value is "grazer" or "predator" or "player" or "stages" => options with { Mode = HostMode.Region, Showcase = value },
             "--showcase-distance" => options with { ShowcaseDistance = ParseInt(value, argument) },
             "--region-chunks" => options with { RegionChunks = ParseInt(value, argument) },
             "--screenshot" when value.Length > 0 => options with { Screenshot = value },

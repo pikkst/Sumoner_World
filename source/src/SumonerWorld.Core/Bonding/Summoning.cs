@@ -42,7 +42,9 @@ public enum SummonRefusal : byte
 /// <param name="Id">The creature's stable id.</param>
 /// <param name="Species">Species index.</param>
 /// <param name="Summoned">At the player's side now.</param>
-public readonly record struct Companion(StableId Id, ushort Species, bool Summoned);
+/// <param name="Level">Its level.</param>
+/// <param name="Stage">Its life stage.</param>
+public readonly record struct Companion(StableId Id, ushort Species, bool Summoned, int Level = 1, Progression.LifeStage Stage = Progression.LifeStage.Young);
 
 /// <summary>Queries over pacted creatures (AI Bible §10.4).</summary>
 public static class Companions
@@ -60,7 +62,9 @@ public static class Companions
             BondState bond = world.Services.Bonding.GetBond(minds.Components[i].Handle);
             if (bond.State == OwnershipState.Pacted && bond.Owner == account)
             {
-                into.Add(new Companion(world.World.GetComponent<StableId>(creatures[i]), world.World.GetComponent<SpeciesRef>(creatures[i]).Index, bond.Summoned));
+                Progression.CreatureGrowth growth = world.World.GetComponent<Progression.CreatureGrowth>(creatures[i]);
+                into.Add(new Companion(
+                    world.World.GetComponent<StableId>(creatures[i]), world.World.GetComponent<SpeciesRef>(creatures[i]).Index, bond.Summoned, growth.Level, (Progression.LifeStage)growth.Stage));
             }
         }
 

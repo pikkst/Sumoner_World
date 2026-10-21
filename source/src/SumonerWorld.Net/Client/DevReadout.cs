@@ -5,6 +5,7 @@ using SumonerWorld.Core.Cognition;
 using SumonerWorld.Core.Cognition.Memory;
 using SumonerWorld.Core.Data;
 using SumonerWorld.Core.Data.Definitions;
+using SumonerWorld.Core.Progression;
 using SumonerWorld.Core.Simulation;
 using SumonerWorld.Core.World;
 using SumonerWorld.Net.Messages;
@@ -81,6 +82,11 @@ public static class DevReadout
         Line(text, $"goal  {GoalName(inspection.Goal, data)}");
         Line(text, $"tree  {TreePath(inspection, data)}");
         Line(text, $"focus {(inspection.Focus is MemorySubject focus ? $"{SubjectName(focus, data)} at {inspection.FocusDistance / 10.0:F0}%" : "none")}");
+        if (inspection.Growth is CreatureGrowth growth)
+        {
+            Line(text, $"grow  {GrowthLine(growth)}");
+        }
+
         if (inspection.Command is InspectedCommand command)
         {
             Line(text, $"order {CommandLine(command)}");
@@ -130,6 +136,10 @@ public static class DevReadout
     /// </summary>
     public static string CommandLine(InspectedCommand command) =>
         $"{command.Command} -> {command.Response} (obedience {command.Obedience}: {ReasonText(command.Reason)}) {Age(command.AgeTicks)}";
+
+    /// <summary>Level, cap and tier, stage and experience per role, e.g. <c>Lv 3/10 (tier F) Young  xp combat 30 work 0 travel 2</c>.</summary>
+    public static string GrowthLine(CreatureGrowth growth) =>
+        $"Lv {growth.Level}/{GrowthRules.Cap((Rank)growth.Tier)} (tier {(Rank)growth.Tier}) {(LifeStage)growth.Stage}  xp combat {growth.CombatXp} work {growth.WorkXp} travel {growth.TravelXp}";
 
     /// <summary>An obedience reason in a few words.</summary>
     public static string ReasonText(ObedienceReason reason) => reason switch

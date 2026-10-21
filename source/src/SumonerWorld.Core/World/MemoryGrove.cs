@@ -54,6 +54,10 @@ public static class MemoryGrove
         }
 
         creatures.Add(Spawn(world, owl, start + new Vector3(5, 0, -40), HerdGroup + 2, jitter: false));
+        // The calf is young: smaller and with less health than the grown herd (M2-09).
+        ref Progression.CreatureGrowth growth = ref world.World.GetComponent<Progression.CreatureGrowth>(calf);
+        growth.Stage = (int)Progression.LifeStage.Young;
+        world.Growth.Apply(ref world.World.GetComponent<Combat.Combatant>(calf), world.Data.Species[mossback].Combat, growth);
         world.Snare(calf, world.Clock.Current.Index);
         world.Snare(fox, world.Clock.Current.Index);
         return creatures;

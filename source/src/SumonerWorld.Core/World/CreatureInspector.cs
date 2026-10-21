@@ -63,6 +63,7 @@ public readonly record struct InspectedCommand(Bonding.CompanionCommand Command,
 /// <param name="TreeGoal">Goal whose tree ran at the last behaviour tick.</param>
 /// <param name="TreeNode">Innermost running node of that tree (pre-order index), −1 when none.</param>
 /// <param name="Command">A companion's last command and answer (M2-08), null when it never had one.</param>
+/// <param name="Growth">Tier, level, stage and experience (M2-09).</param>
 public sealed record CreatureInspection(
     ulong Tick,
     StableId Id,
@@ -85,7 +86,8 @@ public sealed record CreatureInspection(
     IReadOnlyList<GoalScore> Goals,
     ushort TreeGoal,
     int TreeNode,
-    InspectedCommand? Command = null)
+    InspectedCommand? Command = null,
+    Progression.CreatureGrowth? Growth = null)
 {
     /// <summary>Most memories listed.</summary>
     public const int MaxMemories = 8;
@@ -167,7 +169,8 @@ public sealed class CreatureInspector
             Scores(mind, context),
             treeGoal,
             treeNode,
-            LastCommand(creature, now));
+            LastCommand(creature, now),
+            ecs.GetComponent<Progression.CreatureGrowth>(creature));
     }
 
     private InspectedCommand? LastCommand(Entity creature, ulong now)

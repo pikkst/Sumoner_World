@@ -237,7 +237,8 @@ public class AuthoritativeLoopTests
         lan.World.Services.Bonding.Restore(mind, new BondState(OwnershipState.Pacted, 1001, PactTerms.Of(0), 0, 1, false, 0, 0, false));
         GameClient alice = lan.Join(1001);
         lan.Run(30, _ => MoveInput.None);
-        Assert.Equal([new CompanionEntry(creature.Value, (byte)lan.World.SpeciesIndex("mossback"), false)], alice.Companions);
+        SumonerWorld.Core.Progression.CreatureGrowth growth = lan.World.World.GetComponent<SumonerWorld.Core.Progression.CreatureGrowth>(entity);
+        Assert.Equal([new CompanionEntry(creature.Value, (byte)lan.World.SpeciesIndex("mossback"), false, (byte)growth.Level, (byte)growth.Stage)], alice.Companions);
 
         uint summon = alice.SendIntent(IntentKind.Summon, creature.Value, 0);
         lan.Run(12, _ => new MoveInput(1000, 0));

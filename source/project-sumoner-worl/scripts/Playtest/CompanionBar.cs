@@ -120,7 +120,7 @@ public sealed partial class CompanionBar(
         _list!.Visible = companions.Count > 0;
         _list.Text = companions.Count == 0
             ? string.Empty
-            : "Companions\n" + string.Join("\n", companions.Select(c => InteractionText.CompanionLine(NameOf(c), c.Summoned))) + "\n" + InteractionText.CompanionHints;
+            : "Companions\n" + string.Join("\n", companions.Select(c => InteractionText.CompanionLine(NameOf(c), c.Level, (Core.Progression.LifeStage)c.Stage, c.Summoned))) + "\n" + InteractionText.CompanionHints;
 
         _clock += delta;
         foreach (CompanionEntry companion in companions)

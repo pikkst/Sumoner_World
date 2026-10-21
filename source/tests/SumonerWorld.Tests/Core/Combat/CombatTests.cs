@@ -67,10 +67,10 @@ public class CombatTests
         arena.Swing(fox);
         Assert.Equal(IntentRejectReason.OnCooldown, CombatRules.CanStart(arena.World.World, arena.World.Data, arena.Avatar, light).Reason);
         arena.Run(move.WindupTicks);
-        Assert.Equal(60, arena.Health(fox));
+        Assert.Equal(arena.MaxHealth(fox), arena.Health(fox));
         arena.Run(move.ActiveTicks + move.RecoveryTicks + 1); // the move ends on the tick its age reaches its length
 
-        Assert.Equal(60 - CombatRules.Damage(move.Damage, 100, 0, 0), arena.Health(fox));
+        Assert.Equal(arena.MaxHealth(fox) - CombatRules.Damage(move.Damage, 100, 0, 0), arena.Health(fox));
         Assert.True(CombatRules.CanStart(arena.World.World, arena.World.Data, arena.Avatar, light).IsApplied);
         Assert.Contains(arena.MemoriesAbout(fox), memory => memory.Record.EventType == arena.Event("AttackedBy"));
     }
@@ -83,7 +83,7 @@ public class CombatTests
         arena.World.Snare(fox, 0);
 
         arena.SwingUntil(fox, () => arena.World.World.Has<Yielding>(fox));
-        Assert.True(arena.Health(fox) * 1000 < 60 * arena.World.Data.Combat.YieldBelowPerMille);
+        Assert.True(arena.Health(fox) * 1000 < arena.MaxHealth(fox) * arena.World.Data.Combat.YieldBelowPerMille);
         Assert.Equal(IntentRejectReason.WrongState, CombatRules.CanStart(arena.World.World, arena.World.Data, fox, arena.World.Data.MoveIndex("bite")).Reason);
 
         arena.Run(arena.World.Data.Combat.SpareAfterTicks + 30);
@@ -126,7 +126,7 @@ public class CombatTests
         int charge = arena.World.Data.MoveIndex("charge");
         CombatRules.Start(arena.World.World, arena.World.Data, bull, charge, Vector3.UnitX, arena.Now);
         arena.Run(60);
-        Assert.Equal(160, arena.Health(calf));
+        Assert.Equal(arena.MaxHealth(calf), arena.Health(calf));
 
         arena.World.World.GetComponent<Combatant>(arena.Avatar) = arena.World.World.GetComponent<Combatant>(arena.Avatar) with { Health = 0 };
         arena.Run(1);
@@ -258,6 +258,8 @@ public class CombatTests
             World.SpawnCreature(World.SpeciesIndex(species), at, new Personality((sbyte)boldness, 0, 0, 0), group);
 
         public int Health(Entity entity) => World.World.GetComponent<Combatant>(entity).Health;
+
+        public int MaxHealth(Entity entity) => World.World.GetComponent<Combatant>(entity).MaxHealth;
 
         public ushort Event(string key) => World.Rules.FindByKey(key)!.Value;
 

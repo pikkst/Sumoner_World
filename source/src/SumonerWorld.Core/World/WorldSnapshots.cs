@@ -42,7 +42,8 @@ public static class WorldSnapshots
             world.World.GetComponent<Facing>(creature).Value,
             world.World.GetComponent<GroupRef>(creature).Group,
             world.Minds.Export(mind),
-            world.Services.Bonding.GetBond(mind));
+            world.Services.Bonding.GetBond(mind),
+            world.World.GetComponent<Progression.CreatureGrowth>(creature));
     }
 
     /// <summary>
@@ -79,6 +80,7 @@ public static class WorldSnapshots
             world.World.Add(creature, default(FocusRef));
             world.World.Add(creature, new GroupRef(save.Group));
             world.World.Add(creature, new SpeciesRef(species));
+            world.World.Add(creature, save.Growth ?? Progression.GrowthRules.Migrated(world.Data.Species[species], save.Id.Value, save.Bond.State != Bonding.OwnershipState.Wild));
             world.AddCombatant(creature, species);
             world.Services.Bonding.Restore(mind, save.Bond);
         }

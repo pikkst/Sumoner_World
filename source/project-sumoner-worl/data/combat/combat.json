@@ -28,7 +28,15 @@
       "staggerTicks": 12,
       "summonManaCost": 20,
       "summonCastTicks": 30,
-      "bondCapacity": 2
+      "bondCapacity": 2,
+      "growth": {
+        "xpFactor": 40, "xpExponentPercent": 150,
+        "damagePerCombatXp": 2, "defeatXp": 20, "metresPerTravelXp": 50, "workTaskXp": 5,
+        "healthPercentPerLevel": 6, "powerPercentPerLevel": 4,
+        "grownAtCapPercent": 40, "grownBondLevel": 2, "grownHealthPercent": 20,
+        "elderAtCapPercent": 80, "elderBondLevel": 4, "elderPowerPercent": 20,
+        "restTicks": 150
+      }
     }
   ]
 }

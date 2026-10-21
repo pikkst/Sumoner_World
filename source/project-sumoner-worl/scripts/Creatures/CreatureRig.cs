@@ -1,5 +1,6 @@
 using Godot;
 using SumonerWorld.Core.Data.Definitions;
+using SumonerWorld.Core.Progression;
 
 namespace SumonerWorld.Game.Creatures;
 
@@ -47,6 +48,30 @@ public sealed partial class CreatureRig : Node3D
 
     /// <summary>Current pose, eased toward the emote's pose by the presenter.</summary>
     public Pose Current { get; set; }
+
+    /// <summary>Life stage shown (M2-09): a young one is small, an elder bigger and wears its mane.</summary>
+    public LifeStage Stage { get; private set; } = LifeStage.Grown;
+
+    /// <summary>Overall size for the stage (1 = grown).</summary>
+    public float Size => Stage switch
+    {
+        LifeStage.Young => YoungSize,
+        LifeStage.Elder => ElderSize,
+        _ => 1f,
+    };
+
+    /// <summary>The elder's mane: pale spikes around the neck.</summary>
+    public Node3D Mane { get; private set; } = null!;
+
+    /// <summary>Shows a life stage (size and the elder's mane).</summary>
+    public void SetStage(LifeStage stage)
+    {
+        Stage = stage;
+        Mane.Visible = stage == LifeStage.Elder;
+    }
+
+    private const float YoungSize = 0.62f;
+    private const float ElderSize = 1.15f;
 
     /// <summary>Builds the model for a species role (grazer look for every non-predator).</summary>
     public static CreatureRig Build(CreatureRole role)
@@ -104,6 +129,16 @@ public sealed partial class CreatureRig : Node3D
 
         rig.Legs = legs;
         rig.Current = Pose.Neutral;
+        rig.Mane = Pivot(rig.Body, "Mane", new Vector3(0, p.BodyRadius * 0.4f, front - (p.BodyRadius * 0.5f)));
+        var pale = Material(new Color(0.88f, 0.86f, 0.78f));
+        for (int i = 0; i < 7; i++)
+        {
+            float angle = (i - 3) * 0.45f;
+            Part(rig.Mane, new CylinderMesh { TopRadius = 0, BottomRadius = p.BodyRadius * 0.16f, Height = p.BodyRadius * 0.9f, RadialSegments = 4 }, pale,
+                new Vector3(Mathf.Sin(angle) * p.BodyRadius * 0.8f, Mathf.Cos(angle) * p.BodyRadius * 0.6f, 0), new Vector3(-0.6f, 0, -angle));
+        }
+
+        rig.Mane.Visible = false;
         return rig;
     }
 

@@ -53,6 +53,10 @@ public class DevReadoutTests
         Assert.Equal($"Approach: {string.Join(" > ", tree.PathTo(lastNode).Select(node => node.Describe()))}", DevReadout.TreePath(inspection, Data));
         Assert.Equal("(not running)", DevReadout.TreePath(inspection with { TreeNode = -1 }, Data));
         Assert.DoesNotContain("order", text, StringComparison.Ordinal);
+        Assert.Contains(
+            "grow  Lv 3/20 (tier E) Young  xp combat 30 work 0 travel 2",
+            DevReadout.Inspector(inspection with { Growth = new SumonerWorld.Core.Progression.CreatureGrowth(1, 3, 0, 30, 0, 2, 0) }, Data),
+            StringComparison.Ordinal);
 
         var command = new InspectedCommand(CompanionCommand.Attack, CommandResponse.Hesitate, 312, ObedienceReason.Danger, 60);
         Assert.Contains("order Attack -> Hesitate (obedience 312: the foe is dangerous) 2s ago", DevReadout.Inspector(inspection with { Command = command }, Data), StringComparison.Ordinal);

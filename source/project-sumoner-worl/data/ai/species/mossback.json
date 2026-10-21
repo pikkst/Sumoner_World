@@ -32,6 +32,9 @@
         "territory": 10
       },
       "bodyRadiusCm": 160,
+      "class": "elf",
+      "tier": "f",
+      "levels": { "min": 1, "max": 3 },
       "pactThreshold": 450,
       "perception": {
         "sightRange": 50,
