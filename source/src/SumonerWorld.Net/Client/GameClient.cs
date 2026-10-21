@@ -57,6 +57,9 @@ public sealed class GameClient : IClientSessionHandler
     /// <summary>Remote entities for presentation, interpolated 100 ms in the past; the host advances it every frame.</summary>
     public RemoteInterpolation Remote { get; } = new();
 
+    /// <summary>The own character's vitals and combat action from the newest snapshot (since protocol 7).</summary>
+    public SnapshotVitals OwnVitals { get; private set; } = new(byte.MaxValue, byte.MaxValue, byte.MaxValue, 0);
+
     /// <summary>Entities in the newest snapshot, by kind and id.</summary>
     public IReadOnlyDictionary<(SnapshotEntityKind Kind, ulong Id), SnapshotEntity> Entities => _entities;
 
@@ -236,6 +239,7 @@ public sealed class GameClient : IClientSessionHandler
             LastSnapshotTick = header.ServerTick;
             _entities.Clear();
             Prediction.Reconcile(header.AckedInput, header.OwnPosition);
+            OwnVitals = header.Own;
         }
 
         for (int i = 0; i < header.EntityCount; i++)

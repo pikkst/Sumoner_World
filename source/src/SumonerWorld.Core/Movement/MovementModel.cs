@@ -71,9 +71,14 @@ public sealed class MovementModel : IMovementModel
     }
 
     /// <inheritdoc />
-    public Vector3 Advance(Vector3 position, MoveInput input)
+    public Vector3 Advance(Vector3 position, MoveInput input) => Step(position, Direction(input) * _speed);
+
+    /// <summary>Position after one tick of a dash (a dodge, combat spec §5) along a unit direction at a percentage of walking speed.</summary>
+    public Vector3 Dash(Vector3 position, Vector3 direction, int speedPercent) => Step(position, direction * (_speed * speedPercent / 100f));
+
+    private Vector3 Step(Vector3 position, Vector3 offset)
     {
-        Vector3 next = Vector3.Clamp(position + (Direction(input) * _speed), _min, _max);
+        Vector3 next = Vector3.Clamp(position + offset, _min, _max);
         return next with { Y = _ground?.HeightAt(next.X, next.Z) ?? 0f };
     }
 }

@@ -432,6 +432,12 @@ public sealed class CreatureWorld : IDisposable
         hash.Add<ActiveMove>(World.Store<ActiveMove>().Components);
         hash.Add<Entity>(World.Store<Yielding>().Entities);
         hash.Add<Yielding>(World.Store<Yielding>().Components);
+        hash.Add<Entity>(World.Store<Blocking>().Entities);
+        hash.Add<Blocking>(World.Store<Blocking>().Components);
+        hash.Add<Entity>(World.Store<Dodging>().Entities);
+        hash.Add<Dodging>(World.Store<Dodging>().Components);
+        hash.Add<Entity>(World.Store<Staggered>().Entities);
+        hash.Add<Staggered>(World.Store<Staggered>().Components);
         Minds.AddTo(ref hash);
         bonding.AddTo(ref hash);
         Reputation.AddTo(ref hash);
@@ -460,6 +466,9 @@ public sealed class CreatureWorld : IDisposable
         world.Register<ActiveMove>();
         world.Register<Yielding>();
         world.Register<Downed>();
+        world.Register<Blocking>();
+        world.Register<Dodging>();
+        world.Register<Staggered>();
         return world;
     }
 

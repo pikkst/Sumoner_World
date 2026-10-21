@@ -20,7 +20,7 @@ public class StateHashPaddingTests
         typeof(Entity), typeof(StableId), typeof(Position), typeof(Facing), typeof(MoveTarget), typeof(AiTier), typeof(FocusRef),
         typeof(CurrentEmote), typeof(CurrentGoal), typeof(GroupRef),
         typeof(Opinion), typeof(Personality),
-        typeof(Combatant), typeof(ActiveMove), typeof(Yielding),
+        typeof(Combatant), typeof(ActiveMove), typeof(Yielding), typeof(Blocking), typeof(Dodging), typeof(Staggered),
     };
 
     [Theory]

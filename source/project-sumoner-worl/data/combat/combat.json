@@ -17,7 +17,15 @@
       "yieldBelowPerMille": 200,
       "yieldMaxBoldness": 50,
       "spareAfterTicks": 150,
-      "playerDownTicks": 150
+      "playerDownTicks": 150,
+      "blockDamagePerMille": 300,
+      "blockArcDeg": 120,
+      "parryWindowTicks": 6,
+      "dodgeTicks": 9,
+      "dodgeStamina": 25,
+      "dodgeCooldownTicks": 15,
+      "dodgeSpeedPercent": 250,
+      "staggerTicks": 12
     }
   ]
 }
