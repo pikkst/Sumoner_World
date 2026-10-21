@@ -1,6 +1,6 @@
 # M2: Networked Vertical Slice (Plan)
-Window: **2027-04-01 → 2027-08-31** (timeline), or earlier if M1 closes early (see "Start") · Owner: Producer Agent ·
-Status: **Proposed, waiting for stakeholder approval** · Related: GDD v0.2 (§1 Pacts, §3 Combat, §4 Magic, §6 Crafting,
+Window: **2026-10-21 → 2027-08-31** (M1 closed early; target date kept as buffer) · Owner: Producer Agent ·
+Status: **In progress** (stakeholder 2026-10-21: close M1 now and start M2) · Related: GDD v0.2 (§1 Pacts, §3 Combat, §4 Magic, §6 Crafting,
 §10 Summoned Companions), AI Bible v0.1 §10 (Bonding contract), DEC-002, DEC-003, TDD v0.1
 Velocity: solo-adjusted, about 1 task per 3–5 working days, as in M1.
 
@@ -111,7 +111,8 @@ M2-15 (after B and D) → M2-16 → M2-17 → M2-18.
 ## Status
 | Task | Status |
 |---|---|
-| M2 plan | Proposed 2026-10-21 |
+| M2 plan | Adopted 2026-10-21 (M2 started) |
+| M1-25 | **Done** 2026-10-21: gate report, GO |
 
 ## Changelog
 - **0.1 (2026-10-21):** First version, after GDD v0.2 and DEC-003.
