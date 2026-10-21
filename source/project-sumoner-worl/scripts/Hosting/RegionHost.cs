@@ -1,6 +1,7 @@
 using Godot;
 using SumonerWorld.Core.Data.Definitions;
 using SumonerWorld.Core.Diagnostics;
+using SumonerWorld.Game.Characters;
 using SumonerWorld.Game.Creatures;
 using SumonerWorld.Game.World;
 using SumonerWorld.Net.Hosting;
@@ -37,8 +38,15 @@ public sealed partial class RegionHost : Node
         if (_options.Showcase.Length > 0)
         {
             _region.FreeFly = false;
-            CreatureRole role = _options.Showcase == "predator" ? CreatureRole.Predator : CreatureRole.Grazer;
-            AddChild(new EmoteShowcase(role, _region.Field!, _region.Camera!, _options.ShowcaseDistance));
+            if (_options.Showcase == "player")
+            {
+                AddChild(new HumanoidShowcase(_region.Field!, _region.Camera!, _options.ShowcaseDistance));
+            }
+            else
+            {
+                CreatureRole role = _options.Showcase == "predator" ? CreatureRole.Predator : CreatureRole.Grazer;
+                AddChild(new EmoteShowcase(role, _region.Field!, _region.Camera!, _options.ShowcaseDistance));
+            }
         }
 
         if (_options.Benchmark == "B3")
