@@ -207,6 +207,12 @@ window. Combos are data (`data/combat/combos.json`).
   a downed or staggered player still. The `Attack` intent (slot 0 basic, 1 heavy, aimed by heading) hits whatever is in the
   shape. Snapshots carry each entity's health fraction, `CombatAction` and move, and the receiver's own health, stamina and
   mana. Stamina does not regenerate while blocking.
+- **M2-03 (creatures fight back):** `CreatureAttackSystem` carries out the behaviour trees' `attack` intents (the Fight tree): the
+  creature turns to its focus and starts the first of its species' moves whose shape reaches it (a bogfox bites up close and
+  pounces from 4 m), through `CombatRules` like players; not while snared, and never at a downed player. The utility AI and trees
+  now get the creature's real health (0–1000), so Flee rises as a creature gets hurt (the Flee and Hunt curves already used it).
+  Still placeholders: yielding by a boldness threshold (not yet a goal), Hunt stays abstract (no creature-on-creature kills yet,
+  so the Memory Grove is not emptied by predators), and herds defending their young waits for life stages (M2-09).
 - **M2-02b (client):** left click attacks where the camera looks (held ≥ 0.4 s: heavy), Shift held blocks, Space dodges
   (`CombatControls`); the client predicts the dodge dash and holds still while down or staggered (`ClientPrediction`,
   reconciled as usual). `CombatHud`: health, stamina and mana bars and the keys; creatures and players show a health bar while
