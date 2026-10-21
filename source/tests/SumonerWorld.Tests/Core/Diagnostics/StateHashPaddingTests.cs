@@ -23,7 +23,7 @@ public class StateHashPaddingTests
         typeof(Combatant), typeof(ActiveMove), typeof(Yielding), typeof(Blocking), typeof(Dodging), typeof(Staggered),
         typeof(SumonerWorld.Core.Bonding.PactAnswer), typeof(SumonerWorld.Core.Bonding.SigilCast),
         typeof(SumonerWorld.Core.Bonding.CompanionState), typeof(SumonerWorld.Core.Bonding.CompanionOrder),
-        typeof(SumonerWorld.Core.Progression.CreatureGrowth),
+        typeof(SumonerWorld.Core.Progression.CreatureGrowth), typeof(SumonerWorld.Core.Progression.PlayerProgress),
     };
 
     [Theory]

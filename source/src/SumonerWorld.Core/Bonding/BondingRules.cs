@@ -53,6 +53,9 @@ public enum BondingOutcome : byte
 
     /// <summary>Nothing changed.</summary>
     Unchanged,
+
+    /// <summary>The creature belongs to another summoner class and refused (companions spec §2; remembered as <c>PactRefused</c>).</summary>
+    WrongClass,
 }
 
 /// <summary>A creature's bond (saved, AI Bible §10).</summary>
@@ -81,11 +84,22 @@ public interface IBondingRules
     /// <summary>The creature's bond.</summary>
     BondState GetBond(MindHandle creature);
 
-    /// <summary>A player offers a Pact to a wild creature. Writes <c>PactOffered</c>, then <c>PactSealed</c> or <c>PactRefused</c>.</summary>
-    BondingOutcome OfferPact(MindHandle creature, SpeciesDefinition species, MemorySubject player, PactTerms terms, int reputation, ulong now, out PactDecision decision);
+    /// <summary>
+    /// A player offers a Pact to a wild creature. Writes <c>PactOffered</c>, then <c>PactSealed</c> or <c>PactRefused</c>. With
+    /// <paramref name="conditions"/>, a creature of another class always refuses (<see cref="BondingOutcome.WrongClass"/>) and the
+    /// level difference counts (companions spec §2).
+    /// </summary>
+    BondingOutcome OfferPact(
+        MindHandle creature, SpeciesDefinition species, MemorySubject player, PactTerms terms, int reputation, ulong now, out PactDecision decision,
+        Progression.PactConditions? conditions = null);
 
-    /// <summary>The owner hands the creature to another player; the creature must accept the new player like a Pact. Memories travel with it.</summary>
-    BondingOutcome Repact(MindHandle creature, SpeciesDefinition species, MemorySubject owner, MemorySubject newOwner, PactTerms terms, int reputation, ulong now, out PactDecision decision);
+    /// <summary>
+    /// The owner hands the creature to another player; the creature must accept the new player like a Pact (a player of another
+    /// class never). Memories travel with it.
+    /// </summary>
+    BondingOutcome Repact(
+        MindHandle creature, SpeciesDefinition species, MemorySubject owner, MemorySubject newOwner, PactTerms terms, int reputation, ulong now, out PactDecision decision,
+        Progression.PactConditions? conditions = null);
 
     /// <summary>The owner releases the creature (writes <c>ReleasedBy</c>).</summary>
     BondingOutcome Release(MindHandle creature, MemorySubject owner, ulong now);
@@ -198,7 +212,8 @@ public sealed class BondingRules : IBondingRules
 
     /// <inheritdoc />
     public BondingOutcome OfferPact(
-        MindHandle creature, SpeciesDefinition species, MemorySubject player, PactTerms terms, int reputation, ulong now, out PactDecision decision)
+        MindHandle creature, SpeciesDefinition species, MemorySubject player, PactTerms terms, int reputation, ulong now, out PactDecision decision,
+        Progression.PactConditions? conditions = null)
     {
         RequirePlayer(player);
         decision = default;
@@ -208,11 +223,11 @@ public sealed class BondingRules : IBondingRules
         }
 
         _store.Remember(creature, _pactOffered, player, now);
-        decision = _evaluator.Evaluate(creature, species, player, terms, reputation, now);
+        decision = _evaluator.Evaluate(creature, species, player, terms, reputation, now, conditions);
         if (!decision.Accepted)
         {
             _store.Remember(creature, _pactRefused, player, now);
-            return BondingOutcome.Refused;
+            return decision.WrongClass ? BondingOutcome.WrongClass : BondingOutcome.Refused;
         }
 
         Seal(creature, player, terms, now);
@@ -221,7 +236,8 @@ public sealed class BondingRules : IBondingRules
 
     /// <inheritdoc />
     public BondingOutcome Repact(
-        MindHandle creature, SpeciesDefinition species, MemorySubject owner, MemorySubject newOwner, PactTerms terms, int reputation, ulong now, out PactDecision decision)
+        MindHandle creature, SpeciesDefinition species, MemorySubject owner, MemorySubject newOwner, PactTerms terms, int reputation, ulong now, out PactDecision decision,
+        Progression.PactConditions? conditions = null)
     {
         RequirePlayer(newOwner);
         decision = default;
@@ -231,11 +247,11 @@ public sealed class BondingRules : IBondingRules
             return check;
         }
 
-        decision = _evaluator.Evaluate(creature, species, newOwner, terms, reputation, now);
+        decision = _evaluator.Evaluate(creature, species, newOwner, terms, reputation, now, conditions);
         if (!decision.Accepted)
         {
             _store.Remember(creature, _pactRefused, newOwner, now);
-            return BondingOutcome.Refused;
+            return decision.WrongClass ? BondingOutcome.WrongClass : BondingOutcome.Refused;
         }
 
         Seal(creature, newOwner, terms, now);

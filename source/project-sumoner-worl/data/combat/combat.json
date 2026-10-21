@@ -35,7 +35,8 @@
         "healthPercentPerLevel": 6, "powerPercentPerLevel": 4,
         "grownAtCapPercent": 40, "grownBondLevel": 2, "grownHealthPercent": 20,
         "elderAtCapPercent": 80, "elderBondLevel": 4, "elderPowerPercent": 20,
-        "restTicks": 150
+        "restTicks": 150,
+        "playerDefeatXp": 20, "playerSpareXp": 30, "playerPactXp": 50
       }
     }
   ]

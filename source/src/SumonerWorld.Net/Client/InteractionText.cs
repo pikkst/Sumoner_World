@@ -23,6 +23,9 @@ public static class InteractionText
     /// </summary>
     public const double PactAnswerDelaySeconds = 1.5;
 
+    /// <summary>The player's level line in the HUD, e.g. <c>Elf · Rank F · Level 3</c> (M2-09).</summary>
+    public static string PlayerLine(SummonerClass summonerClass, Rank rank, int level) => $"{summonerClass} · Rank {rank} · Level {level}";
+
     /// <summary>The companion keys, shown under the companion list.</summary>
     public const string CompanionHints = "[Z] call   [X] send back\n[1] attack   [2] guard me   [3] hold here   [4] come back";
 
@@ -107,9 +110,12 @@ public static class InteractionText
             IntentKind.Scare => "You shout.",
             IntentKind.Summon => $"You draw a sigil and call the {creature}.",
             IntentKind.Dismiss => $"You send the {creature} back.",
-            IntentKind.OfferPact => (BondingOutcome)result.Detail == BondingOutcome.Accepted
-                ? $"The {creature} accepts your Pact."
-                : $"The {creature} turns away from your Pact.",
+            IntentKind.OfferPact => (BondingOutcome)result.Detail switch
+            {
+                BondingOutcome.Accepted => $"The {creature} accepts your Pact.",
+                BondingOutcome.WrongClass => $"The {creature} does not answer to your kind of summoner.",
+                _ => $"The {creature} turns away from your Pact.",
+            },
             _ => string.Empty,
         };
     }

@@ -41,6 +41,8 @@ public sealed class GrowthSystem : ISimulationSystem
     private readonly ComponentStore<Combatant> _combatants;
     private readonly ComponentStore<SpeciesRef> _species;
     private readonly ComponentStore<CurrentEmote> _emotes;
+    private readonly ComponentStore<PlayerAvatar> _players;
+    private readonly ComponentStore<PlayerProgress> _progress;
     private readonly Vector3[] _last;
     private readonly ushort _grewUp;
 
@@ -57,6 +59,8 @@ public sealed class GrowthSystem : ISimulationSystem
         _combatants = ecs.Store<Combatant>();
         _species = ecs.Store<SpeciesRef>();
         _emotes = ecs.Store<CurrentEmote>();
+        _players = ecs.Store<PlayerAvatar>();
+        _progress = ecs.Store<PlayerProgress>();
         _last = new Vector3[ecs.Capacity];
         _grewUp = world.Rules.FindByKey("GrewUp") ?? throw new InvalidOperationException("The data has no 'GrewUp' memory event type.");
         if (!world.Events.IsRegistered<CreatureLevelledUp>())
@@ -82,6 +86,7 @@ public sealed class GrowthSystem : ISimulationSystem
 
         foreach (CombatantDefeated defeated in _world.Events.Read<CombatantDefeated>())
         {
+            EarnPlayer(defeated.ByAccount, rules.PlayerDefeatXp);
             ReadOnlySpan<Entity> companions = _companions.Entities;
             for (int i = 0; i < companions.Length; i++)
             {
@@ -92,8 +97,34 @@ public sealed class GrowthSystem : ISimulationSystem
             }
         }
 
+        if (_world.Events.IsRegistered<CreatureSpared>())
+        {
+            foreach (CreatureSpared spared in _world.Events.Read<CreatureSpared>())
+            {
+                EarnPlayer(spared.Account, rules.PlayerSpareXp);
+            }
+        }
+
         Travel(rules);
         GrowUp(rules, tick.Index);
+    }
+
+    // The player who defeated or spared a creature gains experience (GDD §5).
+    private void EarnPlayer(ulong account, int xp)
+    {
+        if (account == 0)
+        {
+            return;
+        }
+
+        ReadOnlySpan<Entity> players = _players.Entities;
+        for (int i = 0; i < players.Length; i++)
+        {
+            if (_players.Components[i].AccountId == account && _progress.Has(players[i]))
+            {
+                PlayerGrowth.Earn(_world.Growth, ref _progress.Get(players[i]), ref _combatants.Get(players[i]), _world.Data.Combat.Player, xp);
+            }
+        }
     }
 
     // Walking at the summoner's side, measured on the ground plane.

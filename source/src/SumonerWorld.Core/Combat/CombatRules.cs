@@ -130,6 +130,11 @@ public enum CombatAction : byte
 /// <param name="Outcome">Hit, blocked or parried.</param>
 public readonly record struct CombatHit(Entity Attacker, Entity Target, int Move, int Damage, int HealthLeft, HitOutcome Outcome = HitOutcome.Hit);
 
+/// <summary>Published when a creature that yielded to a player was left alone and goes free (combat spec §6).</summary>
+/// <param name="Creature">The spared creature.</param>
+/// <param name="Account">The player who spared it.</param>
+public readonly record struct CreatureSpared(Entity Creature, ulong Account);
+
 /// <summary>Published when a combatant is defeated.</summary>
 /// <param name="Target">The defeated entity (destroyed right after for wild creatures).</param>
 /// <param name="Species">Its species index; <see cref="ushort.MaxValue"/> for a player.</param>

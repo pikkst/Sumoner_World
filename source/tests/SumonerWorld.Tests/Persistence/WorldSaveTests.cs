@@ -34,7 +34,11 @@ public sealed class WorldSaveTests : IDisposable
         Assert.Contains(captured.Creatures, creature => creature.Bond.State != OwnershipState.Wild);
         Assert.NotEmpty(captured.Reputation);
 
-        PlayerSave[] players = [new PlayerSave(1001, new Vector3(250, 0, 260))];
+        PlayerSave[] players =
+        [
+            new PlayerSave(1001, new Vector3(250, 0, 260), new SumonerWorld.Core.Progression.PlayerProgress(0, 2, 17, 2_900)),
+            new PlayerSave(1002, new Vector3(10, 0, 20)),
+        ];
         using (WorldStore store = Open())
         {
             Assert.Null(store.LoadWorld());

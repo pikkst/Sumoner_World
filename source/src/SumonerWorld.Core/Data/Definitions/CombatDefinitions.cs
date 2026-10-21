@@ -243,4 +243,13 @@ public sealed record GrowthDefinition
 
     /// <summary>How long the summoner must rest (stand still, no fight) before a companion grows up, in ticks.</summary>
     public int RestTicks { get; init; } = 150;
+
+    /// <summary>Player experience for defeating a creature (GDD §5, M2-09).</summary>
+    public int PlayerDefeatXp { get; init; } = 20;
+
+    /// <summary>Player experience for sparing a creature that yielded (sparing is worth more than killing, GDD §6).</summary>
+    public int PlayerSpareXp { get; init; } = 30;
+
+    /// <summary>Player experience for a sealed Pact.</summary>
+    public int PlayerPactXp { get; init; } = 50;
 }

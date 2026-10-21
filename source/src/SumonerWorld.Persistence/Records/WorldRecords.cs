@@ -17,6 +17,22 @@ public sealed record PlayerRecord
     /// <summary>Position Z.</summary>
     [Key(2)]
     public float Z { get; init; }
+
+    /// <summary>Summoner class (M2-09); null in saves from before it existed.</summary>
+    [Key(3)]
+    public byte? Class { get; init; }
+
+    /// <summary>Summoner rank.</summary>
+    [Key(4)]
+    public byte Rank { get; init; }
+
+    /// <summary>Level.</summary>
+    [Key(5)]
+    public int Level { get; init; }
+
+    /// <summary>Total experience.</summary>
+    [Key(6)]
+    public int Xp { get; init; }
 }
 
 /// <summary>A saved creature (payload v1, "CreatureMind v1" inside, AI Bible §4.6).</summary>

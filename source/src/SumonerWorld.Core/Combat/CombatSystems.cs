@@ -244,6 +244,8 @@ public sealed class CombatSystem : ISimulationSystem
 /// </summary>
 public sealed class VitalsSystem : ISimulationSystem
 {
+    private const int SparedEventCapacity = 16;
+
     private readonly CreatureWorld _world;
     private readonly EcsWorld _ecs;
     private readonly ComponentStore<Combatant> _combatants;
@@ -260,6 +262,11 @@ public sealed class VitalsSystem : ISimulationSystem
     public VitalsSystem(CreatureWorld world)
     {
         ArgumentNullException.ThrowIfNull(world);
+        if (!world.Events.IsRegistered<CreatureSpared>())
+        {
+            world.Events.Register<CreatureSpared>(SparedEventCapacity);
+        }
+
         _world = world;
         _ecs = world.World;
         _combatants = _ecs.Store<Combatant>();
@@ -393,6 +400,7 @@ public sealed class VitalsSystem : ISimulationSystem
             if (state.Account != 0)
             {
                 PlayerInteractions.Remember(_world, creature, "DefeatedButSpared", state.Account, now);
+                _world.Events.Publish(new CreatureSpared(creature, state.Account));
             }
 
             _ecs.Remove<Yielding>(creature);
