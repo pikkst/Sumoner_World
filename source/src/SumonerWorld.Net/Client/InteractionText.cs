@@ -1,5 +1,6 @@
 using SumonerWorld.Core.Bonding;
 using SumonerWorld.Core.Intents;
+using SumonerWorld.Core.Items;
 using SumonerWorld.Core.Progression;
 using SumonerWorld.Net.Messages;
 
@@ -68,6 +69,17 @@ public static class InteractionText
     /// <summary>The line when a companion learned a combo with the player (M2-12): it is the player's style it learned.</summary>
     public static string ComboLearned(string creature, string combo) => $"Your {creature} learned your style: {SkillName(combo)}! It will join in when you cast it.";
 
+    /// <summary>The gathering prompt for a node kind (M2-13).</summary>
+    public static string GatherHint(string node) => node switch
+    {
+        "berry_bush" => "[H] pick berries",
+        "sweetroot_patch" => "[H] dig up sweetroot",
+        _ => "[H] gather branches",
+    };
+
+    /// <summary>An inventory line: the item's name and how many (M2-13).</summary>
+    public static string ItemLine(string item, int count) => $"{SkillName(item)} x{count}";
+
     /// <summary>The spell keys (M2-11), shown with the combat keys.</summary>
     public const string SpellHints = "C: thornbolt   V: entangle   G: mend";
 
@@ -120,6 +132,20 @@ public static class InteractionText
                 SummonRefusal.NotPacted => $"The {creature} is not bonded to you.",
                 _ => "Nothing happens.",
             };
+        }
+
+        if (kind == IntentKind.PickUp)
+        {
+            return result.IsApplied ? $"You pick up the loot (+{result.Detail} gold)."
+                : (ItemRefusal)result.Detail == ItemRefusal.InventoryFull ? "Your bag is full." : string.Empty;
+        }
+
+        if (kind == IntentKind.Gather)
+        {
+            return result.IsApplied ? $"You gather {result.Detail} {creature}."
+                : result.Reason == IntentRejectReason.OutOfRange ? "Come closer to gather."
+                : (ItemRefusal)result.Detail == ItemRefusal.InventoryFull ? "Your bag is full."
+                : "Nothing to gather here yet. It grows back by tomorrow.";
         }
 
         if (kind == IntentKind.Cast)

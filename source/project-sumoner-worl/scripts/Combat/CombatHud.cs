@@ -67,7 +67,7 @@ public sealed partial class CombatHud(GameClient client) : CanvasLayer
         _stamina!.Size = new Vector2(BarWidth * own.Stamina / 255f, BarHeight);
         _mana!.Size = new Vector2(BarWidth * own.Mana / 255f, BarHeight);
         _down!.Visible = own.Action == (byte)CombatAction.Down;
-        _player!.Text = InteractionText.PlayerLine((Core.Progression.SummonerClass)own.Class, (Core.Progression.Rank)own.Rank, own.Level);
+        _player!.Text = $"{InteractionText.PlayerLine((Core.Progression.SummonerClass)own.Class, (Core.Progression.Rank)own.Rank, own.Level)} · {client.Inventory.Gold} gold";
         _xp!.Size = new Vector2(BarWidth * own.Xp / 255f, 4);
         _hint!.Text = (client.LockOnAllowed ? Keys + "   Middle click / T: lock on" : Keys) + "\n" + InteractionText.SpellHints;
     }

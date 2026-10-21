@@ -33,6 +33,7 @@ public sealed class GameClient : IClientSessionHandler
     private readonly ServerMetricsCodec _metricsCodec = new();
     private readonly DevInspectionCodec _inspectionCodec = new();
     private readonly CompanionListCodec _companionCodec = new();
+    private readonly InventoryListCodec _inventoryCodec = new();
     private uint _lastIntent;
 
     /// <summary>Creates the client; <paramref name="movement"/> must match the server's.</summary>
@@ -61,6 +62,9 @@ public sealed class GameClient : IClientSessionHandler
 
     /// <summary>True when the server allows lock-on (Normal preset; not on Hardcore).</summary>
     public bool LockOnAllowed => Session.Session is Welcome welcome && (welcome.Rules & ServerRules.LockOn) != 0;
+
+    /// <summary>The player's gold and inventory, as the server last sent them (since protocol 16).</summary>
+    public InventoryList Inventory { get; private set; } = new(0, []);
 
     /// <summary>The player's pacted creatures, as the server last sent them (since protocol 9).</summary>
     public IReadOnlyList<CompanionEntry> Companions { get; private set; } = [];
@@ -206,6 +210,9 @@ public sealed class GameClient : IClientSessionHandler
                 _results[ack.Sequence] = ack.Result;
                 AcksReceived++;
                 _unanswered.Remove(ack.Sequence);
+                break;
+            case MessageType.InventoryList:
+                Inventory = _inventoryCodec.Read(ref reader);
                 break;
             case MessageType.CompanionList:
                 Companions = _companionCodec.Read(ref reader).Entries;

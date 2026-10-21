@@ -52,4 +52,22 @@ public readonly record struct ReputationSave(string Species, int Region, ulong P
 /// <param name="Account">Account id.</param>
 /// <param name="Position">Where the avatar was last.</param>
 /// <param name="Progress">Class, rank, level and experience (M2-09); null in saves from before it existed (a new player's).</param>
-public readonly record struct PlayerSave(ulong Account, Vector3 Position, Progression.PlayerProgress? Progress = null);
+/// <param name="Inventory">Gold and items (M2-13); null in saves from before it existed (empty).</param>
+public readonly record struct PlayerSave(ulong Account, Vector3 Position, Progression.PlayerProgress? Progress = null, InventorySave? Inventory = null);
+
+/// <summary>A saved inventory: gold and the slots by item id (so a reordered items file cannot mix them up).</summary>
+/// <param name="Gold">Gold.</param>
+/// <param name="Items">Non-empty slots in slot order.</param>
+public sealed record InventorySave(int Gold, IReadOnlyList<SavedItem> Items)
+{
+    /// <summary>Equal when gold and every slot are.</summary>
+    public bool Equals(InventorySave? other) => other is not null && Gold == other.Gold && Items.SequenceEqual(other.Items);
+
+    /// <inheritdoc />
+    public override int GetHashCode() => HashCode.Combine(Gold, Items.Count);
+}
+
+/// <summary>A saved slot.</summary>
+/// <param name="Item">Item id.</param>
+/// <param name="Count">How many.</param>
+public readonly record struct SavedItem(string Item, int Count);

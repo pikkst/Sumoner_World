@@ -63,6 +63,7 @@ public sealed partial class ClientHost : Node
     private InteractionControls? _interactions;
     private CompanionBar? _companionBar;
     private CompanionPanel? _companionPanel;
+    private Items.ItemControls? _items;
     private DevToolsLayer? _devTools;
     private PlaytestSelfTest? _selfTest;
     private OrbitCamera? _orbit;
@@ -170,9 +171,11 @@ public sealed partial class ClientHost : Node
         AddChild(_companionBar);
         _companionPanel = new CompanionPanel(_client!, data, controls);
         AddChild(_companionPanel);
+        _items = new Items.ItemControls(_client!, data, controls, () => _avatar?.Feet ?? Vector3.Zero);
+        AddChild(_items);
         if (_options.SelfTest)
         {
-            _selfTest = new PlaytestSelfTest(controls, _companionBar, _companionPanel, _combat, _lockOn, _client!, _orbit, () => _views.Shown > 0 && _elapsed > ScreenshotAfterSeconds, _log, Capture);
+            _selfTest = new PlaytestSelfTest(controls, _companionBar, _companionPanel, _items, _combat, _lockOn, _client!, _orbit, () => _views.Shown > 0 && _elapsed > ScreenshotAfterSeconds, _log, Capture);
             AddChild(_selfTest);
         }
 

@@ -1,0 +1,10 @@
+// Gathering nodes (crafting spec §5): plants regrow after an in-game day (86 400 ticks); fallen branches by hand.
+{
+  "schemaVersion": 1,
+  "kind": "gatherNodes",
+  "entries": [
+    { "id": "berry_bush", "item": "sweet_berries", "min": 2, "max": 4, "regrowTicks": 86400 },
+    { "id": "sweetroot_patch", "item": "sweetroot", "min": 1, "max": 2, "regrowTicks": 86400 },
+    { "id": "fallen_branches", "item": "fallen_branch", "min": 1, "max": 3, "regrowTicks": 259200 }
+  ]
+}

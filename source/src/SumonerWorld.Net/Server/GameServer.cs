@@ -6,7 +6,6 @@ using SumonerWorld.Core.Diagnostics;
 using SumonerWorld.Core.Ecs;
 using SumonerWorld.Core.Intents;
 using SumonerWorld.Core.Movement;
-using SumonerWorld.Core.Progression;
 using SumonerWorld.Core.Simulation;
 using SumonerWorld.Core.Transactions;
 using SumonerWorld.Core.World;
@@ -45,6 +44,9 @@ public sealed class GameServerSettings
 
     /// <summary>Hardcore preset (GDD §9): no lock-on for clients. Normal is the default.</summary>
     public bool Hardcore { get; init; }
+
+    /// <summary>Gathering nodes of each kind placed around the spawn point at start (0 = none; the game uses 4, M2-13).</summary>
+    public int GatherNodesPerKind { get; init; }
 }
 
 /// <summary>
@@ -67,6 +69,8 @@ public sealed class GameServer : IServerSessionHandler
 
     /// <summary>Ticks between checks whether a player's companion list changed (half a second).</summary>
     public const int CompanionCheckTicks = 15;
+
+    private const ulong GatherNodeSeed = 0x6A7E_5EED;
 
     private readonly CreatureWorld _world;
     private readonly ITransport _transport;
@@ -119,6 +123,11 @@ public sealed class GameServer : IServerSessionHandler
         _snapshots = new SnapshotSender(world, transport, settings.InterestRadius);
         _companions = new CompanionListSender(world, transport);
         _intents = new PlayerIntents(world, Transactions);
+        if (settings.GatherNodesPerKind > 0)
+        {
+            // Placed from the same seed at every start: nodes are not saved, their places do not change.
+            world.Economy.PlaceNodes(world.Data, world.Settings.Ground, settings.SpawnPoint, settings.GatherNodesPerKind, GatherNodeSeed);
+        }
         _dev = settings.DevTools ? new DevToolsHost(world, transport, metrics) : null;
         _scheduler = new SimulationScheduler(world.Clock, world.Events, _dev?.Metrics ?? metrics);
         _scheduler.Register(new PlayerInputSystem(this));
@@ -206,6 +215,8 @@ public sealed class GameServer : IServerSessionHandler
         ArgumentNullException.ThrowIfNull(players);
         foreach (PlayerSave player in players)
         {
+            PlayerRecords.Restore(_world, player);
+
             _knownPlayers[player.Account] = player;
         }
     }
@@ -385,19 +396,15 @@ public sealed class GameServer : IServerSessionHandler
         }
     }
 
-    private PlayerSave SaveOf(PlayerSlot player) =>
-        new(player.Account, _world.World.GetComponent<Position>(player.Avatar).Value, _world.World.GetComponent<PlayerProgress>(player.Avatar));
+    private PlayerSave SaveOf(PlayerSlot player) => PlayerRecords.Capture(_world, player.Account, player.Avatar);
 
     private void Enter(PlayerSlot player)
     {
         player.Avatar = _world.SpawnPlayerAvatar(player.Account, player.LastPosition);
         player.InWorld = true;
-        if (_knownPlayers.TryGetValue(player.Account, out PlayerSave saved) && saved.Progress is PlayerProgress progress)
+        if (_knownPlayers.TryGetValue(player.Account, out PlayerSave saved))
         {
-            // Back with their class, rank and level; stats follow the level.
-            _world.World.GetComponent<PlayerProgress>(player.Avatar) = progress;
-            PlayerGrowth.Restat(_world.Growth, progress, ref _world.World.GetComponent<Combatant>(player.Avatar), _world.Data.Combat.Player);
-            _world.World.GetComponent<Combatant>(player.Avatar).Health = _world.World.GetComponent<Combatant>(player.Avatar).MaxHealth;
+            PlayerRecords.Enter(_world, player.Avatar, saved);
         }
     }
 

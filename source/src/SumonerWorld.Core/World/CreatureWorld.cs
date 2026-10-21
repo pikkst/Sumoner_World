@@ -15,6 +15,7 @@ using SumonerWorld.Core.Diagnostics;
 using SumonerWorld.Core.Ecosystem;
 using SumonerWorld.Core.Ecs;
 using SumonerWorld.Core.Events;
+using SumonerWorld.Core.Items;
 using SumonerWorld.Core.Jobs;
 using SumonerWorld.Core.Navigation;
 using SumonerWorld.Core.Progression;
@@ -170,6 +171,7 @@ public sealed record CreatureSystems(
         scheduler.Register(Fight.Combos);
         scheduler.Register(Fight.Status);
         scheduler.Register(Fight.Vitals);
+        scheduler.Register(Fight.Loot);
         scheduler.Register(Growth);
         scheduler.Register(Skills);
         scheduler.Register(ReputationFlush);
@@ -183,8 +185,9 @@ public sealed record CreatureSystems(
 /// <param name="Combos">Combo learning and companions starting a known combo by themselves (M2-12).</param>
 /// <param name="Status">Status effects over time: mending, expiry (M2-11).</param>
 /// <param name="Vitals">Regeneration, yield, defeat (combat spec §5, §6).</param>
+/// <param name="Loot">Personal loot bags from defeated creatures (M2-13).</param>
 public sealed record FightSystems(
-    CreatureAttackSystem Attacks, CombatSystem Combat, CompanionAlertSystem Alerts, ComboSystem Combos, StatusSystem Status, VitalsSystem Vitals)
+    CreatureAttackSystem Attacks, CombatSystem Combat, CompanionAlertSystem Alerts, ComboSystem Combos, StatusSystem Status, VitalsSystem Vitals, LootSystem Loot)
 {
     /// <summary>Builds them for a world.</summary>
     public static FightSystems Create(CreatureWorld world) =>
@@ -194,7 +197,8 @@ public sealed record FightSystems(
             new CompanionAlertSystem(world),
             new ComboSystem(world),
             new StatusSystem(world.World),
-            new VitalsSystem(world));
+            new VitalsSystem(world),
+            new LootSystem(world));
 }
 
 /// <summary>
@@ -207,6 +211,7 @@ public sealed class CreatureWorld : IDisposable
     private const int NeighbourEventCapacity = 256;
 
     private GrowthRules? _growth;
+    private Economy? _economy;
     private const int JobCapacity = 16;
     private const int ReputationCapacity = 256;
     private const int InteractionEventCapacity = 256;
@@ -299,6 +304,9 @@ public sealed class CreatureWorld : IDisposable
 
     /// <summary>Asynchronous path requests (results at the next tick's job stage).</summary>
     public PathPlanner Paths { get; }
+
+    /// <summary>Inventories, loot bags and gathering nodes (M2-13).</summary>
+    public Economy Economy => _economy ??= new Economy();
 
     /// <summary>How creatures grow (companions spec §3–4, M2-09).</summary>
     public GrowthRules Growth => _growth ??= new GrowthRules(Data.Combat.Growth);
@@ -487,9 +495,8 @@ public sealed class CreatureWorld : IDisposable
         hash.Add<GroupRef>(World.Store<GroupRef>().Components);
         hash.Add<Entity>(World.Store<Combatant>().Entities);
         hash.Add<Combatant>(World.Store<Combatant>().Components);
-        ProgressionComponents.AddTo(ref hash, World);
-        CombatState.AddTo(ref hash, World);
-        BondingComponents.AddTo(ref hash, World);
+        ComponentSets.AddTo(ref hash, World);
+        Economy.AddTo(ref hash);
         Minds.AddTo(ref hash);
         bonding.AddTo(ref hash);
         Reputation.AddTo(ref hash);
@@ -514,10 +521,8 @@ public sealed class CreatureWorld : IDisposable
         world.Register<SpeciesRef>();
         world.Register<PlayerAvatar>();
         world.Register<Snared>();
-        BondingComponents.Register(world);
+        ComponentSets.Register(world);
         world.Register<Combatant>();
-        ProgressionComponents.Register(world);
-        CombatState.Register(world);
         return world;
     }
 

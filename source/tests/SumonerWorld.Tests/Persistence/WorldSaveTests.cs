@@ -36,7 +36,9 @@ public sealed class WorldSaveTests : IDisposable
 
         PlayerSave[] players =
         [
-            new PlayerSave(1001, new Vector3(250, 0, 260), new SumonerWorld.Core.Progression.PlayerProgress(0, 2, 17, 2_900)),
+            new PlayerSave(
+                1001, new Vector3(250, 0, 260), new SumonerWorld.Core.Progression.PlayerProgress(0, 2, 17, 2_900),
+                new InventorySave(37, [new SavedItem("fox_fur", 3), new SavedItem("sweet_berries", 12)])),
             new PlayerSave(1002, new Vector3(10, 0, 20)),
         ];
         using (WorldStore store = Open())

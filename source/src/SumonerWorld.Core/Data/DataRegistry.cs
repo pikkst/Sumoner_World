@@ -9,6 +9,8 @@ public sealed class DataRegistry : IDataRegistry
     private readonly Dictionary<string, SpeciesDefinition> _speciesById;
     private readonly Dictionary<string, int> _moveIndexById;
     private readonly SkillTreeDefinition?[] _treeBySpecies;
+    private readonly Dictionary<string, int> _itemIndexById;
+    private readonly LootTableDefinition?[] _lootBySpecies;
 
     internal DataRegistry(
         IReadOnlyList<MemoryEventTypeDefinition> memoryEventTypes,
@@ -23,8 +25,15 @@ public sealed class DataRegistry : IDataRegistry
         IReadOnlyList<SkillTreeDefinition> skillTrees,
         IReadOnlyList<SpellDefinition> spells,
         IReadOnlyList<EffectDefinition> effects,
-        IReadOnlyList<ComboDefinition> combos)
+        IReadOnlyList<ComboDefinition> combos,
+        IReadOnlyList<ItemDefinition> items,
+        IReadOnlyList<LootTableDefinition> lootTables,
+        IReadOnlyList<GatherNodeDefinition> gatherNodes)
     {
+        Items = items;
+        GatherNodes = gatherNodes;
+        _itemIndexById = items.Select((definition, index) => (definition.Id, index)).ToDictionary(item => item.Id, item => item.index, StringComparer.Ordinal);
+        _lootBySpecies = [.. species.Select(definition => lootTables.FirstOrDefault(table => table.Species == definition.Id))];
         Combos = combos;
         Spells = spells;
         Effects = effects;
@@ -82,6 +91,22 @@ public sealed class DataRegistry : IDataRegistry
 
     /// <inheritdoc />
     public IReadOnlyList<ComboDefinition> Combos { get; }
+
+    /// <inheritdoc />
+    public IReadOnlyList<ItemDefinition> Items { get; }
+
+    /// <inheritdoc />
+    public IReadOnlyList<GatherNodeDefinition> GatherNodes { get; }
+
+    /// <inheritdoc />
+    public int ItemIndex(string id)
+    {
+        ArgumentNullException.ThrowIfNull(id);
+        return _itemIndexById.TryGetValue(id, out int index) ? index : throw new KeyNotFoundException($"Unknown item id '{id}'.");
+    }
+
+    /// <inheritdoc />
+    public LootTableDefinition? LootTableOf(int species) => (uint)species < (uint)_lootBySpecies.Length ? _lootBySpecies[species] : null;
 
     /// <inheritdoc />
     public EffectDefinition? EffectOf(string id)

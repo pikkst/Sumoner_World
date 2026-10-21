@@ -74,6 +74,12 @@ public class InteractionTextTests
         };
 
         Assert.Equal("Thick hide", InteractionText.SkillName("thick_hide"));
+        Assert.Equal("You pick up the loot (+7 gold).", InteractionText.Result(IntentKind.PickUp, IntentResult.Applied(7), "loot"));
+        Assert.Equal("You gather 3 sweet berries.", InteractionText.Result(IntentKind.Gather, IntentResult.Applied(3), "sweet berries"));
+        Assert.Equal(
+            "Your bag is full.",
+            InteractionText.Result(IntentKind.Gather, new IntentResult(IntentStatus.Rejected, IntentRejectReason.WrongState, (byte)SumonerWorld.Core.Items.ItemRefusal.InventoryFull), "x"));
+        Assert.Equal("[H] pick berries", InteractionText.GatherHint("berry_bush"));
         Assert.Equal("Your mossback learned your style: Uproot! It will join in when you cast it.", InteractionText.ComboLearned("mossback", "uproot"));
         Assert.Equal("new move: Lunge", InteractionText.SkillEffect(lunge));
         Assert.Equal("health +15%", InteractionText.SkillEffect(hide));

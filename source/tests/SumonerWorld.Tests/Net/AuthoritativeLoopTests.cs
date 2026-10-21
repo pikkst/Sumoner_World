@@ -362,7 +362,8 @@ public class AuthoritativeLoopTests
     {
         using var lan = new Lan(0);
         var veteran = new PlayerProgress((int)SummonerClass.Elf, (int)Rank.E, 12, lan.World.Growth.XpFor(12));
-        lan.Server.RestorePlayers([new PlayerSave(1001, new Vector3(100, 0, 120), veteran), new PlayerSave(3003, new Vector3(5, 0, 5))]);
+        var bag = new InventorySave(12, [new SavedItem("fox_fur", 3)]);
+        lan.Server.RestorePlayers([new PlayerSave(1001, new Vector3(100, 0, 120), veteran, bag), new PlayerSave(3003, new Vector3(5, 0, 5))]);
         lan.Join(1001);
         lan.Join(1002);
         lan.Run(10, _ => MoveInput.None);
@@ -375,8 +376,8 @@ public class AuthoritativeLoopTests
         Assert.Equal(aliceStats.MaxHealth, aliceStats.Health);
         Assert.Equal(
             [
-                new PlayerSave(1001, new Vector3(100, 0, 120), veteran),
-                new PlayerSave(1002, lan.Settings.SpawnPoint, PlayerProgress.New),
+                new PlayerSave(1001, new Vector3(100, 0, 120), veteran, bag),
+                new PlayerSave(1002, lan.Settings.SpawnPoint, PlayerProgress.New, new InventorySave(0, [])),
                 new PlayerSave(3003, new Vector3(5, 0, 5)),
             ],
             lan.Server.CapturePlayers());

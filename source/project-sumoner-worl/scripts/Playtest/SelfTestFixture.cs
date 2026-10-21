@@ -13,6 +13,17 @@ namespace SumonerWorld.Game.Playtest;
 /// </summary>
 public static class SelfTestFixture
 {
+    /// <summary>A berry bush right where the self-test walks to (M2-13), so it can gather.</summary>
+    public static void PlaceBush(GameServer server)
+    {
+        ArgumentNullException.ThrowIfNull(server);
+        CreatureWorld world = server.World;
+        int bush = world.Data.GatherNodes.Select((node, index) => (node, index)).First(item => item.node.Id == "berry_bush").index;
+        System.Numerics.Vector3 at = new GameServerSettings().SpawnPoint + new System.Numerics.Vector3(1.5f, 0, 9.5f);
+        at.Y = world.Settings.Ground?.HeightAt(at.X, at.Z) ?? at.Y;
+        world.Economy.AddNode(bush, at);
+    }
+
     /// <summary>Pacts the first hollow owl to <paramref name="account"/>; false when the world has none.</summary>
     public static bool GiveCompanion(GameServer server, ulong account)
     {

@@ -87,6 +87,20 @@ and if they want to.
 - Crash during crafting, a pick-up or a move between inventory and chest: after restart the item or gold is in exactly one place.
 - Save migration: inventory, gold and gear are part of the versioned save (R26).
 
+## 11. Implementation notes (M2-13)
+- **Data:** `data/items/items.json` (8 slice items), `loot_tables.json` (§4's slice tables, plus the hollow owl's feathers) and
+  `gather_nodes.json` (berry bush, sweetroot patch, fallen branches; plants regrow after a day, branches after three).
+- **Inventory:** 24 slots, 30 kg, gold; server state per account, part of the state hash; saved with the player by item id
+  (unknown ids are dropped on load). The client gets it when it changes (`InventoryList`, protocol 16) and shows it with I; the
+  HUD shows the gold.
+- **Loot:** every player who hit a creature is one of its fighters (up to four); when it is defeated, each gets a personal bag
+  rolled from the species' table with the world's seeded random stream, visible only to them (snapshot kind `Loot`), lying
+  where it fell for 5 real minutes. Walking onto it sends `PickUp`. Bags are not saved (they last minutes).
+- **Gathering:** nodes are placed from a fixed seed around the spawn point at every start (4 of each kind; not saved); H sends
+  `Gather` for the nearest one that has grown back (snapshot kind `Node`, with or without its fruit).
+- **Safety:** pick-up and gathering are atomic transactions: everything fits or nothing changes; a repeated intent gets the
+  first answer (tests). Graves on death (§9), vendors (§3) and trading come later.
+
 ## Changelog
 - **0.2 (2026-10-21):** approved with the stakeholder's answers: a first loot system with **gold, item drops and inventory**
   (§3, §4, personal loot bags), so killing now drops loot (its memory consequences stay); gold vendors, respecs and repairs;

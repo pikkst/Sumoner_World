@@ -23,6 +23,7 @@ public sealed partial class PlaytestSelfTest(
     InteractionControls controls,
     CompanionBar companions,
     CompanionPanel panel,
+    Items.ItemControls items,
     CombatControls combat, LockOn lockOn, GameClient client, OrbitCamera camera, Func<bool> worldShown, ILog log, Action<string> capture)
     : Node
 {
@@ -30,7 +31,7 @@ public sealed partial class PlaytestSelfTest(
     private const float CloseMetres = 3f; // inside the basic attack's reach of a mossback (2 m + its 1.6 m body)
     private const double StepSeconds = 1.2;
     private const double WatchSeconds = 6;
-    private const int LastStep = 27;
+    private const int LastStep = 29;
 
     private double _clock;
     private double _walking;
@@ -82,7 +83,7 @@ public sealed partial class PlaytestSelfTest(
         switch (_step)
         {
             case 0:
-                log.Write(LogLevel.Info, "selftest.aim", $"attacking {controls.Target.Name} at {controls.TargetDistance:F1} m");
+                log.Write(LogLevel.Info, "selftest.aim", $"attacking {controls.Target.Name} at {controls.TargetDistance:F1} m; gather: {(items.Gather() ? "a bush in reach" : "no node in reach")}");
                 Input.ParseInputEvent(new InputEventMouseButton { ButtonIndex = MouseButton.Left, Pressed = true });
                 Input.ParseInputEvent(new InputEventMouseButton { ButtonIndex = MouseButton.Left, Pressed = false });
                 break;
@@ -214,6 +215,14 @@ public sealed partial class PlaytestSelfTest(
             case 27:
                 log.Write(LogLevel.Info, "selftest.spells", $"own status {(SumonerWorld.Core.Combat.StatusMarks)client.OwnVitals.Status}; mana {client.OwnVitals.Mana}/255");
                 capture("mend");
+                break;
+            case 28:
+                PressKey(Key.I);
+                break;
+            case 29:
+                log.Write(LogLevel.Info, "selftest.items", OneLine(items.InventoryText));
+                capture("inventory");
+                PressKey(Key.I);
                 break;
             default:
                 return false;

@@ -56,7 +56,47 @@ internal sealed class SnapshotSender(CreatureWorld world, ITransport transport, 
             count++;
         }
 
+        // Loot bags only to their owner; gathering nodes to everyone near (M2-13).
+        ulong account = _players.Get(avatar).AccountId;
+        Core.Items.Economy economy = world.Economy;
+        for (int i = 0; i < economy.Bags.Count + economy.Nodes.Count; i++)
+        {
+            SnapshotEntity? item = ItemEntity(economy, i, account, own, tick);
+            if (item is not SnapshotEntity entity)
+            {
+                continue;
+            }
+
+            if (count == Snapshot.MaxEntitiesPerPart || writer.Written + Snapshot.MaxEntityBytes > _buffer.Length)
+            {
+                Flush(connection, ref writer, countOffset, count);
+                writer = new MessageWriter(_buffer);
+                countOffset = Snapshot.WriteHeader(ref writer, tick, ackedInput, own, vitals);
+                count = 0;
+            }
+
+            Snapshot.WriteEntity(ref writer, entity);
+            count++;
+        }
+
         Flush(connection, ref writer, countOffset, count);
+    }
+
+    // Bag i (owner only), then node i − bags, within the interest radius.
+    private SnapshotEntity? ItemEntity(Core.Items.Economy economy, int i, ulong account, Vector3 own, ulong tick)
+    {
+        if (i < economy.Bags.Count)
+        {
+            Core.Items.LootBag bag = economy.Bags[i];
+            return bag.Owner == account && Vector3.DistanceSquared(own, bag.Position) <= _radiusSquared
+                ? new SnapshotEntity(SnapshotEntityKind.Loot, bag.Id, bag.Position, 0, 0)
+                : null;
+        }
+
+        Core.Items.GatherNode node = economy.Nodes[i - economy.Bags.Count];
+        return Vector3.DistanceSquared(own, node.Position) <= _radiusSquared
+            ? new SnapshotEntity(SnapshotEntityKind.Node, node.Id, node.Position, 0, 0, (byte)node.Kind, node.IsReady(tick) ? byte.MaxValue : (byte)0)
+            : null;
     }
 
     private SnapshotEntity Describe(Entity entity, Vector3 position, ulong tick)

@@ -118,6 +118,9 @@ public static partial class DataRegistryLoader
         private readonly List<(SpellDefinition Entry, string Where)> _spells = [];
         private readonly List<EffectDefinition> _effects = [];
         private readonly List<(ComboDefinition Entry, string Where)> _combos = [];
+        private readonly List<ItemDefinition> _items = [];
+        private readonly List<(LootTableDefinition Entry, string Where)> _lootTables = [];
+        private readonly List<(GatherNodeDefinition Entry, string Where)> _gatherNodes = [];
         private readonly Dictionary<string, string> _speciesSources = new(StringComparer.Ordinal);
         private readonly Dictionary<string, List<string>> _filesByKind = new(StringComparer.Ordinal);
 
@@ -196,6 +199,9 @@ public static partial class DataRegistryLoader
                 case RunesKind or SpellsKind or EffectsKind or CombosKind:
                     AddMagic(kind, file);
                     break;
+                case ItemsKind or LootTablesKind or GatherNodesKind:
+                    AddEconomy(kind, file);
+                    break;
                 case SkillTreesKind:
                     foreach ((SkillTreeDefinition entry, int index) in ReadEntries<SkillTreeDefinition>(file, Errors))
                     {
@@ -206,7 +212,37 @@ public static partial class DataRegistryLoader
 
                     break;
                 default:
-                    Errors.Add($"{file.Path}: unknown kind '{kind}'. Known kinds: {MemoryEventTypesKind}, {SpeciesKind}, {OpinionWeightsKind}, {GoalsKind}, {BehaviourTreesKind}, {PactTermsKind}, {BondLevelsKind}, {MovesKind}, {CombatKind}, {SkillTreesKind}, {RunesKind}, {SpellsKind}, {EffectsKind}, {CombosKind}.");
+                    Errors.Add($"{file.Path}: unknown kind '{kind}'. Known kinds: {MemoryEventTypesKind}, {SpeciesKind}, {OpinionWeightsKind}, {GoalsKind}, {BehaviourTreesKind}, {PactTermsKind}, {BondLevelsKind}, {MovesKind}, {CombatKind}, {SkillTreesKind}, {RunesKind}, {SpellsKind}, {EffectsKind}, {CombosKind}, {ItemsKind}, {LootTablesKind}, {GatherNodesKind}.");
+                    break;
+            }
+        }
+
+        // Items, loot tables and gathering nodes (M2-13).
+        private void AddEconomy(string kind, DataFile file)
+        {
+            switch (kind)
+            {
+                case ItemsKind:
+                    foreach ((ItemDefinition entry, int index) in ReadEntries<ItemDefinition>(file, Errors))
+                    {
+                        ValidateItem(entry, $"{file.Path}: entries[{index}]", Errors);
+                        _items.Add(entry);
+                    }
+
+                    break;
+                case LootTablesKind:
+                    foreach ((LootTableDefinition entry, int index) in ReadEntries<LootTableDefinition>(file, Errors))
+                    {
+                        _lootTables.Add((entry, $"{file.Path}: entries[{index}]"));
+                    }
+
+                    break;
+                default:
+                    foreach ((GatherNodeDefinition entry, int index) in ReadEntries<GatherNodeDefinition>(file, Errors))
+                    {
+                        _gatherNodes.Add((entry, $"{file.Path}: entries[{index}]"));
+                    }
+
                     break;
             }
         }
@@ -270,6 +306,7 @@ public static partial class DataRegistryLoader
             ValidateMoveReferences(_moves, _combatants, Errors);
             ValidateSkillTreeReferences(_skillTrees, _species, _moves, Errors);
             ValidateCombos(_combos, _effects, _spells, Errors);
+            ValidateEconomy(_items, _lootTables, _gatherNodes, _species, Errors);
 
             if (Errors.Count > 0)
             {
@@ -289,7 +326,10 @@ public static partial class DataRegistryLoader
                 [.. _skillTrees.Select(item => item.Entry).OrderBy(definition => definition.Species, StringComparer.Ordinal)],
                 [.. _spells.Select(item => item.Entry).OrderBy(definition => definition.Id, StringComparer.Ordinal)],
                 [.. _effects.OrderBy(definition => definition.Id, StringComparer.Ordinal)],
-                [.. _combos.Select(item => item.Entry)]);
+                [.. _combos.Select(item => item.Entry)],
+                [.. _items.OrderBy(definition => definition.Id, StringComparer.Ordinal)],
+                [.. _lootTables.Select(item => item.Entry)],
+                [.. _gatherNodes.Select(item => item.Entry).OrderBy(definition => definition.Id, StringComparer.Ordinal)]);
         }
 
         private void AddSpecies(DataFile file)

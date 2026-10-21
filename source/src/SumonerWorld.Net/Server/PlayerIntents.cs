@@ -2,6 +2,7 @@ using SumonerWorld.Core.Bonding;
 using SumonerWorld.Core.Combat;
 using SumonerWorld.Core.Ecs;
 using SumonerWorld.Core.Intents;
+using SumonerWorld.Core.Items;
 using SumonerWorld.Core.Progression;
 using SumonerWorld.Core.Transactions;
 using SumonerWorld.Core.World;
@@ -45,6 +46,12 @@ internal sealed class PlayerIntents(CreatureWorld world, TransactionProcessor tr
             case IntentKind.Dismiss:
                 var dismiss = new DismissTransaction(world, avatar, target);
                 return Changed(transactions.Execute(id, ref dismiss, now), target, out changed);
+            case IntentKind.PickUp:
+                var pickUp = new PickUpTransaction(world, avatar, request.Target);
+                return transactions.Execute(id, ref pickUp, now);
+            case IntentKind.Gather:
+                var gather = new GatherTransaction(world, avatar, request.Target);
+                return transactions.Execute(id, ref gather, now);
             case IntentKind.Cast:
                 var cast = new CastTransaction(
                     world, avatar, request.Argument, (byte)(request.Target & 0xFF), ((request.Target >> 8) & 0xFFFF) / 10f, new StableId(request.Target >> 24));
