@@ -200,6 +200,8 @@ public sealed class CombatSystem : ISimulationSystem
         victim.Health -= damage;
         victim.LastHurtTick = now;
         victim.LastAttacker = account;
+        RememberFighter(target, account);
+
         _world.Events.Publish(new CombatHit(attacker, target, moveIndex, damage, victim.Health, guarded ? HitOutcome.Blocked : HitOutcome.Hit));
         if (!_ecs.Has<MindRef>(target))
         {
@@ -226,6 +228,23 @@ public sealed class CombatSystem : ISimulationSystem
             ref MoveTarget walking = ref _ecs.GetComponent<MoveTarget>(target);
             walking = walking with { Active = 0 };
         }
+    }
+
+    // Everyone who fought it gets their own loot (crafting spec §4).
+    private void RememberFighter(Entity target, ulong account)
+    {
+        if (account == 0)
+        {
+            return;
+        }
+
+        if (!_ecs.Has<Items.Fighters>(target))
+        {
+            _ecs.Add(target, default(Items.Fighters));
+        }
+
+        ref Items.Fighters fighters = ref _ecs.GetComponent<Items.Fighters>(target);
+        fighters = fighters.With(account);
     }
 
     private bool ShouldYield(Entity creature, in Combatant combatant)
@@ -477,7 +496,8 @@ public sealed class VitalsSystem : ISimulationSystem
         ushort species = _ecs.GetComponent<SpeciesRef>(creature).Index;
         ulong account = _combatants.Get(creature).LastAttacker;
         int witnesses = account != 0 ? _world.WitnessKill(creature, species, account, now) : 0;
-        _world.Events.Publish(new CombatantDefeated(creature, species, account, witnesses));
+        Items.Fighters fighters = _ecs.Has<Items.Fighters>(creature) ? _ecs.GetComponent<Items.Fighters>(creature) : default;
+        _world.Events.Publish(new CombatantDefeated(creature, species, account, witnesses, _ecs.GetComponent<Position>(creature).Value, fighters.With(account)));
         _world.DespawnCreature(creature);
     }
 }

@@ -143,7 +143,10 @@ public readonly record struct CreatureSpared(Entity Creature, ulong Account);
 /// <param name="Species">Its species index; <see cref="ushort.MaxValue"/> for a player.</param>
 /// <param name="ByAccount">The player who defeated it; 0 for a creature or none.</param>
 /// <param name="Witnesses">Kin that remembered the kill.</param>
-public readonly record struct CombatantDefeated(Entity Target, ushort Species, ulong ByAccount, int Witnesses);
+/// <param name="At">Where it fell (M2-13: its loot lies there).</param>
+/// <param name="Fighters">The players who fought it (each gets their own loot).</param>
+public readonly record struct CombatantDefeated(
+    Entity Target, ushort Species, ulong ByAccount, int Witnesses, System.Numerics.Vector3 At = default, Items.Fighters Fighters = default);
 
 /// <summary>
 /// The Combat contract v1.0.0 (combat spec, R28): one rulebook for players and creatures. The damage formula and the rules for

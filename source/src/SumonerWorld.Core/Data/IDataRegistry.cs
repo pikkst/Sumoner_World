@@ -47,6 +47,18 @@ public interface IDataRegistry
     /// <summary>Combos in file order; a combo's index is its saved bit (combat spec §10).</summary>
     IReadOnlyList<ComboDefinition> Combos { get; }
 
+    /// <summary>Items, ordered by id (crafting spec §2); an item's index is what inventories hold.</summary>
+    IReadOnlyList<ItemDefinition> Items { get; }
+
+    /// <summary>Gathering node kinds, ordered by id (crafting spec §5).</summary>
+    IReadOnlyList<GatherNodeDefinition> GatherNodes { get; }
+
+    /// <summary>Index of the item with this id in <see cref="Items"/>; throws when unknown.</summary>
+    int ItemIndex(string id);
+
+    /// <summary>The loot table of the species at this index, or null.</summary>
+    LootTableDefinition? LootTableOf(int species);
+
     /// <summary>The effect with this id, or null.</summary>
     EffectDefinition? EffectOf(string id);
 
