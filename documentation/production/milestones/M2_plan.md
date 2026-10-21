@@ -113,6 +113,7 @@ M2-15 (after B and D) → M2-16 → M2-17 → M2-18.
 |---|---|
 | M2 plan | Adopted 2026-10-21 (M2 started) |
 | M1-25 | **Done** 2026-10-21: gate report, GO |
+| D1 | **Done** 2026-10-21: `documentation/design/systems/combat.md` approved (yield and spare; Normal preset default; no randomness in v1) |
 
 ## Changelog
 - **0.1 (2026-10-21):** First version, after GDD v0.2 and DEC-003.
