@@ -66,6 +66,31 @@ public sealed record CreatureRecord
     /// <summary>Growth (M2-09); null in saves from before it existed.</summary>
     [Key(6)]
     public GrowthRecord? Growth { get; init; }
+
+    /// <summary>Skills (M2-10); null in saves from before they existed.</summary>
+    [Key(7)]
+    public SkillsRecord? Skills { get; init; }
+}
+
+/// <summary>A creature's skills (companions spec §5, §9).</summary>
+[MessagePackObject]
+public sealed record SkillsRecord
+{
+    /// <summary>Learned node bits (bit = node index in the species' tree).</summary>
+    [Key(0)]
+    public ulong Learned { get; init; }
+
+    /// <summary>Points spent.</summary>
+    [Key(1)]
+    public int Spent { get; init; }
+
+    /// <summary>Tick it got points it has not spent (0 = none).</summary>
+    [Key(2)]
+    public ulong UnspentSince { get; init; }
+
+    /// <summary>Skills it picked for itself.</summary>
+    [Key(3)]
+    public int PickedItself { get; init; }
 }
 
 /// <summary>A creature's growth: tier, level, stage and experience per role (companions spec §9).</summary>

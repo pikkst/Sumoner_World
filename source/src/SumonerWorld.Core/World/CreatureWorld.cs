@@ -80,6 +80,7 @@ public sealed record CreatureServices(AiLodPolicy Lod, CreatureSubjectResolver R
 /// <param name="CompanionAlerts">Hits that give summoned companions a foe (M2-07).</param>
 /// <param name="Vitals">Regeneration, yield, defeat (combat spec §5, §6).</param>
 /// <param name="Growth">Companion experience, levels and life stages (M2-09).</param>
+/// <param name="Skills">Skill upkeep: picking unspent points, reluctance (M2-10).</param>
 /// <param name="ReputationFlush">Reputation aggregation.</param>
 public sealed record CreatureSystems(
     JobApplySystem JobApply,
@@ -98,6 +99,7 @@ public sealed record CreatureSystems(
     CompanionAlertSystem CompanionAlerts,
     VitalsSystem Vitals,
     GrowthSystem Growth,
+    SkillSystem Skills,
     ReputationFlushSystem ReputationFlush)
 {
     /// <summary>Builds the systems for <paramref name="world"/> (wires the path planner to the movement system).</summary>
@@ -124,6 +126,7 @@ public sealed record CreatureSystems(
             new CompanionAlertSystem(world),
             new VitalsSystem(world),
             new GrowthSystem(world),
+            new SkillSystem(world),
             new ReputationFlushSystem(world.Reputation));
     }
 
@@ -166,6 +169,7 @@ public sealed record CreatureSystems(
         scheduler.Register(CompanionAlerts);
         scheduler.Register(Vitals);
         scheduler.Register(Growth);
+        scheduler.Register(Skills);
         scheduler.Register(ReputationFlush);
     }
 }
@@ -516,7 +520,7 @@ public sealed class CreatureWorld : IDisposable
     internal void AddCombatant(Entity creature, ushort species)
     {
         Combatant combatant = CombatRules.Create(Data.Species[species].Combat, species);
-        ProgressionComponents.Restat(Growth, World, creature, Data.Species[species].Combat, ref combatant);
+        ProgressionComponents.Restat(Growth, Data, World, creature, Data.Species[species].Combat, ref combatant);
         World.Add(creature, combatant);
     }
 

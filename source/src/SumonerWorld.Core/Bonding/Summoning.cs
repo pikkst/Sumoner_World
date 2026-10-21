@@ -44,7 +44,11 @@ public enum SummonRefusal : byte
 /// <param name="Summoned">At the player's side now.</param>
 /// <param name="Level">Its level.</param>
 /// <param name="Stage">Its life stage.</param>
-public readonly record struct Companion(StableId Id, ushort Species, bool Summoned, int Level = 1, Progression.LifeStage Stage = Progression.LifeStage.Young);
+/// <param name="BondLevel">Its bond level.</param>
+/// <param name="Points">Skill points it can spend.</param>
+/// <param name="Learned">Learned skill bits.</param>
+public readonly record struct Companion(
+    StableId Id, ushort Species, bool Summoned, int Level = 1, Progression.LifeStage Stage = Progression.LifeStage.Young, int BondLevel = 0, int Points = 0, ulong Learned = 0);
 
 /// <summary>Queries over pacted creatures (AI Bible §10.4).</summary>
 public static class Companions
@@ -63,8 +67,16 @@ public static class Companions
             if (bond.State == OwnershipState.Pacted && bond.Owner == account)
             {
                 Progression.CreatureGrowth growth = world.World.GetComponent<Progression.CreatureGrowth>(creatures[i]);
+                Progression.CreatureSkills skills = world.World.GetComponent<Progression.CreatureSkills>(creatures[i]);
                 into.Add(new Companion(
-                    world.World.GetComponent<StableId>(creatures[i]), world.World.GetComponent<SpeciesRef>(creatures[i]).Index, bond.Summoned, growth.Level, (Progression.LifeStage)growth.Stage));
+                    world.World.GetComponent<StableId>(creatures[i]),
+                    world.World.GetComponent<SpeciesRef>(creatures[i]).Index,
+                    bond.Summoned,
+                    growth.Level,
+                    (Progression.LifeStage)growth.Stage,
+                    bond.BondLevel,
+                    Progression.SkillRules.Points(growth, skills),
+                    skills.Learned));
             }
         }
 

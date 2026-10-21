@@ -66,6 +66,7 @@ public sealed partial class ClientHost : Node
     private HumanoidRig? _avatar;
     private InteractionControls? _interactions;
     private CompanionBar? _companionBar;
+    private CompanionPanel? _companionPanel;
     private Vector3 _lastAvatarPosition;
     private float _avatarYaw;
     private float _avatarSpeed;
@@ -111,7 +112,7 @@ public sealed partial class ClientHost : Node
         int ticks = _accumulator!.Accumulate((long)(delta * NanosecondsPerSecond));
         for (int i = 0; i < ticks; i++)
         {
-            _client!.Tick(ReadMovement(), _region is null || (_interactions?.Menu.IsOpen ?? false) ? (byte)0 : CombatControls.Buttons);
+            _client!.Tick(ReadMovement(), _region is null || (_interactions?.Menu.IsOpen ?? false) || (_companionPanel?.IsOpen ?? false) ? (byte)0 : CombatControls.Buttons);
             if (++_ticks % StatusEveryTicks == 0 && _client.Prediction.IsInitialized)
             {
                 _log.Write(LogLevel.Info, "client.status", $"at {_client.Prediction.Position}, {_client.Entities.Count} entities in view, server tick {_client.LastSnapshotTick}");
@@ -170,9 +171,11 @@ public sealed partial class ClientHost : Node
         AddChild(new CombatHud(_client!));
         _companionBar = new CompanionBar(_client!, data, _views, controls, () => _lockOn?.Target ?? 0);
         AddChild(_companionBar);
+        _companionPanel = new CompanionPanel(_client!, data, controls);
+        AddChild(_companionPanel);
         if (_options.SelfTest)
         {
-            _selfTest = new PlaytestSelfTest(controls, _companionBar, _combat, _lockOn, _client!, _orbit, () => _views.Shown > 0 && _elapsed > ScreenshotAfterSeconds, _log, Capture);
+            _selfTest = new PlaytestSelfTest(controls, _companionBar, _companionPanel, _combat, _lockOn, _client!, _orbit, () => _views.Shown > 0 && _elapsed > ScreenshotAfterSeconds, _log, Capture);
             AddChild(_selfTest);
         }
 

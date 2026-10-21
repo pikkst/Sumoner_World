@@ -1,0 +1,167 @@
+// Swamp hunter: Scout roams far, Trickster fights dirty, Pack fights for its own. Node order is the saved bit order: append only. Starting values (companions spec §5).
+{
+  "schemaVersion": 1,
+  "kind": "skillTrees",
+  "entries": [
+    {
+      "species": "bogfox",
+      "branches": [
+        {
+          "id": "scout",
+          "traits": [
+            {
+              "trait": "curiosity",
+              "factor": 5
+            },
+            {
+              "trait": "boldness",
+              "factor": 2
+            }
+          ],
+          "roles": [
+            {
+              "role": "travel",
+              "factor": 6
+            }
+          ]
+        },
+        {
+          "id": "trickster",
+          "traits": [
+            {
+              "trait": "curiosity",
+              "factor": 3
+            },
+            {
+              "trait": "loyalty",
+              "factor": -4
+            }
+          ],
+          "roles": [
+            {
+              "role": "combat",
+              "factor": 3
+            }
+          ]
+        },
+        {
+          "id": "pack",
+          "traits": [
+            {
+              "trait": "loyalty",
+              "factor": 6
+            }
+          ],
+          "roles": [
+            {
+              "role": "combat",
+              "factor": 3
+            },
+            {
+              "role": "work",
+              "factor": 2
+            }
+          ]
+        }
+      ],
+      "nodes": [
+        {
+          "id": "long_legs",
+          "branch": "scout",
+          "level": 2,
+          "passive": {
+            "stat": "stamina",
+            "amount": 20
+          }
+        },
+        {
+          "id": "feint",
+          "branch": "trickster",
+          "level": 2,
+          "move": "feint"
+        },
+        {
+          "id": "lunge",
+          "branch": "pack",
+          "level": 3,
+          "move": "lunge"
+        },
+        {
+          "id": "keen_nose",
+          "branch": "scout",
+          "level": 4,
+          "requires": [
+            "long_legs"
+          ],
+          "passive": {
+            "stat": "poise",
+            "amount": 10
+          }
+        },
+        {
+          "id": "slippery",
+          "branch": "trickster",
+          "level": 4,
+          "requires": [
+            "feint"
+          ],
+          "passive": {
+            "stat": "guard",
+            "amount": 1
+          }
+        },
+        {
+          "id": "pack_heart",
+          "branch": "pack",
+          "level": 5,
+          "bondLevel": 2,
+          "requires": [
+            "lunge"
+          ],
+          "passive": {
+            "stat": "health",
+            "amount": 10
+          }
+        },
+        {
+          "id": "tireless",
+          "branch": "scout",
+          "level": 7,
+          "requires": [
+            "keen_nose"
+          ],
+          "passive": {
+            "stat": "health",
+            "amount": 10
+          }
+        },
+        {
+          "id": "dirty_trick",
+          "branch": "trickster",
+          "level": 7,
+          "requires": [
+            "slippery"
+          ],
+          "passive": {
+            "stat": "power",
+            "amount": 10
+          }
+        },
+        {
+          "id": "alpha",
+          "branch": "pack",
+          "level": 8,
+          "bondLevel": 3,
+          "stage": "grown",
+          "requires": [
+            "pack_heart"
+          ],
+          "passive": {
+            "stat": "power",
+            "amount": 15
+          }
+        }
+      ]
+    }
+  ]
+}

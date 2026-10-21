@@ -8,6 +8,7 @@ public sealed class DataRegistry : IDataRegistry
     private readonly Dictionary<ushort, MemoryEventTypeDefinition> _memoryEventTypesById;
     private readonly Dictionary<string, SpeciesDefinition> _speciesById;
     private readonly Dictionary<string, int> _moveIndexById;
+    private readonly SkillTreeDefinition?[] _treeBySpecies;
 
     internal DataRegistry(
         IReadOnlyList<MemoryEventTypeDefinition> memoryEventTypes,
@@ -18,8 +19,11 @@ public sealed class DataRegistry : IDataRegistry
         IReadOnlyList<PactTermDefinition> pactTerms,
         IReadOnlyList<BondLevelDefinition> bondLevels,
         IReadOnlyList<MoveDefinition> moves,
-        CombatDefinition combat)
+        CombatDefinition combat,
+        IReadOnlyList<SkillTreeDefinition> skillTrees)
     {
+        SkillTrees = skillTrees;
+        _treeBySpecies = [.. species.Select(definition => skillTrees.FirstOrDefault(tree => tree.Species == definition.Id))];
         Moves = moves;
         Combat = combat;
         _moveIndexById = moves.Select((definition, index) => (definition.Id, index)).ToDictionary(item => item.Id, item => item.index, StringComparer.Ordinal);
@@ -60,6 +64,12 @@ public sealed class DataRegistry : IDataRegistry
 
     /// <inheritdoc />
     public CombatDefinition Combat { get; }
+
+    /// <inheritdoc />
+    public IReadOnlyList<SkillTreeDefinition> SkillTrees { get; }
+
+    /// <inheritdoc />
+    public SkillTreeDefinition? SkillTreeOf(int species) => (uint)species < (uint)_treeBySpecies.Length ? _treeBySpecies[species] : null;
 
     /// <inheritdoc />
     public int MoveIndex(string id)

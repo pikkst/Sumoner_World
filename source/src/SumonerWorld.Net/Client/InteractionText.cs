@@ -23,6 +23,45 @@ public static class InteractionText
     /// </summary>
     public const double PactAnswerDelaySeconds = 1.5;
 
+    /// <summary>A skill id as a name (until localization: <c>horn_toss</c> → <c>Horn toss</c>).</summary>
+    public static string SkillName(string id)
+    {
+        ArgumentNullException.ThrowIfNull(id);
+        string spaced = id.Replace('_', ' ');
+        return spaced.Length == 0 ? spaced : char.ToUpperInvariant(spaced[0]) + spaced[1..];
+    }
+
+    /// <summary>What a skill gives, in a few words: <c>new move: Lunge</c>, <c>health +10%</c>, <c>guard +2</c>.</summary>
+    public static string SkillEffect(Core.Data.Definitions.SkillNodeDefinition node)
+    {
+        ArgumentNullException.ThrowIfNull(node);
+        if (node.Move is string move)
+        {
+            return $"new move: {SkillName(move)}";
+        }
+
+        Core.Data.Definitions.SkillPassiveDefinition passive = node.Passive!;
+        string percent = passive.Stat is Core.Data.Definitions.SkillStat.Health or Core.Data.Definitions.SkillStat.Power ? "%" : string.Empty;
+        return $"{passive.Stat.ToString().ToLowerInvariant()} +{passive.Amount}{percent}";
+    }
+
+    /// <summary>A node's state in a few words (the panel and refusals).</summary>
+    public static string SkillStateText(SkillState state) => state switch
+    {
+        SkillState.Learned => "learned",
+        SkillState.Available => "can learn",
+        SkillState.NeedsLevel => "needs a higher level",
+        SkillState.NeedsBond => "needs a stronger bond",
+        SkillState.NeedsStage => "needs to grow up",
+        SkillState.NeedsSkill => "learn the skill before it first",
+        SkillState.NoPoints => "no skill points",
+        _ => "unknown skill",
+    };
+
+    /// <summary>How a creature feels about a branch, from its affinity.</summary>
+    public static string BranchFeeling(int affinity) =>
+        affinity >= SkillRules.WarmAt ? "likes it" : affinity <= SkillRules.ColdAt ? "dislikes it: skills cost 2" : "neutral";
+
     /// <summary>The player's level line in the HUD, e.g. <c>Elf · Rank F · Level 3</c> (M2-09).</summary>
     public static string PlayerLine(SummonerClass summonerClass, Rank rank, int level) => $"{summonerClass} · Rank {rank} · Level {level}";
 
@@ -75,6 +114,11 @@ public static class InteractionText
                 SummonRefusal.NotPacted => $"The {creature} is not bonded to you.",
                 _ => "Nothing happens.",
             };
+        }
+
+        if (kind == IntentKind.LearnSkill)
+        {
+            return result.IsApplied ? $"The {creature} learns a new skill." : $"Not yet: {SkillStateText((SkillState)result.Detail)}.";
         }
 
         if (kind == IntentKind.Command)

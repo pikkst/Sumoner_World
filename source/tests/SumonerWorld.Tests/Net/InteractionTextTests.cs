@@ -62,6 +62,25 @@ public class InteractionTextTests
         Assert.Equal("bogfox Lv 8 (elder): away", InteractionText.CompanionLine("bogfox", 8, SumonerWorld.Core.Progression.LifeStage.Elder, summoned: false));
     }
 
+    [Fact]
+    public void Skills_read_as_names_effects_and_states()
+    {
+        var lunge = new SumonerWorld.Core.Data.Definitions.SkillNodeDefinition { Id = "lunge", Branch = "pack", Move = "lunge" };
+        var hide = new SumonerWorld.Core.Data.Definitions.SkillNodeDefinition
+        {
+            Id = "thick_hide", Branch = "guardian", Passive = new() { Stat = SumonerWorld.Core.Data.Definitions.SkillStat.Health, Amount = 15 },
+        };
+
+        Assert.Equal("Thick hide", InteractionText.SkillName("thick_hide"));
+        Assert.Equal("new move: Lunge", InteractionText.SkillEffect(lunge));
+        Assert.Equal("health +15%", InteractionText.SkillEffect(hide));
+        Assert.Equal("likes it", InteractionText.BranchFeeling(40));
+        Assert.Equal("dislikes it: skills cost 2", InteractionText.BranchFeeling(-40));
+        Assert.Equal(
+            "Not yet: needs a stronger bond.",
+            InteractionText.Result(IntentKind.LearnSkill, new IntentResult(IntentStatus.Rejected, IntentRejectReason.WrongState, (byte)SumonerWorld.Core.Progression.SkillState.NeedsBond), "bogfox"));
+    }
+
     [Theory]
     [InlineData(SummonRefusal.NoMana, "Not enough mana to draw the sigil.")]
     [InlineData(SummonRefusal.CapacityReached, "You cannot call more companions now. Send one back first.")]

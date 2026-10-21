@@ -177,7 +177,7 @@ public sealed class GrowthSystem : ISimulationSystem
             }
 
             growth.Stage = (int)next;
-            Restat(companion, growth);
+            Restat(companion);
             _world.Minds.Remember(mind, _grewUp, new MemorySubject(SubjectKind.Player, bond.Owner), now);
             _emotes.Get(companion) = new CurrentEmote(Emote.Affection);
             _world.Services.Bonding.RecalculateBondLevel(mind, now);
@@ -211,11 +211,12 @@ public sealed class GrowthSystem : ISimulationSystem
         if (level > growth.Level)
         {
             growth.Level = level;
-            Restat(creature, growth);
+            Restat(creature);
             _world.Events.Publish(new CreatureLevelledUp(creature, level));
         }
     }
 
-    private void Restat(Entity creature, in CreatureGrowth growth) =>
-        _world.Growth.Apply(ref _combatants.Get(creature), _world.Data.Species[_species.Get(creature).Index].Combat, growth);
+    private void Restat(Entity creature) =>
+        ProgressionComponents.Restat(
+            _world.Growth, _world.Data, _world.World, creature, _world.Data.Species[_species.Get(creature).Index].Combat, ref _combatants.Get(creature));
 }

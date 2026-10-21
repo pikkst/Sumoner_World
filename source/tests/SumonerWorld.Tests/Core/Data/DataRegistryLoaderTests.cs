@@ -76,6 +76,7 @@ public class DataRegistryLoaderTests
 
         Assert.NotEmpty(registry.MemoryEventTypes);
         Assert.NotEmpty(registry.Species);
+        Assert.All(registry.Species, species => Assert.NotNull(registry.SkillTreeOf(registry.Species.ToList().IndexOf(species))));
     }
 
     [Fact]
@@ -296,6 +297,32 @@ public class DataRegistryLoaderTests
         Assert.Equal(2, error.Errors.Count);
         Assert.Contains(error.Errors, message => message.StartsWith("s.json", StringComparison.Ordinal) && message.Contains("unknown move 'tail_swipe'", StringComparison.Ordinal));
         Assert.Contains(error.Errors, message => message.StartsWith("moves.json", StringComparison.Ordinal) && message.Contains("shape.reachCm", StringComparison.Ordinal));
+    }
+
+    [Fact]
+    public void Skill_trees_must_name_known_species_branches_moves_and_earlier_skills()
+    {
+        const string Trees = """
+            { "schemaVersion": 1, "kind": "skillTrees", "entries": [
+              { "species": "mossback", "branches": [ { "id": "vanguard" } ], "nodes": [
+                { "id": "horn", "branch": "vanguard", "level": 2, "move": "horn_toss" },
+                { "id": "hide", "branch": "guardian", "level": 2, "passive": { "stat": "guard", "amount": 2 } },
+                { "id": "ram", "branch": "vanguard", "level": 3, "requires": ["later"], "passive": { "stat": "power", "amount": 10 } },
+                { "id": "later", "branch": "vanguard", "level": 4, "passive": { "stat": "poise", "amount": 5 }, "move": "bite" } ] },
+              { "species": "dragon", "branches": [ { "id": "fire" } ], "nodes": [ { "id": "breath", "branch": "fire", "passive": { "stat": "power", "amount": 5 } } ] }
+            ] }
+            """;
+
+        var error = Assert.Throws<DataValidationException>(() => DataRegistryLoader.Load(
+        [
+            new DataFile("events.json", ValidEventTypes), new DataFile("weights.json", ValidOpinionWeights), new DataFile("goals.json", ValidGoals),
+            new DataFile("tree.json", ValidTree), new DataFile("terms.json", ValidPactTerms), new DataFile("levels.json", ValidBondLevels),
+            new DataFile("moves.json", ValidMoves), new DataFile("combat.json", ValidCombat), new DataFile("s.json", SpeciesJson("mossback")),
+            new DataFile("skills.json", Trees),
+        ]));
+
+        string[] expected = ["unknown branch 'guardian'", "requires 'later'", "exactly one of 'move' or 'passive'", "species 'dragon'", "unknown move 'horn_toss'"];
+        Assert.All(expected, fragment => Assert.Contains(error.Errors, message => message.Contains(fragment, StringComparison.Ordinal)));
     }
 
     private static string SpeciesJson(string id) => $$"""

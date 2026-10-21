@@ -14,13 +14,15 @@ namespace SumonerWorld.Game.Playtest;
 /// <paramref name="capture"/> saves frames of the menu and of the answer, Enter offers it), R (free it), E (feed it), Q (shout), a
 /// right-button drag that turns the camera a quarter round, Space held for a dodge, then Z (summon the companion the
 /// <see cref="SelfTestFixture"/> gave), W held for a moment (it follows, M2-07), the commands 2 (guard me) and 3 (hold here),
-/// W again (it holds), 4 (come back, M2-08) and X (send it back). It logs the interaction lines, the attack's result and the calf's health, the own stamina, the calf's
+/// W again (it holds), 4 (come back, M2-08), X (send it back), and the companion panel (K, M2-10): it logs the skill tree and
+/// teaches skill 2. It logs the interaction lines, the attack's result and the calf's health, the own stamina, the calf's
 /// emote while it answers and the answer line, then watches for <see cref="WatchSeconds"/> so the creature can react.
 /// <see cref="Done"/> lets the host take its screenshot afterwards.
 /// </summary>
 public sealed partial class PlaytestSelfTest(
     InteractionControls controls,
     CompanionBar companions,
+    CompanionPanel panel,
     CombatControls combat, LockOn lockOn, GameClient client, OrbitCamera camera, Func<bool> worldShown, ILog log, Action<string> capture)
     : Node
 {
@@ -28,7 +30,7 @@ public sealed partial class PlaytestSelfTest(
     private const float CloseMetres = 3f; // inside the basic attack's reach of a mossback (2 m + its 1.6 m body)
     private const double StepSeconds = 1.2;
     private const double WatchSeconds = 6;
-    private const int LastStep = 20;
+    private const int LastStep = 23;
 
     private double _clock;
     private double _walking;
@@ -136,6 +138,17 @@ public sealed partial class PlaytestSelfTest(
                 log.Write(LogLevel.Info, "selftest.dodge", $"after the dodge: stamina {client.OwnVitals.Stamina}/255, health {client.OwnVitals.Health}/255");
                 PressKey(Key.Z);
                 break;
+            default:
+                Done = !CompanionStep();
+                break;
+        }
+    }
+
+    // Summoning, following, commands and the companion panel (M2-06 to M2-10); false when every step is done.
+    private bool CompanionStep()
+    {
+        switch (_step)
+        {
             case 13:
                 log.Write(LogLevel.Info, "selftest.summon", $"action {(SumonerWorld.Core.Combat.CombatAction)client.OwnVitals.Action}, mana {client.OwnVitals.Mana}/255; {controls.Feedback}");
                 capture("sigil");
@@ -171,11 +184,25 @@ public sealed partial class PlaytestSelfTest(
                 break;
             case 20:
                 log.Write(LogLevel.Info, "selftest.summon", $"{OneLine(companions.Shown)} | {controls.Feedback}");
+                PressKey(Key.K);
+                break;
+            case 21:
+                log.Write(LogLevel.Info, "selftest.skills", $"panel open {panel.IsOpen}: {OneLine(panel.Shown)}");
+                capture("skills");
+                PressKey(Key.Key2);
+                break;
+            case 22:
+                log.Write(LogLevel.Info, "selftest.skills", $"{controls.Feedback} | {OneLine(panel.Shown)}");
+                PressKey(Key.K);
+                break;
+            case 23:
+                log.Write(LogLevel.Info, "selftest.skills", $"panel open {panel.IsOpen}");
                 break;
             default:
-                Done = true;
-                break;
+                return false;
         }
+
+        return true;
     }
 
     private static void PressKey(Key key)
