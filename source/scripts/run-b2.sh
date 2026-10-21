@@ -26,7 +26,13 @@ for _ in $(seq 1 60); do
   if "${compose[@]}" logs server | grep -q '"server.listening"'; then break; fi
   sleep 2
 done
-"${compose[@]}" logs server | grep -q '"netem.applied"' || { echo "netem was not applied on the server"; "${compose[@]}" logs server; exit 1; }
+# The entrypoint's netem line and the server's log come through different streams, so it can show up after "server.listening".
+netem=0
+for _ in $(seq 1 10); do
+  if "${compose[@]}" logs server | grep -q '"netem.applied"'; then netem=1; break; fi
+  sleep 1
+done
+[ "$netem" = 1 ] || { echo "netem was not applied on the server"; "${compose[@]}" logs server; exit 1; }
 
 set +e
 timeout "$timeout_s" "${compose[@]}" run --rm --no-deps bots > "$results/bots.log" 2>&1
