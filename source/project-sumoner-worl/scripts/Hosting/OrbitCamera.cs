@@ -19,6 +19,8 @@ public sealed partial class OrbitCamera : Node
     private const float ZoomStep = 1.1f;
     private const float LookHeight = 1f;
 
+    private const float FocusFollow = 0.15f;
+
     private bool _turning;
 
     /// <summary>Angle around the character in radians; 0 is behind it on −Z, positive turns the view to the right.</summary>
@@ -26,6 +28,9 @@ public sealed partial class OrbitCamera : Node
 
     /// <summary>Angle above the horizontal, in radians.</summary>
     public float Pitch { get; private set; } = Mathf.Atan2(5, 10);
+
+    /// <summary>A locked-on target (combat lock-on): the camera swings behind the character to keep it in view; null = free.</summary>
+    public Vector3? Focus { get; set; }
 
     /// <summary>Distance to the character in metres.</summary>
     public float Distance { get; private set; } = Mathf.Sqrt(125);
@@ -46,7 +51,7 @@ public sealed partial class OrbitCamera : Node
                 Distance = Mathf.Min(MaxDistance, Distance * ZoomStep);
                 break;
             case InputEventMouseMotion motion when _turning:
-                Yaw = Mathf.Wrap(Yaw + (motion.Relative.X * Sensitivity), -Mathf.Pi, Mathf.Pi);
+                Yaw = Focus is null ? Mathf.Wrap(Yaw + (motion.Relative.X * Sensitivity), -Mathf.Pi, Mathf.Pi) : Yaw;
                 Pitch = Mathf.Clamp(Pitch + (motion.Relative.Y * Sensitivity), MinPitch, MaxPitch);
                 break;
             default:
@@ -60,6 +65,13 @@ public sealed partial class OrbitCamera : Node
     public void Place(Camera3D camera, Vector3 target)
     {
         ArgumentNullException.ThrowIfNull(camera);
+        if (Focus is Vector3 focus && new Vector2(focus.X - target.X, focus.Z - target.Z).LengthSquared() > 0.01f)
+        {
+            // Behind the character, on the far side from the target (yaw 0 = camera on −Z looking along +Z).
+            float wanted = Mathf.Atan2(-(focus.X - target.X), focus.Z - target.Z);
+            Yaw = Mathf.Wrap(Mathf.LerpAngle(Yaw, wanted, FocusFollow), -Mathf.Pi, Mathf.Pi);
+        }
+
         float flat = Mathf.Cos(Pitch) * Distance;
         camera.Position = target + new Vector3(Mathf.Sin(Yaw) * flat, Mathf.Sin(Pitch) * Distance, -Mathf.Cos(Yaw) * flat);
         camera.LookAt(target + new Vector3(0, LookHeight, 0), Vector3.Up);

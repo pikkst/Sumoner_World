@@ -1,3 +1,4 @@
+using SumonerWorld.Core.Combat;
 using SumonerWorld.Core.Diagnostics;
 using SumonerWorld.Core.Intents;
 using SumonerWorld.Core.Movement;
@@ -34,7 +35,7 @@ public sealed class GameClient : IClientSessionHandler
     private uint _lastIntent;
 
     /// <summary>Creates the client; <paramref name="movement"/> must match the server's.</summary>
-    public GameClient(ITransport transport, ILog log, Hello hello, MovementSettings movement)
+    public GameClient(ITransport transport, ILog log, Hello hello, MovementSettings movement, DodgePrediction? dodge = null)
     {
         ArgumentNullException.ThrowIfNull(transport);
         ArgumentNullException.ThrowIfNull(log);
@@ -42,7 +43,7 @@ public sealed class GameClient : IClientSessionHandler
         _transport = transport;
         _log = log;
         Session = new ClientEndpoint(transport, log, hello) { Messages = this };
-        Prediction = new ClientPrediction(new MovementModel(movement));
+        Prediction = new ClientPrediction(new MovementModel(movement)) { Dodge = dodge };
     }
 
     /// <summary>The session handshake.</summary>
@@ -56,6 +57,12 @@ public sealed class GameClient : IClientSessionHandler
 
     /// <summary>Remote entities for presentation, interpolated 100 ms in the past; the host advances it every frame.</summary>
     public RemoteInterpolation Remote { get; } = new();
+
+    /// <summary>True when the server allows lock-on (Normal preset; not on Hardcore).</summary>
+    public bool LockOnAllowed => Session.Session is Welcome welcome && (welcome.Rules & ServerRules.LockOn) != 0;
+
+    /// <summary>The own character's vitals and combat action from the newest snapshot (since protocol 7).</summary>
+    public SnapshotVitals OwnVitals { get; private set; } = new(byte.MaxValue, byte.MaxValue, byte.MaxValue, 0);
 
     /// <summary>Entities in the newest snapshot, by kind and id.</summary>
     public IReadOnlyDictionary<(SnapshotEntityKind Kind, ulong Id), SnapshotEntity> Entities => _entities;
@@ -236,6 +243,8 @@ public sealed class GameClient : IClientSessionHandler
             LastSnapshotTick = header.ServerTick;
             _entities.Clear();
             Prediction.Reconcile(header.AckedInput, header.OwnPosition);
+            OwnVitals = header.Own;
+            Prediction.Frozen = header.Own.Action is (byte)CombatAction.Down or (byte)CombatAction.Stagger;
         }
 
         for (int i = 0; i < header.EntityCount; i++)

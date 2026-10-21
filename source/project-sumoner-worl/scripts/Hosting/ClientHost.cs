@@ -2,6 +2,7 @@ using Godot;
 using SumonerWorld.Core.Diagnostics;
 using SumonerWorld.Core.Movement;
 using SumonerWorld.Core.Simulation;
+using SumonerWorld.Game.Combat;
 using SumonerWorld.Game.Creatures;
 using SumonerWorld.Game.Data;
 using SumonerWorld.Game.DevTools;
@@ -61,6 +62,10 @@ public sealed partial class ClientHost : Node
     private DevToolsLayer? _devTools;
     private PlaytestSelfTest? _selfTest;
     private OrbitCamera? _orbit;
+    private CombatControls? _combat;
+    private LockOn? _lockOn;
+    private byte _ownHealth = byte.MaxValue;
+    private Core.Data.DataRegistry? _data;
     private bool _inspectRequested;
     private double _devToolsStarted;
 
@@ -79,7 +84,9 @@ public sealed partial class ClientHost : Node
     {
         _transport = GodotENetTransport.Connect(_options.Address, _options.Port, out ConnectionId _);
         string ticket = DevTokenAuthenticator.Ticket(_options.Account, _options.DevSecret);
-        _client = new GameClient(_transport, _log, new Hello(0, ticket), DevWorld.Movement());
+        _data = GameData.Load();
+        Core.Data.Definitions.CombatDefinition combat = _data.Combat;
+        _client = new GameClient(_transport, _log, new Hello(0, ticket), DevWorld.Movement(), new DodgePrediction(combat.DodgeTicks, combat.DodgeSpeedPercent));
         _accumulator = new FixedStepAccumulator(SimulationSettings.Default);
         _log.Write(LogLevel.Info, "client.connecting", $"{_options.Address}:{_options.Port} as account {_options.Account}");
         if (!_options.ExitOnWelcome && DisplayServer.GetName() != "headless")
@@ -94,7 +101,7 @@ public sealed partial class ClientHost : Node
         int ticks = _accumulator!.Accumulate((long)(delta * NanosecondsPerSecond));
         for (int i = 0; i < ticks; i++)
         {
-            _client!.Tick(ReadMovement());
+            _client!.Tick(ReadMovement(), _region is null ? (byte)0 : CombatControls.Buttons);
             if (++_ticks % StatusEveryTicks == 0 && _client.Prediction.IsInitialized)
             {
                 _log.Write(LogLevel.Info, "client.status", $"at {_client.Prediction.Position}, {_client.Entities.Count} entities in view, server tick {_client.LastSnapshotTick}");
@@ -140,14 +147,20 @@ public sealed partial class ClientHost : Node
         AddChild(_region);
         _orbit = new OrbitCamera();
         AddChild(_orbit);
-        Core.Data.DataRegistry data = GameData.Load();
+        Core.Data.DataRegistry data = _data!;
         _views = new EntityViewSync(_client!, data, new QuadrupedEmotePresenter());
         AddChild(_views);
         var controls = new InteractionControls(_client!, _views, data, () => _avatar?.GlobalPosition ?? Vector3.Zero);
         AddChild(controls);
+        _lockOn = new LockOn(_client!, _views, () => _region?.Camera, () => _avatar?.GlobalPosition ?? Vector3.Zero);
+        AddChild(_lockOn);
+        _combat = new CombatControls(
+            _client!, () => _region?.Camera, () => _lockOn.TryGetTarget(out Vector3 target) && _avatar is not null ? (_avatar.GlobalPosition, target) : null);
+        AddChild(_combat);
+        AddChild(new CombatHud(_client!));
         if (_options.SelfTest)
         {
-            _selfTest = new PlaytestSelfTest(controls, _orbit, () => _views.Shown > 0 && _elapsed > ScreenshotAfterSeconds, _log);
+            _selfTest = new PlaytestSelfTest(controls, _combat, _lockOn, _client!, _orbit, () => _views.Shown > 0 && _elapsed > ScreenshotAfterSeconds, _log);
             AddChild(_selfTest);
         }
 
@@ -175,7 +188,17 @@ public sealed partial class ClientHost : Node
         System.Numerics.Vector3 p = _client.Prediction.Position;
         var position = new Vector3(p.X, p.Y + 0.9f, p.Z);
         _avatar.Position = position;
-        _orbit!.Place(camera, position);
+        Basis look = camera.GlobalBasis;
+        CombatPose.Apply(_avatar, _client.OwnVitals.Action, Mathf.Atan2(-look.Z.X, -look.Z.Z), _elapsed);
+        if (_client.OwnVitals.Health < _ownHealth)
+        {
+            CombatPose.Hit(_avatar);
+        }
+
+        _ownHealth = _client.OwnVitals.Health;
+        CombatPose.Settle(_avatar, GetProcessDeltaTime());
+        _orbit!.Focus = _lockOn is not null && _lockOn.TryGetTarget(out Vector3 locked) ? locked : null;
+        _orbit.Place(camera, position);
         StartDevTools();
         if (_options.Screenshot.Length > 0 && _views!.Shown > 0 && _elapsed > ScreenshotAfterSeconds && DevToolsReady() && (_selfTest?.Done ?? true))
         {

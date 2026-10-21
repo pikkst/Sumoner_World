@@ -13,8 +13,12 @@ zip="../builds/SumonerWorld-family-${commit}.zip"
 
 rm -rf "$out"
 mkdir -p "$out"
-# stdin closed: otherwise the console wrapper can keep waiting after the export has finished.
-"$godot" --headless --path project-sumoner-worl --export-release "Windows Desktop" "../$out/SumonerWorld.exe" < /dev/null
+# The export builds the C# project; MSBuild worker nodes and the build server outlive it and would keep inherited pipes open, so
+# they are turned off, and Godot's output goes to a log file (an open stdin or stdout pipe made the console wrapper wait forever).
+export MSBUILDDISABLENODEREUSE=1 DOTNET_CLI_USE_MSBUILD_SERVER=0 UseSharedCompilation=false
+if ! "$godot" --headless --path project-sumoner-worl --export-release "Windows Desktop" "../$out/SumonerWorld.exe" < /dev/null > "../builds/export.log" 2>&1; then
+  echo "Export failed, see builds/export.log"; exit 1
+fi
 test -f "$out/SumonerWorld.exe"
 cp packaging/family/*.cmd packaging/family/README.txt "$out/"
 echo "$commit" > "$out/VERSION.txt"

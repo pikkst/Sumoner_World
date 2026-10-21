@@ -24,6 +24,11 @@ The game plays on the local dev server, which runs in Docker on this PC. Nothing
    W A S D                 walk
    Right mouse button      hold and move the mouse to turn the camera
    Mouse wheel             zoom in and out
+   Left click              attack where you look (hold the button longer for a heavy attack)
+   Shift (hold)            block; raised just before a hit, it parries
+   Space                   dodge
+   Middle click or T       lock the camera on the nearest creature in front (again to let go);
+                           your attacks then aim at it by themselves
    Near a creature, a line at the bottom shows what you can do:
    E feed   F hit   R free from a snare   P offer a Pact   Q shout
    Close the window to stop.

@@ -75,6 +75,40 @@ public class ClientPredictionTests
     }
 
     [Fact]
+    public void A_dodge_press_dashes_like_the_server_and_a_replay_repeats_it()
+    {
+        var prediction = new ClientPrediction(Movement) { Dodge = new DodgePrediction(Ticks: 9, SpeedPercent: 250) };
+        var start = new Vector3(100, 0, 100);
+        prediction.Reconcile(0, start);
+
+        prediction.Record(East, PlayerButtons.Dodge);
+        for (int i = 0; i < 11; i++)
+        {
+            prediction.Record(East, PlayerButtons.Dodge); // held: only the press counts
+        }
+
+        Vector3 expected = start;
+        for (int i = 0; i < 12; i++)
+        {
+            expected = i < 9 ? Movement.Dash(expected, Vector3.UnitX, 250) : Movement.Advance(expected, East);
+        }
+
+        Assert.Equal(expected.X, prediction.Position.X, 4);
+        Assert.Equal(Correction.None, prediction.Reconcile(3, Movement.Dash(Movement.Dash(Movement.Dash(start, Vector3.UnitX, 250), Vector3.UnitX, 250), Vector3.UnitX, 250)));
+    }
+
+    [Fact]
+    public void A_frozen_character_stays_where_it_is()
+    {
+        ClientPrediction prediction = Started(new Vector3(100, 0, 100));
+        prediction.Frozen = true;
+        prediction.Record(East, 0);
+        prediction.Record(East, PlayerButtons.Dodge);
+
+        Assert.Equal(new Vector3(100, 0, 100), prediction.Position);
+    }
+
+    [Fact]
     public void Predicting_before_the_first_snapshot_is_a_bug()
     {
         Assert.Throws<InvalidOperationException>(() => new ClientPrediction(Movement).Record(East, 0));

@@ -92,6 +92,14 @@ public static partial class DataRegistryLoader
         CheckRange(entry.YieldMaxBoldness, -100, 100, "yieldMaxBoldness", where, errors);
         CheckRange(entry.SpareAfterTicks, 1, MaxStat, "spareAfterTicks", where, errors);
         CheckRange(entry.PlayerDownTicks, 1, MaxStat, "playerDownTicks", where, errors);
+        CheckRange(entry.BlockDamagePerMille, 0, PerMille, "blockDamagePerMille", where, errors);
+        CheckRange(entry.BlockArcDeg, 1, 360, "blockArcDeg", where, errors);
+        CheckRange(entry.ParryWindowTicks, 0, MaxMoveTicks, "parryWindowTicks", where, errors);
+        CheckRange(entry.DodgeTicks, 1, MaxMoveTicks, "dodgeTicks", where, errors);
+        CheckRange(entry.DodgeStamina, 0, MaxStat, "dodgeStamina", where, errors);
+        CheckRange(entry.DodgeCooldownTicks, 1, MaxMoveTicks, "dodgeCooldownTicks", where, errors);
+        CheckRange(entry.DodgeSpeedPercent, 100, 1000, "dodgeSpeedPercent", where, errors);
+        CheckRange(entry.StaggerTicks, 1, MaxMoveTicks, "staggerTicks", where, errors);
     }
 
     private static void ValidateMoveReferences(

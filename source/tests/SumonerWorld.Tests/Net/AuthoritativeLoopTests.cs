@@ -1,5 +1,6 @@
 using System.Numerics;
 using SumonerWorld.Core.Cognition;
+using SumonerWorld.Core.Combat;
 using SumonerWorld.Core.Diagnostics;
 using SumonerWorld.Core.Ecs;
 using SumonerWorld.Core.Intents;
@@ -81,6 +82,52 @@ public class AuthoritativeLoopTests
         Assert.Equal(IntentResult.Applied(0), alice.IntentResults[scare]);
         Assert.True(alice.IntentResults[hits[0]].IsApplied);
         Assert.False(lan.World.TryFindCreature(creature, out _));
+    }
+
+    [Fact]
+    public void Block_and_dodge_buttons_and_aimed_attacks_reach_the_server_and_vitals_come_back()
+    {
+        using var lan = new Lan(0);
+        GameClient alice = lan.Join(1001);
+        lan.Run(10, _ => MoveInput.None);
+        Assert.True(lan.Server.TryGetAvatar(1001, out Entity avatar));
+
+        lan.Run(10, _ => MoveInput.None, _ => PlayerButtons.Block);
+        Assert.True(lan.World.World.Has<Blocking>(avatar));
+        Assert.Equal((byte)CombatAction.Block, alice.OwnVitals.Action);
+        lan.Run(8, _ => MoveInput.None); // the released button arrives after the network delay
+        Assert.False(lan.World.World.Has<Blocking>(avatar));
+
+        Vector3 before = lan.ServerPosition(1001);
+        var east = new MoveInput(MoveInput.MaxAxis, 0);
+        lan.Run(1, _ => east, _ => PlayerButtons.Dodge);
+        lan.Run(12, _ => east);
+        Assert.True(lan.ServerPosition(1001).X - before.X > 4f, $"a dodge dashes: moved {lan.ServerPosition(1001).X - before.X:F2} m");
+        Assert.True(alice.OwnVitals.Stamina < byte.MaxValue, "the dodge cost stamina");
+
+        lan.Run(30, _ => MoveInput.None);
+        StableId fox = lan.SpawnCreature(lan.ServerPosition(1001) + new Vector3(1.5f, 0, 0));
+        Assert.True(lan.World.TryFindCreature(fox, out Entity held));
+        lan.World.Snare(held, lan.World.Clock.Current.Index);
+        uint attack = alice.SendIntent(IntentKind.Attack, 64, 0); // heading 64 = +X
+        lan.Run(40, _ => MoveInput.None);
+
+        Assert.True(alice.IntentResults[attack].IsApplied);
+        Combatant hurt = lan.World.World.GetComponent<Combatant>(held);
+        Assert.True(hurt.Health < hurt.MaxHealth);
+        Assert.True(alice.Entities[(SnapshotEntityKind.Creature, fox.Value)].Health < byte.MaxValue);
+    }
+
+    [Theory]
+    [InlineData(false, true)]
+    [InlineData(true, false)]
+    public void Normal_servers_allow_lock_on_and_hardcore_servers_do_not(bool hardcore, bool allowed)
+    {
+        using var lan = new Lan(0, settings: new GameServerSettings { Hardcore = hardcore });
+        GameClient alice = lan.Join(1001);
+        lan.Run(10, _ => MoveInput.None);
+
+        Assert.Equal(allowed, alice.LockOnAllowed);
     }
 
     [Fact]
@@ -358,7 +405,7 @@ public class AuthoritativeLoopTests
             return World.World.GetComponent<Position>(avatar).Value;
         }
 
-        public void Run(int steps, Func<GameClient, MoveInput> input)
+        public void Run(int steps, Func<GameClient, MoveInput> input, Func<GameClient, byte>? buttons = null)
         {
             for (int i = 0; i < steps; i++)
             {
@@ -366,7 +413,7 @@ public class AuthoritativeLoopTests
                 Server.Tick();
                 foreach ((GameClient client, _) in _clients)
                 {
-                    client.Tick(input(client));
+                    client.Tick(input(client), buttons?.Invoke(client) ?? 0);
                     client.Remote.Advance(1.0 / 30);
                 }
 

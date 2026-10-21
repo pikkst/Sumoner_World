@@ -1,5 +1,5 @@
 # Sumoner World - Game Design Document
-Version: **0.3** · Date: 2026-10-21 · Owner: Sr Game Designer · Status: **Approved by stakeholder** (0.1 on 2026-10-19: PvE default, permanent creature death on Hardcore, 16-player target; 0.2 on 2026-10-21: summoned companions, §10; 0.3 on 2026-10-21: Summoner Academy, rank and faction, §11; Normal preset default)
+Version: **0.4** · Date: 2026-10-21 · Owner: Sr Game Designer · Status: **Approved by stakeholder** (0.1 on 2026-10-19: PvE default, permanent creature death on Hardcore, 16-player target; 0.2 on 2026-10-21: summoned companions, §10; 0.3 on 2026-10-21: Summoner Academy, rank and faction, §11; Normal preset default; 0.4 on 2026-10-21: levels and rank caps, class-bound creatures, loot and gold, boss eggs)
 Rules: R28, R29, R50, R53, R57 · Related: `DEC-002` (monetization/art), `ADR-001` (tech), AI Bible v0.1 (`systems/ai_bible.md`), TDD v0.1 (`../technical/architecture/tdd.md`)
 
 > All numbers in this document are **design targets or starting values**. Real tuning values live in versioned data files (R08, R48), not in code or here.
@@ -46,7 +46,7 @@ Travel through a region → an ecosystem event happens (hunt, territorial fight,
 Set a goal at the Sanctum (rare species, new biome, boss, materials) → prepare (craft gear, prepare spells, **choose which bonded creatures come along**; they have opinions about each other) → expedition → return, tend bonds (feed, rest, train, resolve conflicts) → craft and upgrade.
 
 ### First hour: the Summoner Academy (§11)
-A new player arrives as a student at the Summoner Academy → the **Arena Trial** measures their talent → they receive a **Summoner Rank** and join a **faction** → a young creature of their faction chooses them in the **Bonding Ceremony** → they leave for the wild with their first companion.
+A new player arrives as a student at the Summoner Academy → the **ranking quest** asks them questions and sets their **class** (for life) and **Summoner Rank** → they receive a **guaranteed young creature of their class** → they leave for the wild with their first companion.
 
 ### Long-term loop: Bonds & World
 Bond arcs with individual creatures (trust milestones unlock abilities and story moments) → **rank trials** at the Academy (§11) → mastery of magic schools → the world state changes because of server-wide player actions → new regions (EA updates / expansions).
@@ -61,6 +61,13 @@ Creatures are **never captured**. The player proposes a **Pact**, a magical cont
 - **Pact Terms:** the player offers terms (food, a protected territory near the Sanctum, a share of loot, freedom on certain nights). The creature's personality decides which terms it values.
 - **Acceptance** is a utility decision based on the creature's memory of *this* player (and rumours from its group), its personality, its current needs and the player's reputation. It is never pure RNG (R15).
 - **Breaking terms** damages trust. Repeated breaking can make a bonded creature leave, or turn against the player.
+- **Creatures belong to a class** (stakeholder 2026-10-21): every species belongs to one summoner class (§11). **A Pact with a
+  creature of another class always fails** (for example a Necromancer can never bond the Elves' light creatures). Within the
+  own class, Pacts follow the normal rules.
+- **Level difference matters** (stakeholder 2026-10-21): creatures well below the player's level accept a Pact much more
+  easily, creatures above it much less. *(filled numbers)* A creature at or below 90% of the player's level gets a bonus to its
+  acceptance score that grows as the gap grows; at or below 50% it accepts almost at once (if it does not hate the player); above
+  the player's level it gets a penalty.
 - **Where new companions come from (stakeholder 2026-10-21):** the first one from the Academy's Bonding Ceremony (§11); after that
   **in the wild** (Pacts), **through quests** (a quest leads to a creature, for example one to rescue or a guardian to prove
   yourself to), **through world events** (migrations, awakenings), **by trading** with other players (only with the creature's
@@ -82,6 +89,8 @@ Creatures are **never captured**. The player proposes a **Pact**, a magical cont
 
 ### 3. Combat (real-time action)
 - Stamina-based melee + spellcasting. Directional dodge and block/parry. Readable enemy telegraphs (souls-lite).
+- **Lock-on** (stakeholder 2026-10-21): the camera can lock on to an enemy so attacks and combos aim at it; **not on Hardcore
+  servers**. See the combat spec §11a.
 - **Summoner tactics:** quick commands (attack target, guard me, hold, retreat, combo with my spell). How well a command is carried out depends on bond, trust and the creature's personality.
 - **Combos with creatures:** player spell + creature ability combos (e.g. a frost spell freezes a target and a heavy creature shatters it). Combos are learned by the creature through repetition (Pillar 1 + 3).
 - All combat values are data-driven and validated on the server (R08, R30).
@@ -92,9 +101,17 @@ Creatures are **never captured**. The player proposes a **Pact**, a magical cont
 - Spells are crafted from **runes** (data-driven components), so the system can grow without core logic changes (R08, R09).
 
 ### 5. Character Progression
+- **Levels** (stakeholder 2026-10-21): players gain experience and levels. The **highest level a player can reach is set by
+  their Summoner Rank** (§11): the higher the rank, the higher the cap. Ranking up raises the cap.
+
+  | Rank | F | E | D | C | B | A | S | SS | SSS | God |
+  |---|---|---|---|---|---|---|---|---|---|---|
+  | Level cap *(filled)* | 10 | 20 | 30 | 40 | 50 | 60 | 70 | 80 | 90 | 100 |
 - Attributes (Vitality, Stamina, Focus, Will). **Will** = Bond Capacity and Pact persuasion.
-- Talent trees per magic school + a Summoner tree (commands, Pact options, Bond Capacity).
-- Gear defines the build, not grinding levels. Gear power has a ceiling, so skill matters (Pillar 3).
+- Talent trees per magic school + a Summoner tree (commands, Pact options, Bond Capacity). A skill tree is part of the first
+  version (M2).
+- Gear power has a ceiling, so skill still matters more than numbers (Pillar 3).
+- **Never pay-to-win** (stakeholder 2026-10-21, DEC-002): levels, ranks, creatures, items and gold can never be bought.
 
 ### 6. Crafting & Sanctum
 - Gather from the ecosystem: plants, ore, and creature materials (*harvesting creatures that can remember has consequences*: herds that see a player hunting will avoid that player).
@@ -112,13 +129,14 @@ Creatures are **never captured**. The player proposes a **Pact**, a magical cont
 - **Server size target:** up to 16 players per server at EA (to be validated at the M1 gate).
 - **Co-op:** shared world. Bonded creatures **remember other players** too, so a friend who mistreats your creature will find out.
 - **Trading:** player-to-player trades and player-run market stalls in Sanctums. Server-authoritative, atomic, with anti-duplication (idempotency keys) (R30–R34).
-- **Bonded creatures can be *re-pacted* to another player only with the creature's consent.** Its memories go with it.
+- **Bonded creatures can be *re-pacted* to another player only with the creature's consent.** Its memories go with it. Only to a player of the creature's class (§1, §11).
 - **PvP stance:** **PvE by default.** PvP is a server setting (off / zones only / full). **No offline raiding:** bases are invulnerable while their owners are offline. This removes ARK's worst pain point.
 
 ### 9. Death & Difficulty (hardcore)
 - **On death:** you respawn at the Sanctum or a shrine. Your carried inventory stays at a **grave** you must go back for (Valheim-style). Your bonded creatures react to your death based on their bond: they defend your grave, flee or go wild.
 - **Creature death:** on **Normal** servers (the default) a fallen companion can be revived at a cost. On **Hardcore** servers creature death is permanent. Either way, other creatures remember the loss and grieve.
-- **Server presets:** *Normal (default, stakeholder 2026-10-21) / Hardcore / Custom.* All values are data-driven (R08).
+- **Server presets:** *Normal (default, stakeholder 2026-10-21) / Hardcore / Custom.* All values are data-driven (R08). Hardcore
+  also turns off lock-on (§3).
 
 ### 10. Summoned Companions (stakeholder direction, v0.2)
 The end goal: **a Summoner's creatures are intelligent companions that can do everything the player can**: fight, explore, take
@@ -133,6 +151,14 @@ their personality and memory (§2), never only on stats.
   3. **Gathering and crafting:** collect resources and work in the Sanctum, *if they want to* (§6).
   4. **Equipment:** wear gear suited to their body (weapons, armour, charms), like the player. Gear power keeps its ceiling
      (Pillar 3), and gear is never sold for money (DEC-002).
+- **Levels and life stages** (stakeholder 2026-10-21): companions grow through **levels** and three life stages, **young,
+  grown and elder**. Creatures are magical and **never die of old age**.
+- **A creature's tier sets its highest level** (as rank does for players, §5). A companion's tier is tied to its summoner's rank:
+  it can be raised as the summoner ranks up, never above the summoner's rank. *(filled: the details in the companions spec)*
+- **World boss eggs** (stakeholder 2026-10-21): a world boss can **drop an egg** when certain conditions are met. The egg
+  hatches into a **young boss creature with lower stats** that grows like any companion. *(filled conditions: the boss is of
+  the player's class, the player took a real part in the fight, and the player's rank is high enough; the drop itself is a
+  chance, never for sale.)*
 - **Tiers, both kinds (stakeholder 2026-10-21):**
   - **Rarity class per species** (some species are rarer and stronger by nature). Rarity comes from the world (where and when a
     species lives), never from paid or random-reward items (DEC-002), and acceptance chances are never shown (M0-08).
@@ -162,48 +188,39 @@ their personality and memory (§2), never only on stats.
 5. **Stage count and caps** per species, and how equipment fits each body type.
 6. **Dungeons and quests** have no design yet (structure, rewards, how companions take part).
 
-### 11. Summoner Academy, Rank and Faction (stakeholder direction, v0.3)
-Every new character starts as a **student who enters the Summoner Academy**. The first quest, the **Academy questline**, ends
-with the student's first companion. Items marked *(filled)* were filled in by the design team at the stakeholder's request and
-can be changed.
+### 11. Summoner Academy, Rank and Class (stakeholder direction, v0.3, revised v0.4)
+Every new character starts as a **student who enters the Summoner Academy**. The first quest, the **ranking quest**, sets the
+student's **class** and **Summoner Rank** and ends with a **guaranteed first creature** of that class that the player can summon.
+Items marked *(filled)* were filled in by the design team at the stakeholder's request and can be changed.
 
-**The Arena Trial (first quest).** The student goes to the Academy's great arena to have their talent measured. The trial is a
-short series of tests, all of them skill-based and never random (R15):
-1. **Body and blade:** fight training constructs with block, dodge and timing (teaches combat, §3). *(filled)*
-2. **Reading creatures:** watch a few Academy creatures and tell which one is afraid, angry or curious. This teaches the game's
-   body language, the USP, in the first ten minutes. *(filled)*
-3. **Affinity gates:** the student walks through the faction gates and attunes to one; this is where the **faction** is chosen,
-   by the player, inside the story. *(filled)*
-4. **Pact rehearsal:** offer terms to a calm Academy creature and read its answer (teaches §1). *(filled)*
+**The ranking quest (stakeholder 2026-10-21).** The Academy asks the student a series of questions with answer choices (how they
+would act, what they value, what they would do in a fight or for a creature). **The answers, plus some randomness, decide the
+class and the rank.** The details are in `systems/academy.md`. The quest still teaches the basics on the way (moving, a first
+fight, reading a creature's body language, a Pact) *(filled)*.
 
-**Summoner Rank.** At the end the student receives a rank: **F, E, D, C, B, A, S, SS, SSS and God tier** *(the steps between F
-and A filled in)*.
-- The first trial gives **F to C**, from how well the four tests went. Higher ranks are **earned later** in rank trials at the
-  Academy (harder arena fights, rare Pacts, quests). God tier is the endgame and very rare on a server. *(filled)*
-- Rank is a **licence and a reputation**, not a stat multiplier (Pillar 3): it raises **Bond Capacity**, opens harder quests,
-  regions and Academy contracts, and changes how creatures and other summoners regard you (server reputation, §7). *(filled)*
-- Rank can never be bought (DEC-002).
+**Class: for life.** The class is set once and **can never be changed**: an elf stays an elf. A class is a summoning tradition with
+its own people, magic school and creatures. **Creatures are bound to classes** (§1): a player can only make Pacts with creatures of
+their own class.
 
-**Factions** *(stakeholder: necromancer, elf, human, and more)*. A faction is a summoning tradition with its own people, magic
-school, creatures and quests:
-
-| Faction (working names) | Tradition | Magic school | Starter creatures (examples) |
+| Class (working names) | Tradition | Magic school | Creatures (examples) |
 |---|---|---|---|
-| **Elves** of the Grove *(filled)* | bonds with forest and beast | Primal | young mossback, bogfox kit |
-| **Humans** of the Sigil Order *(filled)* | discipline and formation | Storm | storm-hawk, plains hound *(new)* |
-| **Necromancers** of the Bone Circle *(filled)* | bonds with restless spirits; their creatures remember a past life | **Umbral** *(new 4th school, filled)* | wisp-hound, bone-lantern *(new)* |
-| **Dwarves** of the Ember Hold *(proposed, filled)* | forge and fire | Ember | ember-salamander *(new)* |
+| **Elf** | forest, light and beast | Primal | pixie, young mossback, bogfox kit, hollow owl |
+| **Human** *(filled)* | discipline and formation | Storm | storm-hawk, plains hound *(new)* |
+| **Necromancer** | restless spirits; their creatures remember a past life | **Umbral** (4th school) | undead skeleton, wisp-hound *(new)* |
+| **Dwarf** *(proposed, filled)* | forge and fire | Ember | ember-salamander *(new)* |
 
 - Necromancer creatures are friendly-spooky, not gory, so they suit the family's youngest players. *(filled)*
-- Faction gives a home quarter at the Academy, faction quests and a resonance bonus with its school (§4). A player can still
-  make Pacts with creatures of every faction and learn every school. *(filled)*
 
-**The Bonding Ceremony.** The faction's keepers bring three young creatures. The student spends a little time with them, and
-**one chooses the student**: the first Pact, with the same rules as every other (§1). The ceremony is the companion's first
-**core memory** of the player. *(filled)*
+**Summoner Rank.** **F, E, D, C, B, A, S, SS, SSS and God tier.** The ranking quest gives the first rank. Through the game the
+player **raises their rank** (rank trials, quests, deeds) but never changes class. Rank sets the player's **level cap** (§5),
+**Bond Capacity**, and which quests and regions open. It can never be bought.
 
-**Delivery.** M2: the Academy, the Arena Trial, ranks F–C and **one playable faction (Elves, Primal, because D1's first school
-is Primal)**, with the others shown as coming. More factions, rank trials and the Umbral school come in M3. *(filled)*
+**The guaranteed first creature.** At the end of the quest the student receives a young creature of their class, **of a tier that
+matches their rank**, chosen by the answers *(filled: the Keeper offers it, and the student offers a starter Pact that it always
+accepts, so it still begins as a real bond with a first core memory)*. The student can summon it from then on.
+
+**Delivery.** M2: the Academy, the ranking quest, ranks F–C *(filled: a newcomer starts between F and C)*, and **one playable
+class (Elf, Primal)**, with the others shown as coming. More classes, rank trials and the Umbral school come in M3.
 
 ---
 
@@ -255,5 +272,10 @@ Premium early access at **$24.99** → 1.0 at **$29.99** → paid region expansi
 ## Changelog
 - **0.1 (2026-10-19):** First version. Pillars, loops, system intent, content targets, monetization and art references.
 - **0.1 approved (2026-10-19):** Stakeholder approved via PR #1 merge, including PvE-by-default, permanent creature death on Hardcore servers, and the 16-player server target (still to be validated at M1).
+- **0.4 (2026-10-21):** stakeholder decisions: player levels with rank caps (§5); creatures bound to classes, Pacts with other
+  classes always fail, level difference eases or hardens Pacts (§1); companion levels and young/grown/elder stages, no death of
+  old age, creature tier tied to the summoner's rank, world boss eggs (§10); the ranking quest decides class and rank from
+  answers plus randomness, class is for life, a guaranteed first creature of the class (§11); a first loot system with gold,
+  item drops and inventory (crafting spec); never pay-to-win.
 - **0.3 (2026-10-21):** §11 Summoner Academy, Arena Trial, ranks F–God tier, factions (Elves, Humans, Necromancers, Dwarves proposed) and the Bonding Ceremony; the ways to get new companions (§1); Normal is the default preset (§9). Gaps filled at the stakeholder's request and marked *(filled)*.
 - **0.2 (2026-10-21):** §10 Summoned Companions, from the stakeholder's direction: companions can do everything the player can (combat and magic, exploration, quests and dungeons, gathering and crafting, equipment); tiers as both species rarity and per-creature growth stages; per-creature skill trees; fusion by mutual consent with merged memories. Open questions listed. Hitting creatures stays in the game (stakeholder, 2026-10-21).

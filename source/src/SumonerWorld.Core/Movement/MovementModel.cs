@@ -38,6 +38,9 @@ public interface IMovementModel
 {
     /// <summary>Position after applying <paramref name="input"/> for one tick.</summary>
     Vector3 Advance(Vector3 position, MoveInput input);
+
+    /// <summary>Position after one tick of a dash along a unit direction at a percentage of walking speed (a dodge).</summary>
+    Vector3 Dash(Vector3 position, Vector3 direction, int speedPercent);
 }
 
 /// <summary>Movement inside the region bounds on the terrain (M1-15; heights since M1-20). Collision with props comes later.</summary>
@@ -71,9 +74,14 @@ public sealed class MovementModel : IMovementModel
     }
 
     /// <inheritdoc />
-    public Vector3 Advance(Vector3 position, MoveInput input)
+    public Vector3 Advance(Vector3 position, MoveInput input) => Step(position, Direction(input) * _speed);
+
+    /// <inheritdoc />
+    public Vector3 Dash(Vector3 position, Vector3 direction, int speedPercent) => Step(position, direction * (_speed * speedPercent / 100f));
+
+    private Vector3 Step(Vector3 position, Vector3 offset)
     {
-        Vector3 next = Vector3.Clamp(position + (Direction(input) * _speed), _min, _max);
+        Vector3 next = Vector3.Clamp(position + offset, _min, _max);
         return next with { Y = _ground?.HeightAt(next.X, next.Z) ?? 0f };
     }
 }

@@ -43,7 +43,17 @@ public interface IClientPrediction
     Correction Reconcile(uint ackedInput, Vector3 serverPosition);
 }
 
-/// <summary>Prediction with a ring of up to 64 unacknowledged inputs (≈ 2 s at 30 Hz); older ones are dropped.</summary>
+/// <summary>The dodge rules the client predicts with (from the combat data, combat spec §5).</summary>
+/// <param name="Ticks">Ticks a dodge dashes.</param>
+/// <param name="SpeedPercent">Dash speed in percent of walking speed.</param>
+public readonly record struct DodgePrediction(int Ticks, int SpeedPercent);
+
+/// <summary>
+/// Prediction with a ring of up to 64 unacknowledged inputs (≈ 2 s at 30 Hz); older ones are dropped. With <see cref="Dodge"/>
+/// set, pressing the dodge button dashes like the server does (along the movement, or the last direction moved); while
+/// <see cref="Frozen"/> (down or staggered, from the snapshot) the character does not move. Each input remembers how it was
+/// predicted, so a replay repeats the same steps; when the server decided otherwise, reconciliation corrects it.
+/// </summary>
 public sealed class ClientPrediction : IClientPrediction
 {
     /// <summary>Unacknowledged inputs kept.</summary>
@@ -60,7 +70,12 @@ public sealed class ClientPrediction : IClientPrediction
 
     private readonly IMovementModel _movement;
     private readonly PlayerInput[] _pending = new PlayerInput[Capacity];
+    private readonly PredictedStep[] _steps = new PredictedStep[Capacity];
     private int _start;
+    private int _dashLeft;
+    private Vector3 _dashDirection;
+    private Vector3 _lastDirection = Vector3.UnitZ;
+    private byte _lastButtons;
     private Vector3 _offset;
     private int _smoothLeft;
 
@@ -70,6 +85,12 @@ public sealed class ClientPrediction : IClientPrediction
         ArgumentNullException.ThrowIfNull(movement);
         _movement = movement;
     }
+
+    /// <summary>Dodge rules to predict dashes with; null = no dash prediction.</summary>
+    public DodgePrediction? Dodge { get; init; }
+
+    /// <summary>True while the server holds the character still (down or staggered).</summary>
+    public bool Frozen { get; set; }
 
     /// <inheritdoc />
     public bool IsInitialized { get; private set; }
@@ -109,9 +130,11 @@ public sealed class ClientPrediction : IClientPrediction
             PendingCount--;
         }
 
+        PredictedStep step = Decide(input, buttons);
         _pending[(_start + PendingCount) % Capacity] = recorded;
+        _steps[(_start + PendingCount) % Capacity] = step;
         PendingCount++;
-        Position = _movement.Advance(Position, input);
+        Position = Apply(Position, input, step);
         FadeOffset();
         return recorded;
     }
@@ -167,7 +190,7 @@ public sealed class ClientPrediction : IClientPrediction
         for (int i = 0; i < PendingCount; i++)
         {
             PlayerInput input = _pending[(_start + i) % Capacity];
-            replayed = _movement.Advance(replayed, new MoveInput(input.MoveX, input.MoveZ));
+            replayed = Apply(replayed, new MoveInput(input.MoveX, input.MoveZ), _steps[(_start + i) % Capacity]);
         }
 
         Correction correction = Classify(Vector3.Distance(replayed, Position));
@@ -187,6 +210,44 @@ public sealed class ClientPrediction : IClientPrediction
         return correction;
     }
 
+    private PredictedStep Decide(MoveInput input, byte buttons)
+    {
+        Vector3 direction = MovementModel.Direction(input);
+        bool pressed = (buttons & PlayerButtons.Dodge) != 0 && (_lastButtons & PlayerButtons.Dodge) == 0;
+        _lastButtons = buttons;
+        if (Frozen)
+        {
+            _dashLeft = 0;
+            return new PredictedStep(StepKind.Still, Vector3.Zero);
+        }
+
+        if (pressed && Dodge is DodgePrediction dodge && _dashLeft == 0)
+        {
+            _dashLeft = dodge.Ticks;
+            _dashDirection = direction != Vector3.Zero ? Vector3.Normalize(direction) : _lastDirection;
+        }
+
+        if (direction != Vector3.Zero)
+        {
+            _lastDirection = Vector3.Normalize(direction);
+        }
+
+        if (_dashLeft > 0)
+        {
+            _dashLeft--;
+            return new PredictedStep(StepKind.Dash, _dashDirection);
+        }
+
+        return new PredictedStep(StepKind.Walk, Vector3.Zero);
+    }
+
+    private Vector3 Apply(Vector3 position, MoveInput input, PredictedStep step) => step.Kind switch
+    {
+        StepKind.Still => position,
+        StepKind.Dash => _movement.Dash(position, step.Direction, Dodge?.SpeedPercent ?? 100),
+        _ => _movement.Advance(position, input),
+    };
+
     private static Correction Classify(float error) => error switch
     {
         0f => Correction.None,
@@ -204,3 +265,21 @@ public sealed class ClientPrediction : IClientPrediction
         }
     }
 }
+
+/// <summary>How one input was predicted.</summary>
+internal enum StepKind : byte
+{
+    /// <summary>Normal movement.</summary>
+    Walk,
+
+    /// <summary>A dodge dash.</summary>
+    Dash,
+
+    /// <summary>Held still (down or staggered).</summary>
+    Still,
+}
+
+/// <summary>How one input was predicted, and the dash direction.</summary>
+/// <param name="Kind">Walk, dash or still.</param>
+/// <param name="Direction">Dash direction.</param>
+internal readonly record struct PredictedStep(StepKind Kind, Vector3 Direction);

@@ -2,6 +2,7 @@ using Godot;
 using SumonerWorld.Core.Cognition.Appraisal;
 using SumonerWorld.Core.Data;
 using SumonerWorld.Core.Data.Definitions;
+using SumonerWorld.Game.Combat;
 using SumonerWorld.Net.Client;
 using SumonerWorld.Net.Messages;
 
@@ -11,7 +12,8 @@ namespace SumonerWorld.Game.Creatures;
 /// Shows what the server sends (ADR-001, R38): every frame it advances the client's <see cref="RemoteInterpolation"/>, places one
 /// pooled view per remote entity at its interpolated position and heading, and lets the <see cref="IEmotePresenter"/> pose creatures
 /// from their emote and ground speed. Views never own state: an entity that leaves the snapshots returns its view to the pool.
-/// Creatures get the model of their species' role; other players a simple capsule.
+/// Creatures get the model of their species' role; other players a simple capsule. Combat (M2-02b): each view tilts with its
+/// combat action, swells briefly when its health drops, and shows a health bar while hurt.
 /// </summary>
 public sealed partial class EntityViewSync : Node3D
 {
@@ -24,6 +26,8 @@ public sealed partial class EntityViewSync : Node3D
     private readonly Stack<Node3D> _playerPool = new();
     private readonly HashSet<(SnapshotEntityKind, ulong)> _seen = [];
     private readonly List<(SnapshotEntityKind, ulong)> _gone = [];
+    private readonly Dictionary<Node3D, (HealthBar3D Bar, byte Health)> _health = [];
+    private double _time;
 
     /// <summary>Creates the sync for a client; <paramref name="data"/> maps species indices to roles.</summary>
     public EntityViewSync(GameClient client, DataRegistry data, IEmotePresenter presenter)
@@ -47,6 +51,7 @@ public sealed partial class EntityViewSync : Node3D
     /// <inheritdoc />
     public override void _Process(double delta)
     {
+        _time += delta;
         _client.Remote.Advance(delta);
         _client.Remote.Sample(_states);
         _seen.Clear();
@@ -61,11 +66,13 @@ public sealed partial class EntityViewSync : Node3D
             }
 
             view.Position = new Vector3(state.Position.X, state.Position.Y, state.Position.Z);
-            view.Rotation = new Vector3(0, state.Yaw, 0);
+            CombatPose.Apply(view, state.Action, state.Yaw, _time);
             if (view is CreatureRig rig)
             {
                 _presenter.Present(rig, (Emote)state.Emote, state.Speed, delta);
             }
+
+            ShowHealth(view, state.Health, delta);
         }
 
         foreach (var key in _views.Keys)
@@ -108,7 +115,30 @@ public sealed partial class EntityViewSync : Node3D
         }
 
         view.Visible = true;
+        if (!_health.TryGetValue(view, out (HealthBar3D Bar, byte Health) shown))
+        {
+            shown = (new HealthBar3D(state.Kind == SnapshotEntityKind.Creature ? CreatureBarHeight : PlayerBarHeight), byte.MaxValue);
+            view.AddChild(shown.Bar);
+        }
+
+        _health[view] = (shown.Bar, state.Health);
         return view;
+    }
+
+    private const float CreatureBarHeight = 2.6f;
+    private const float PlayerBarHeight = 2.2f;
+
+    private void ShowHealth(Node3D view, byte health, double delta)
+    {
+        (HealthBar3D bar, byte before) = _health[view];
+        if (health < before)
+        {
+            CombatPose.Hit(view);
+        }
+
+        CombatPose.Settle(view, delta);
+        bar.SetHealth(health);
+        _health[view] = (bar, health);
     }
 
     private void Return(Node3D view)
