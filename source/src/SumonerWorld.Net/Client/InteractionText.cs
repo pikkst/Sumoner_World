@@ -168,6 +168,18 @@ public static class InteractionText
             return result.IsApplied ? $"The {creature} learns a new skill." : $"Not yet: {SkillStateText((SkillState)result.Detail)}.";
         }
 
+        if (kind == IntentKind.CompanionSkill)
+        {
+            return result.IsApplied ? $"You call for {creature}!" : result.Reason switch
+            {
+                IntentRejectReason.WrongState when result.Detail == 1 => $"No companion at your side knows {creature}.",
+                IntentRejectReason.WrongState => "No companion is with you. Call one first [Z].",
+                IntentRejectReason.InvalidTarget => "Choose a creature to attack: lock on with T, or stand near it.",
+                IntentRejectReason.OutOfRange => "That is too far away.",
+                _ => "Nothing happens.",
+            };
+        }
+
         if (kind == IntentKind.Command)
         {
             return result.IsApplied ? CommandSent((CompanionCommand)argument) : result.Reason switch

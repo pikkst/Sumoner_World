@@ -59,6 +59,9 @@ internal sealed class PlayerIntents(CreatureWorld world, TransactionProcessor tr
             case IntentKind.LearnSkill:
                 var learn = new LearnSkillTransaction(world, avatar, target, request.Argument);
                 return Changed(transactions.Execute(id, ref learn, now), target, out changed);
+            case IntentKind.CompanionSkill:
+                var skill = new SkillCommandTransaction(world, avatar, target, request.Argument);
+                return transactions.Execute(id, ref skill, now);
             case IntentKind.Command:
                 var command = new CommandTransaction(world, avatar, (CompanionCommand)request.Argument, target);
                 return transactions.Execute(id, ref command, now);

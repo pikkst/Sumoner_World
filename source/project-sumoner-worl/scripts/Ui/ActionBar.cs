@@ -11,8 +11,9 @@ namespace SumonerWorld.Game.Ui;
 
 /// <summary>
 /// The action bar (M2-14b): ten buttons at the bottom of the screen on the keys 1–9 and 0, like in other MMOs. A button holds a
-/// spell, a companion command, an item from the bag (food is eaten, gear put on) or, later, a companion's skill. Drag actions
-/// onto it from the ability book (L), items from the bag (I); drag a button onto another to swap them, off the bar (or
+/// spell, a companion command, an item from the bag (food is eaten, gear put on) or a companion's learned move (M2-14c: the
+/// companions attack the target and those that know it use it first). Drag actions onto it from the ability book (L), moves
+/// from the companion panel (K), items from the bag (I); drag a button onto another to swap them, off the bar (or
 /// right-click it) to clear it. The layout is saved per character on this computer (not in the self-test: empty file name).
 /// </summary>
 public sealed partial class ActionBar(
@@ -45,6 +46,9 @@ public sealed partial class ActionBar(
                 break;
             case ActionKind.Item:
                 UseItem(action.Id);
+                break;
+            case ActionKind.CompanionSkill:
+                companions.CommandSkill(action.Id);
                 break;
             default:
                 break;
@@ -145,7 +149,9 @@ public sealed partial class ActionBar(
 
         string tooltip = action.Kind == ActionKind.Spell && data.Spells.FirstOrDefault(spell => spell.Id == action.Id) is SpellDefinition spell
             ? $"{InteractionText.ActionName(action)}\n{spell.Mana} mana"
-            : InteractionText.ActionName(action);
+            : action.Kind == ActionKind.CompanionSkill
+                ? $"{InteractionText.ActionName(action)}\nyour companion's move on your target"
+                : InteractionText.ActionName(action);
         return ItemLook.Action(action, tooltip);
     }
 

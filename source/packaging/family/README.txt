@@ -54,7 +54,8 @@ The game plays on the local dev server, which runs in Docker on this PC. Nothing
    B opens crafting: click a recipe to make it. Stand still for a few seconds; if something hits
    you, you stop and lose nothing.
    K opens the companion panel: your companion's level, bond and skill tree. Teach it a skill with
-   1-9 or a click. It likes some branches more than others; a branch it dislikes costs 2 points.
+   1-9 or a click. A move it has learned (like Talon dive) can be dragged onto the bar: press it
+   in a fight and your companion uses that move on your target, if it listens to you. It likes some branches more than others; a branch it dislikes costs 2 points.
    P opens the Pact menu: choose up to 3 promises with the number keys 1-6 (or click them),
    then Enter (or "Offer the Pact"); Esc closes it. Watch the creature: it answers first with
    its body (it comes closer, or turns away), then a line tells you its answer.

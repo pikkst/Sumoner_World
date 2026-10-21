@@ -135,6 +135,12 @@ public enum IntentKind : byte
     UseItem = 19,
 
     /// <summary>
+    /// Ask the companions for a learned move on a target (since protocol 19): target = the creature's stable id; argument = move
+    /// index. Detail as for <see cref="Command"/>.
+    /// </summary>
+    CompanionSkill = 20,
+
+    /// <summary>
     /// Cast a spell (since protocol 14): argument = index in the spells data; target = aim heading in 1/256 turns (bits 0–7),
     /// burst distance in decimetres (bits 8–23) and the ward's creature stable id (bits 24 and up, 0 = self).
     /// </summary>
