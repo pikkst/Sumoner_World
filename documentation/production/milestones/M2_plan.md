@@ -10,6 +10,8 @@ stakeholder's standing approval. New or changed design documents (D1–D3) still
 ## M2 goal
 **A 30-minute multiplayer slice the family can play together** on the local Docker dev server (DEC-003). In those 30
 minutes a player:
+0. **starts as a student at the Summoner Academy**: the Arena Trial gives a rank (F–C) and a faction, and a young creature
+   chooses them in the Bonding Ceremony (GDD v0.3 §11),
 1. meets wild creatures that remember them (M1),
 2. earns trust and makes a **Pact**,
 3. **summons** the creature, and it follows, defends and helps on its own,
@@ -42,6 +44,7 @@ decision now and M2 can start straight away. The timeline dates then move forwar
 |---|---|---|
 | **D1** Combat & Magic v1 spec | `systems/combat.md`: health, stamina, damage formula, hit validation on the server, melee/dodge/block, the Primal school's first spells, creature abilities, the combat contract shared by players and creatures (R28); replaces the M1 placeholder "3 hits kill" | 3d |
 | **D2** Companion progression spec | AI Bible §10 → Bonding contract v1.1: role experience and levels, growth stages (working target 3), skill tree data format and how personality and history choose a branch, equipment slots per body type, commands v1 | 3d |
+| **D4** Academy & first quest spec | `systems/academy.md`: the Arena Trial's four tests and how they are scored into a rank (F–C), affinity gates and faction, the Bonding Ceremony, a minimal quest model (steps, objectives, rewards, saved on the server), player profile (rank, faction) | 3d |
 | **D3** Items & crafting spec | `systems/crafting.md`: item model, inventory, gathering, recipes, equipment; transaction rules (atomic, idempotent, R27, R34) | 2d |
 
 ## Phase A: Player and combat (after D1)
@@ -74,15 +77,23 @@ decision now and M2 can start straight away. The timeline dates then move forwar
 | **M2-13** Inventory and gathering | Item model, inventory, gathering from plants and ore, atomic idempotent transactions with duplicate-intent tests | 4d |
 | **M2-14** Crafting and equipment v1 | Recipes from data (food, Pact offering, a weapon, a creature charm); equipment slots for the player and companions (GDD §10) | 4d |
 
+## Phase A2: Academy (after D4) - GDD §11
+| Task | Delivers | Est |
+|---|---|---|
+| **M2-19** Quest system v1 | Quest definitions in data (steps, objectives, rewards), server-side quest state per player, saved; objective events from combat, Pacts and places; quest log in the HUD | 4d |
+| **M2-20** Player profile: rank and faction | Rank and faction saved per account, shown to other players; rank sets Bond Capacity (AI Bible §10.4) | 2d |
+| **M2-21** Academy and Arena Trial | The Academy hub and arena in the region; the four trial tests (training constructs, reading creatures, affinity gates, Pact rehearsal) with skill-based scoring into F–C | 5d |
+| **M2-22** Bonding Ceremony | Three young creatures of the Elf faction; one chooses the player through the Pact evaluator; the first core memory; the companion joins | 3d |
+
 ## Phase E: Slice
 | Task | Delivers | Est |
 |---|---|---|
 | **M2-15** Versioned saves | Player, inventory, bonds, progression and skill choices in the world store; schema versions with migration tests (R26) | 4d |
-| **M2-16** Slice region and content | A 30-minute path in the test region: Memory Grove, a gathering area, a predator den as the first "dungeon-like" encounter, 3–4 species | 5d |
+| **M2-16** Slice region and content | A 30-minute path in the test region: Academy → Memory Grove → a gathering area → a predator den as the first "dungeon-like" encounter, 3–4 species | 5d |
 | **M2-17** HUD and family UX | Health, stamina, mana, companion status, key hints, settings (volume, mouse sensitivity); readable for children | 3d |
 | **M2-18** Slice test and polish | Bot run of the slice path in CI; family sessions (consent and questionnaire, DEC-003); bug triage to zero critical; family package | 4d + sessions |
 
-Total about 80 working days.
+Total about 97 working days (with the Academy, D4 and M2-19 to M2-22).
 
 ---
 
@@ -91,12 +102,13 @@ Total about 80 working days.
 |---|---|---|
 | Fusion | M3, after a legal check | GDD §10 open question 1 (IP/patent review), and the fusion rules and memory merge limits need design |
 | Species rarity classes | M3 | GDD §10 open question 4; needs more species than the slice has |
-| Quests and full dungeons | M3 (with EA content) | No design yet (GDD §10 open question 6); M2 has one den encounter |
+| More quests, rank trials above C, full dungeons | M3 (with EA content) | M2 has the quest system and the Academy questline, plus one den encounter |
+| Factions other than the Elves, the Umbral school | M3 | One faction keeps the slice small; the others are shown as coming (GDD §11) |
 | Trading and economy | M3 | project-config M3 |
 | Steam page | when the family decides to open the game | DEC-003 |
 
 ## Dependencies
-M1-25 → D1, D2, D3 (in parallel) → A (after D1), B (after D2; M2-05 to M2-08 also need M2-01), C (after M2-01), D (after D3) →
+M1-25 → D1, D2, D3, D4 (in parallel) → A2 (after D4 and M2-01) → A (after D1), B (after D2; M2-05 to M2-08 also need M2-01), C (after M2-01), D (after D3) →
 M2-15 (after B and D) → M2-16 → M2-17 → M2-18.
 
 ## Risks watched in M2
@@ -113,6 +125,7 @@ M2-15 (after B and D) → M2-16 → M2-17 → M2-18.
 |---|---|
 | M2 plan | Adopted 2026-10-21 (M2 started) |
 | M1-25 | **Done** 2026-10-21: gate report, GO |
+| GDD 0.3 | 2026-10-21: Academy, rank and faction added to M2 (D4, M2-19 to M2-22) |
 | D1 | **Done** 2026-10-21: `documentation/design/systems/combat.md` approved (yield and spare; Normal preset default; no randomness in v1) |
 
 ## Changelog
