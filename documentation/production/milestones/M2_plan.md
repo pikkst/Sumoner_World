@@ -10,8 +10,8 @@ stakeholder's standing approval. New or changed design documents (D1–D3) still
 ## M2 goal
 **A 30-minute multiplayer slice the family can play together** on the local Docker dev server (DEC-003). In those 30
 minutes a player:
-0. **starts as a student at the Summoner Academy**: the Arena Trial gives a rank (F–C) and a faction, and a young creature
-   chooses them in the Bonding Ceremony (GDD v0.3 §11),
+0. **starts as a student at the Summoner Academy**: the ranking quest sets their class (for life) and rank (F–C) from their
+   answers plus randomness, and they receive a guaranteed young creature of their class (GDD v0.4 §11),
 1. meets wild creatures that remember them (M1),
 2. earns trust and makes a **Pact**,
 3. **summons** the creature, and it follows, defends and helps on its own,
@@ -62,7 +62,7 @@ decision now and M2 can start straight away. The timeline dates then move forwar
 | **M2-06** Summoning | Sigil cast, mana cost, Bond Capacity, summon and dismiss, summoned creatures at AI LOD T0 | 3d |
 | **M2-07** Companion behaviour | Follow, keep personal space, defend the owner unprompted, help in fights, wander off when bored if independent | 4d |
 | **M2-08** Commands v1 | Attack target, guard me, hold, retreat; the `ObedienceModel` answer (obey, improvise, hesitate, refuse) is shown with an emote and a short reason in the AI Inspector | 4d |
-| **M2-09** Growth v1 | Role experience (combat, work, travel), levels to a species cap, stats from data; first growth stage with a visible change (size, markings) | 4d |
+| **M2-09** Growth v1 | Player and creature levels with rank/tier caps (GDD §5); creature role experience, young/grown/elder stages with a visible change; level difference in Pact acceptance and the class rule (other-class Pacts fail) | 5d |
 | **M2-10** Skill tree v1 | One tree per slice species (2–3 abilities each), nodes unlocked by level and bond level; branch weighting from personality and the roles it has done most; shown in a simple companion panel | 5d |
 
 ## Phase C: Magic (after D1)
@@ -74,16 +74,16 @@ decision now and M2 can start straight away. The timeline dates then move forwar
 ## Phase D: Items and crafting (after D3)
 | Task | Delivers | Est |
 |---|---|---|
-| **M2-13** Inventory and gathering | Item model, inventory, gathering from plants and ore, atomic idempotent transactions with duplicate-intent tests | 4d |
+| **M2-13** Inventory, gold and loot | Item model, inventory, **gold**, **loot tables and personal loot bags** from defeated creatures, gathering; atomic idempotent transactions with duplicate-intent tests | 5d |
 | **M2-14** Crafting and equipment v1 | Recipes from data (food, Pact offering, a weapon, a creature charm); equipment slots for the player and companions (GDD §10) | 4d |
 
 ## Phase A2: Academy (after D4) - GDD §11
 | Task | Delivers | Est |
 |---|---|---|
 | **M2-19** Quest system v1 | Quest definitions in data (steps, objectives, rewards), server-side quest state per player, saved; objective events from combat, Pacts and places; quest log in the HUD | 4d |
-| **M2-20** Player profile: rank and faction | Rank and faction saved per account, shown to other players; rank sets Bond Capacity (AI Bible §10.4) | 2d |
-| **M2-21** Academy and Arena Trial | The Academy hub and arena in the region; the four trial tests (training constructs, reading creatures, affinity gates, Pact rehearsal) with skill-based scoring into F–C | 5d |
-| **M2-22** Bonding Ceremony | Three young creatures of the Elf faction; one chooses the player through the Pact evaluator; the first core memory; the companion joins | 3d |
+| **M2-20** Player profile | Class (for life), rank, level, XP and gold saved per account, shown to other players; rank sets level cap and Bond Capacity | 2d |
+| **M2-21** Academy and ranking quest | The Academy hub and arena; 8 questions with answer choices scoring class and rank, practical moments (construct fight, reading a creature, Pact rehearsal), seeded randomness, rank F–C | 5d |
+| **M2-22** First creature | The guaranteed young creature of the player's class and rank tier (Elf in M2, e.g. a pixie); starter Pact always succeeds; first core memory; summonable | 3d |
 
 ## Phase E: Slice
 | Task | Delivers | Est |
@@ -100,6 +100,7 @@ Total about 97 working days (with the Academy, D4 and M2-19 to M2-22).
 ## Not in M2 (and why)
 | Item | When | Why |
 |---|---|---|
+| World boss eggs | M3 (with world bosses) | Designed (companions spec §7); needs world bosses first |
 | Fusion | M3, after a legal check | GDD §10 open question 1 (IP/patent review), and the fusion rules and memory merge limits need design |
 | Species rarity classes | M3 | GDD §10 open question 4; needs more species than the slice has |
 | More quests, rank trials above C, full dungeons | M3 (with EA content) | M2 has the quest system and the Academy questline, plus one den encounter |
@@ -127,6 +128,7 @@ M2-15 (after B and D) → M2-16 → M2-17 → M2-18.
 | M1-25 | **Done** 2026-10-21: gate report, GO |
 | GDD 0.3 | 2026-10-21: Academy, rank and faction added to M2 (D4, M2-19 to M2-22) |
 | D1 | **Done** 2026-10-21: `documentation/design/systems/combat.md` approved (yield and spare; Normal preset default; no randomness in v1) |
+| D2, D3, D4 | **Done** 2026-10-21: approved with the stakeholder's answers (levels and stages, rank caps, class-bound creatures, loot and gold, rank quest from answers + randomness); `systems/companions.md`, `systems/crafting.md`, `systems/academy.md` v0.2 |
 | M2-02c | **Done** 2026-10-21 (merged under standing approval): lock-on (stakeholder request): middle click / T, camera keeps the target in view, attacks aim at it; off on Hardcore servers (`--hardcore`, protocol 8 welcome rules) |
 | M2-02b | **Done** 2026-10-21 (merged under standing approval): combat controls (left click / hold for heavy, Shift block, Space dodge), dash prediction, HUD bars, health bars and hit feedback; M2-02 complete |
 | M2-02a | **Done** 2026-10-21 (merged under standing approval): block, parry, dodge, poise stagger, heavy attack and aimed `Attack` intent on the server; protocol 7 snapshots with health, combat action and move, and own vitals |

@@ -354,7 +354,7 @@ Bond level can **go down**. It is recalculated once per in-game day and immediat
 ### 10.5 Creature progression
 - Creatures gain **experience per role** (combat, work, travel) and level up to a species cap. Level gives stats; **bond level gives abilities**. You cannot buy either (DEC-002).
 - Stat formulas are part of the shared combat contract (R28) and live in data; they will be specified with the combat system.
-- **Planned extension (GDD v0.2 §10, after M1):** growth stages, species rarity, per-creature skill trees, equipment and fusion by mutual consent with merged memories. Each will be added here as a new version of the Bonding contract.
+- **Planned extension (GDD v0.4 §10, after M1):** Bonding contract v1.1.0 in `systems/companions.md`: species classes (a Pact with another class always fails), the level difference in Pact acceptance, levels with tier caps, young/grown/elder stages, skill trees, equipment, boss eggs. Later: species rarity and fusion by mutual consent with merged memories. Each will be added here as a new version of the Bonding contract.
 
 ### 10.6 Contract interfaces (Core)
 `IBondingRules` (state transitions and validation), `IPactEvaluator` (acceptance), `IObedienceModel` (command responses), `ICreatureMindStore` (memories and opinions). Names are reserved in the system registry (M0-06).
