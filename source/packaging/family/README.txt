@@ -53,6 +53,9 @@ The game plays on the local dev server, which runs in Docker on this PC. Nothing
    into the bag to take it off. Right-click food to eat it. The tabs at the top show a companion
    at your side: dress it too (a bird wears only a hat and a charm), and drag things into its own
    bag (a bird carries little, a four-legged one more). Drag food from the bag onto the bar.
+   NEW CHARACTERS start at the Summoner Academy: turn around, the Headmaster stands right behind you.
+   Press E to talk to him and answer his eight questions (click an answer or press 1-4). There are no
+   wrong answers! At the end he tells you your rank. After that the other quests open.
    J opens your quests: take new ones with Accept. What to do next is shown at the top right, and a
    line tells you when a quest is done and what you get.
    B opens crafting: click a recipe to make it. Stand still for a few seconds; if something hits

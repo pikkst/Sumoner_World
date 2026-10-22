@@ -17,6 +17,12 @@ public static partial class DataRegistryLoader
     /// <summary>File kind for <see cref="RecipeDefinition"/> (M2-14).</summary>
     public const string RecipesKind = "recipes";
 
+    /// <summary>File kind for <see cref="QuestDefinition"/> (M2-19).</summary>
+    public const string QuestsKind = "quests";
+
+    /// <summary>File kind for <see cref="AcademyDefinition"/> (at most one, M2-21).</summary>
+    public const string AcademyKind = "academy";
+
     private static readonly string[] KnownWearers = ["player", "quadruped", "avian", "serpentine", "biped"];
 
     private const int MaxStack = 999;
@@ -133,7 +139,7 @@ public static partial class DataRegistryLoader
         ValidateRecipes(recipes, itemIds, errors);
     }
 
-    private static void CheckItem(string id, HashSet<string> items, string where, List<string> errors)
+    internal static void CheckItem(string id, HashSet<string> items, string where, List<string> errors)
     {
         if (!items.Contains(id))
         {

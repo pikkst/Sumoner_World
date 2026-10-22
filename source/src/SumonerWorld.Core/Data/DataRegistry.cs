@@ -30,10 +30,12 @@ public sealed class DataRegistry : IDataRegistry
         IReadOnlyList<LootTableDefinition> lootTables,
         IReadOnlyList<GatherNodeDefinition> gatherNodes,
         IReadOnlyList<RecipeDefinition> recipes,
-        IReadOnlyList<QuestDefinition> quests)
+        IReadOnlyList<QuestDefinition> quests,
+        AcademyDefinition? academy)
     {
         Recipes = recipes;
         Quests = quests;
+        Academy = academy;
         Items = items;
         GatherNodes = gatherNodes;
         _itemIndexById = items.Select((definition, index) => (definition.Id, index)).ToDictionary(item => item.Id, item => item.index, StringComparer.Ordinal);
@@ -107,6 +109,9 @@ public sealed class DataRegistry : IDataRegistry
 
     /// <inheritdoc />
     public IReadOnlyList<QuestDefinition> Quests { get; }
+
+    /// <inheritdoc />
+    public AcademyDefinition? Academy { get; }
 
     /// <inheritdoc />
     public int ItemIndex(string id)

@@ -191,6 +191,11 @@ public static class InteractionText
             return result.IsApplied ? $"The {creature} learns a new skill." : $"Not yet: {SkillStateText((SkillState)result.Detail)}.";
         }
 
+        if (kind is IntentKind.Talk or IntentKind.Answer)
+        {
+            return result.IsApplied ? string.Empty : result.Reason == IntentRejectReason.OutOfRange ? "Come closer to talk." : string.Empty;
+        }
+
         if (kind is IntentKind.AcceptQuest or IntentKind.AbandonQuest)
         {
             return QuestResult(kind, result, creature);
@@ -376,6 +381,8 @@ public static class InteractionText
             Core.Data.Definitions.ObjectiveType.Pact => $"Make a Pact with {target}",
             Core.Data.Definitions.ObjectiveType.Feed => $"Feed {target}",
             Core.Data.Definitions.ObjectiveType.Help => $"Free {target} from a snare",
+            Core.Data.Definitions.ObjectiveType.Talk => $"Talk to the {DisplayName(objective.Target)}",
+            Core.Data.Definitions.ObjectiveType.Answer => "Answer the questions",
             _ => $"Go to {objective.Place}",
         };
         return objective.Type == Core.Data.Definitions.ObjectiveType.Reach

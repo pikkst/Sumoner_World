@@ -98,6 +98,9 @@ public sealed class Economy
     /// <summary>Every player's quests (M2-19).</summary>
     public Quests.QuestBook Quests { get; } = new();
 
+    /// <summary>Every student's ranking answers and result (M2-21).</summary>
+    public Academy.AcademyBook Academy { get; } = new();
+
     /// <summary>Registers the events of player progress (quest objectives) with a world's event bus.</summary>
     public static void RegisterEvents(Events.EventBus events, int capacity)
     {
@@ -226,6 +229,7 @@ public sealed class Economy
         Inventories.AddTo(ref hash);
         CreatureBags.AddTo(ref hash);
         Quests.AddTo(ref hash);
+        Academy.AddTo(ref hash);
         foreach (LootBag bag in _bags)
         {
             hash.Add(bag.Id);

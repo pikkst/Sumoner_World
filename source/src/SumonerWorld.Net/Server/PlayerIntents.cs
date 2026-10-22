@@ -59,6 +59,12 @@ internal sealed class PlayerIntents(CreatureWorld world, TransactionProcessor tr
             case IntentKind.LearnSkill:
                 var learn = new LearnSkillTransaction(world, avatar, target, request.Argument);
                 return Changed(transactions.Execute(id, ref learn, now), target, out changed);
+            case IntentKind.Talk when request.Target <= byte.MaxValue:
+                var talk = new Core.Academy.TalkTransaction(world, avatar, (int)request.Target);
+                return transactions.Execute(id, ref talk, now);
+            case IntentKind.Answer when request.Target <= byte.MaxValue:
+                var answer = new Core.Academy.AnswerTransaction(world, avatar, (int)request.Target, request.Argument / 4, request.Argument % 4);
+                return transactions.Execute(id, ref answer, now);
             case IntentKind.AcceptQuest:
                 var accept = new Core.Quests.AcceptQuestTransaction(world, avatar, request.Argument);
                 return transactions.Execute(id, ref accept, now);

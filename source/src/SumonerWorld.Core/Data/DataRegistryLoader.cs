@@ -123,6 +123,7 @@ public static partial class DataRegistryLoader
         private readonly List<(GatherNodeDefinition Entry, string Where)> _gatherNodes = [];
         private readonly List<(RecipeDefinition Entry, string Where)> _recipes = [];
         private readonly List<(QuestDefinition Entry, string Where)> _quests = [];
+        private readonly List<(AcademyDefinition Entry, string Where)> _academies = [];
         private readonly Dictionary<string, string> _speciesSources = new(StringComparer.Ordinal);
         private readonly Dictionary<string, List<string>> _filesByKind = new(StringComparer.Ordinal);
 
@@ -201,7 +202,7 @@ public static partial class DataRegistryLoader
                 case RunesKind or SpellsKind or EffectsKind or CombosKind:
                     AddMagic(kind, file);
                     break;
-                case ItemsKind or LootTablesKind or GatherNodesKind or RecipesKind or QuestsKind:
+                case ItemsKind or LootTablesKind or GatherNodesKind or RecipesKind or QuestsKind or AcademyKind:
                     AddEconomy(kind, file);
                     break;
                 case SkillTreesKind:
@@ -214,7 +215,7 @@ public static partial class DataRegistryLoader
 
                     break;
                 default:
-                    Errors.Add($"{file.Path}: unknown kind '{kind}'. Known kinds: {MemoryEventTypesKind}, {SpeciesKind}, {OpinionWeightsKind}, {GoalsKind}, {BehaviourTreesKind}, {PactTermsKind}, {BondLevelsKind}, {MovesKind}, {CombatKind}, {SkillTreesKind}, {RunesKind}, {SpellsKind}, {EffectsKind}, {CombosKind}, {ItemsKind}, {LootTablesKind}, {GatherNodesKind}, {RecipesKind}, {QuestsKind}.");
+                    Errors.Add($"{file.Path}: unknown kind '{kind}'. Known kinds: {MemoryEventTypesKind}, {SpeciesKind}, {OpinionWeightsKind}, {GoalsKind}, {BehaviourTreesKind}, {PactTermsKind}, {BondLevelsKind}, {MovesKind}, {CombatKind}, {SkillTreesKind}, {RunesKind}, {SpellsKind}, {EffectsKind}, {CombosKind}, {ItemsKind}, {LootTablesKind}, {GatherNodesKind}, {RecipesKind}, {QuestsKind}, {AcademyKind}.");
                     break;
             }
         }
@@ -253,10 +254,17 @@ public static partial class DataRegistryLoader
                     }
 
                     break;
-                default:
+                case QuestsKind:
                     foreach ((QuestDefinition entry, int index) in ReadEntries<QuestDefinition>(file, Errors))
                     {
                         _quests.Add((entry, $"{file.Path}: entries[{index}]"));
+                    }
+
+                    break;
+                default:
+                    foreach ((AcademyDefinition entry, int index) in ReadEntries<AcademyDefinition>(file, Errors))
+                    {
+                        _academies.Add((entry, $"{file.Path}: entries[{index}]"));
                     }
 
                     break;
@@ -323,7 +331,16 @@ public static partial class DataRegistryLoader
             ValidateSkillTreeReferences(_skillTrees, _species, _moves, Errors);
             ValidateCombos(_combos, _effects, _spells, Errors);
             ValidateEconomy(_items, _lootTables, _gatherNodes, _recipes, _species, Errors);
-            ValidateQuests(_quests, _species, _items, Errors);
+            AcademyDefinition? academy = _academies.Count == 1 ? _academies[0].Entry : null;
+            QuestValidation.ValidateQuests(_quests, _species, _items, academy, Errors);
+            if (_academies.Count > 1)
+            {
+                Errors.Add($"Expected at most one academy entry, found {_academies.Count}.");
+            }
+            else if (academy is not null)
+            {
+                QuestValidation.ValidateAcademy(academy, _academies[0].Where, [.. _quests.Select(quest => quest.Entry)], Errors);
+            }
 
             if (Errors.Count > 0)
             {
@@ -348,7 +365,8 @@ public static partial class DataRegistryLoader
                 [.. _lootTables.Select(item => item.Entry)],
                 [.. _gatherNodes.Select(item => item.Entry).OrderBy(definition => definition.Id, StringComparer.Ordinal)],
                 [.. _recipes.Select(item => item.Entry)],
-                [.. _quests.Select(item => item.Entry)]);
+                [.. _quests.Select(item => item.Entry)],
+                academy);
         }
 
         private void AddSpecies(DataFile file)
@@ -905,7 +923,7 @@ public static partial class DataRegistryLoader
         CheckRange(trait.Spread, 0, MaxTraitSpread, $"{name}.spread", where, errors);
     }
 
-    private static void CheckRange(int value, int min, int max, string field, string where, List<string> errors)
+    internal static void CheckRange(int value, int min, int max, string field, string where, List<string> errors)
     {
         if (value < min || value > max)
         {
@@ -918,7 +936,7 @@ public static partial class DataRegistryLoader
         !string.IsNullOrEmpty(value) && char.IsAsciiLetterUpper(value[0]) && value.All(char.IsAsciiLetter);
 
     // ^[a-z][a-z0-9_]*$
-    private static bool IsSnakeCaseId(string? value) =>
+    internal static bool IsSnakeCaseId(string? value) =>
         !string.IsNullOrEmpty(value)
         && char.IsAsciiLetterLower(value[0])
         && value.All(c => char.IsAsciiLetterLower(c) || char.IsAsciiDigit(c) || c == '_');

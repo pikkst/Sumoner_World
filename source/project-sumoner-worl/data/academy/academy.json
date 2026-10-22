@@ -1,0 +1,111 @@
+// The Summoner Academy (Academy spec §1, §3, M2-21). The campus lies just south of the spawn point (256, 256); the Headmaster
+// waits at its north gate. Answers' class points and rank points are never shown to the player (§3.1). Plain words: the
+// youngest testers are four (§6).
+{
+  "schemaVersion": 1,
+  "kind": "academy",
+  "entries": [
+    {
+      "x": 256, "z": 232, "radius": 20,
+      "rankingQuest": "the_ranking",
+      "scorePerAnswerPoint": 3,
+      "randomRange": 15,
+      "rankThresholds": [30, 50, 70],
+      "openClasses": ["elf"],
+      "rankLines": [
+        "Rank F: every great summoner starts here. Your journey begins!",
+        "Rank E: a good start. The creatures will like you.",
+        "Rank D: a promising student! I expect great things.",
+        "Rank C: remarkable! The Academy has not seen a start like this in years."
+      ],
+      "npcs": [
+        {
+          "id": "headmaster", "name": "Headmaster Oriel", "role": "headmaster", "x": 256, "z": 252.5, "facing": 0, "robe": "#5b3f8f",
+          "greeting": "Welcome to the Summoner Academy, young one. Every summoner begins with a few questions."
+        },
+        {
+          "id": "arena_master", "name": "Arena Master Brann", "role": "arena_master", "x": 243, "z": 232, "facing": 90, "robe": "#8f3f3f",
+          "greeting": "The arena opens soon. Then I will show you how a summoner fights without losing their head."
+        },
+        {
+          "id": "elf_keeper", "name": "Keeper Lisel", "role": "keeper", "x": 269, "z": 232, "facing": 270, "robe": "#3f7f4a",
+          "greeting": "The Elves' grove is behind me. When you are ranked, a young creature will be waiting for you here."
+        }
+      ],
+      "questions": [
+        {
+          "text": "A hurt creature lies across your path. What do you do?",
+          "answers": [
+            { "text": "Kneel down and talk to it softly.", "classes": { "elf": 3 }, "rank": 2 },
+            { "text": "Look around for whatever hurt it.", "classes": { "human": 2, "elf": 1 }, "rank": 2 },
+            { "text": "Light a small fire to keep it warm.", "classes": { "dwarf": 2, "elf": 1 }, "rank": 1 },
+            { "text": "Sit with it quietly so it is not alone.", "classes": { "necromancer": 2, "elf": 1 }, "rank": 3 }
+          ]
+        },
+        {
+          "text": "Where would you most like to live?",
+          "answers": [
+            { "text": "In a tree house deep in the forest.", "classes": { "elf": 3 }, "rank": 1 },
+            { "text": "In a big town with a castle.", "classes": { "human": 3 }, "rank": 1 },
+            { "text": "In a warm cave under a mountain.", "classes": { "dwarf": 3 }, "rank": 1 },
+            { "text": "In an old, quiet house full of stories.", "classes": { "necromancer": 3 }, "rank": 1 }
+          ]
+        },
+        {
+          "text": "A big creature growls at you. What do you do?",
+          "answers": [
+            { "text": "Stay calm and back away slowly.", "classes": { "elf": 2 }, "rank": 3 },
+            { "text": "Stand tall and stay where you are.", "classes": { "human": 2, "dwarf": 1 }, "rank": 2 },
+            { "text": "Run away as fast as you can.", "classes": { "elf": 1 }, "rank": 0 },
+            { "text": "Growl back at it!", "classes": { "dwarf": 2 }, "rank": 1 }
+          ]
+        },
+        {
+          "text": "Your friend lost their favourite toy. What do you do?",
+          "answers": [
+            { "text": "Help them look everywhere.", "classes": { "human": 2, "elf": 1 }, "rank": 3 },
+            { "text": "Make them a new one.", "classes": { "dwarf": 3 }, "rank": 2 },
+            { "text": "Ask the animals if they saw it.", "classes": { "elf": 3 }, "rank": 2 },
+            { "text": "Tell them a story to cheer them up.", "classes": { "necromancer": 2, "human": 1 }, "rank": 2 }
+          ]
+        },
+        {
+          "text": "Which magic would you like to learn first?",
+          "answers": [
+            { "text": "Making plants grow.", "classes": { "elf": 3 }, "rank": 1 },
+            { "text": "Calling down lightning.", "classes": { "human": 3 }, "rank": 1 },
+            { "text": "Making fire dance.", "classes": { "dwarf": 3 }, "rank": 1 },
+            { "text": "Talking to spirits.", "classes": { "necromancer": 3 }, "rank": 1 }
+          ]
+        },
+        {
+          "text": "A creature does not want to be your friend. What do you do?",
+          "answers": [
+            { "text": "Let it go. Maybe another day.", "classes": { "elf": 2, "necromancer": 1 }, "rank": 3 },
+            { "text": "Bring it food every day.", "classes": { "elf": 2, "human": 1 }, "rank": 2 },
+            { "text": "Show it how strong you are.", "classes": { "dwarf": 1, "human": 1 }, "rank": 0 },
+            { "text": "Ask a wise summoner what to do.", "classes": { "human": 2 }, "rank": 2 }
+          ]
+        },
+        {
+          "text": "What do you do on a rainy day?",
+          "answers": [
+            { "text": "Jump in the puddles!", "classes": { "elf": 2 }, "rank": 1 },
+            { "text": "Build something.", "classes": { "dwarf": 3 }, "rank": 1 },
+            { "text": "Read or listen to stories.", "classes": { "necromancer": 2, "human": 1 }, "rank": 1 },
+            { "text": "Play games with my family.", "classes": { "human": 2 }, "rank": 1 }
+          ]
+        },
+        {
+          "text": "Last one! Why do you want to be a summoner?",
+          "answers": [
+            { "text": "To have creature friends.", "classes": { "elf": 3 }, "rank": 2 },
+            { "text": "To protect people.", "classes": { "human": 3 }, "rank": 3 },
+            { "text": "To explore everywhere.", "classes": { "dwarf": 1, "elf": 1 }, "rank": 2 },
+            { "text": "To learn every secret.", "classes": { "necromancer": 3 }, "rank": 2 }
+          ]
+        }
+      ]
+    }
+  ]
+}
