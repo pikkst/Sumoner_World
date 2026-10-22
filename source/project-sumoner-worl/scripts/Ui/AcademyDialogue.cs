@@ -186,7 +186,9 @@ public sealed partial class AcademyDialogue(
 
         int quest = RankingRules.RankingQuest(data);
         QuestEntry? ranking = client.Quests.Any(entry => entry.Quest == quest) ? client.Quests.First(entry => entry.Quest == quest) : null;
-        DialoguePage page = AcademyText.PageOf(academy, _npc, ranking, client.OwnProfile, quest >= 0 ? data.Quests[quest] : null);
+        int first = Enumerable.Range(0, data.Quests.Count).FirstOrDefault(i => data.Quests[i].Id == academy.FirstFriendQuest, -1);
+        QuestEntry? friend = client.Quests.Any(entry => entry.Quest == first) ? client.Quests.First(entry => entry.Quest == first) : null;
+        DialoguePage page = AcademyText.PageOf(academy, _npc, ranking, client.OwnProfile, quest >= 0 ? data.Quests[quest] : null, friend);
         if (_override is string words)
         {
             page = new DialoguePage(academy.Npcs[_npc].Name, words, DialogueKind.Words, 0, []);

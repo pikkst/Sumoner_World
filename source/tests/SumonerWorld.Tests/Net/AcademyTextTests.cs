@@ -30,6 +30,8 @@ public class AcademyTextTests
         Assert.Contains("training construct", AcademyText.PageOf(Academy, arena, new QuestEntry(0, 1, 3), null, quest).Text, StringComparison.Ordinal);
         Assert.StartsWith("Rank D", AcademyText.PageOf(Academy, headmaster, new QuestEntry(0, 3, 0), new RosterEntry(1, 0, 2, 3, 0), quest).Text, StringComparison.Ordinal);
         Assert.Equal(Academy.Npcs[2].Greeting, AcademyText.PageOf(Academy, 2, new QuestEntry(0, 1, 1), null, quest).Text);
+        Assert.StartsWith("Here is your new friend", AcademyText.PageOf(Academy, 2, null, null, null, new QuestEntry(1, 1, 1)).Text, StringComparison.Ordinal);
+        Assert.StartsWith("Take good care", AcademyText.PageOf(Academy, 2, null, null, null, new QuestEntry(1, 3, 0)).Text, StringComparison.Ordinal);
     }
 
     [Fact]

@@ -59,6 +59,8 @@ The game plays on the local dev server, which runs in Docker on this PC. Nothing
    gate: beat the training construct, offer it a Pact with P (just practice), and tell him how a
    creature feels (lock on to it with T). At the end the Headmaster tells you your rank.
    Inside the Academy walls nobody can fight, except in the arena.
+   After your rank, Keeper Lisel (in the east of the Academy) brings you a young creature of your
+   own! Feed it (E) and offer it a Pact (P): it will always say yes. Then call it with Z.
    J opens your quests: take new ones with Accept. What to do next is shown at the top right, and a
    line tells you when a quest is done and what you get.
    B opens crafting: click a recipe to make it. Stand still for a few seconds; if something hits

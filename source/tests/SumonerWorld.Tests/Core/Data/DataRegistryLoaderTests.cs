@@ -95,7 +95,7 @@ public class DataRegistryLoaderTests
         MemoryEventTypeDefinition pactBroken = registry.GetMemoryEventType(11);
         Assert.Equal(-80, pactBroken.Valence);
         Assert.Equal(90, pactBroken.HalfLifeDays);
-        Assert.Equal(22, registry.MemoryEventTypes.Count);
+        Assert.Equal(23, registry.MemoryEventTypes.Count);
     }
 
     [Fact]
@@ -381,9 +381,9 @@ public class DataRegistryLoaderTests
         DataRegistry registry = DataRegistryLoader.Load(ReadShippedData());
 
         Assert.Equal(
-            ["the_ranking", "berries_for_the_road", "a_staff_of_your_own", "bogfox_trouble", "a_friend_in_the_clearing"],
+            ["the_ranking", "a_first_friend", "berries_for_the_road", "a_staff_of_your_own", "bogfox_trouble", "a_friend_in_the_clearing"],
             registry.Quests.Select(quest => quest.Id));
-        Assert.Equal(ObjectiveType.Reach, registry.Quests[4].Steps[0].Objectives[0].Type);
+        Assert.Equal(ObjectiveType.Reach, registry.Quests[5].Steps[0].Objectives[0].Type);
     }
 
     private static void Replace(List<DataFile> files, string name, string find, string replace)

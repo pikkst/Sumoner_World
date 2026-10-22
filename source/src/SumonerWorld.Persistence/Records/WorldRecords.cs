@@ -65,6 +65,10 @@ public sealed record PlayerRecord
     /// <summary>Practical moments done at the Academy (M2-21b).</summary>
     [Key(14)]
     public int AcademyMoments { get; init; }
+
+    /// <summary>The first creature the Keeper brought (M2-22); 0 = none.</summary>
+    [Key(15)]
+    public ulong AcademyFirstCreature { get; init; }
 }
 
 /// <summary>A saved quest (M2-19).</summary>

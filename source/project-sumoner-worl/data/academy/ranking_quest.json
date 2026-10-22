@@ -1,4 +1,4 @@
-// The ranking quest (Academy spec §3, M2-21): every new character takes it at once. Loaded before the slice quests, which need it.
+// The ranking quest (Academy spec §3, M2-21) and the first creature (§4, M2-22): every new character takes them at once. Loaded before the slice quests, which need it.
 // Between the questions, the Arena Master's practical moments (M2-21b) add a little to the rank score.
 {
   "schemaVersion": 1,
@@ -22,6 +22,19 @@
         { "text": "Hear your rank from the Headmaster.", "objectives": [ { "type": "talk", "target": "headmaster" } ] }
       ],
       "rewards": { "xp": 40, "gold": 10, "items": [ { "item": "berry_meal", "count": 2 } ] }
+    },
+    {
+      "id": "a_first_friend",
+      "title": "A First Friend",
+      "summary": "Keeper Lisel has brought a young creature who would like to meet you. It already likes you a little.",
+      "autoStart": true,
+      "requires": ["the_ranking"],
+      "steps": [
+        { "text": "Talk to Keeper Lisel in the east of the Academy.", "objectives": [ { "type": "talk", "target": "elf_keeper" } ] },
+        { "text": "Spend a moment with your new friend: feed it (E).", "objectives": [ { "type": "feed" } ] },
+        { "text": "Offer it a Pact (P). Choose what you promise.", "objectives": [ { "type": "pact" } ] }
+      ],
+      "rewards": { "xp": 30, "items": [ { "item": "sweet_berries", "count": 5 } ] }
     }
   ]
 }

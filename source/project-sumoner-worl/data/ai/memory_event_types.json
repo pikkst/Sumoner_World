@@ -276,6 +276,17 @@
       "baseSalience": 700,
       "halfLifeDays": null,
       "isCore": true
+    },
+    {
+      "id": 23,
+      "key": "FirstBond",
+      "subjects": [
+        "player"
+      ],
+      "valence": 80,
+      "baseSalience": 900,
+      "halfLifeDays": null,
+      "isCore": true
     }
   ]
 }

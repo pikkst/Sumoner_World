@@ -42,6 +42,11 @@ internal static partial class QuestValidation
             foreach (RankingAnswerDefinition answer in question.Answers)
             {
                 DataRegistryLoader.CheckRange(answer.Rank, 0, 3, $"questions[{q}].answers.rank", where, errors);
+                if (answer.Creature.Length > 0 && !species.Any(definition => definition.Id == answer.Creature))
+                {
+                    errors.Add($"{where}: questions[{q}] votes for unknown species '{answer.Creature}'.");
+                }
+
                 foreach (string unknown in answer.Classes.Keys.Where(key => !AcademyDefinition.ClassIds.Contains(key)))
                 {
                     errors.Add($"{where}: questions[{q}] names unknown class '{unknown}'.");
@@ -59,6 +64,11 @@ internal static partial class QuestValidation
         if (academy.OpenClasses.Count == 0 || academy.OpenClasses.Any(open => !AcademyDefinition.ClassIds.Contains(open)))
         {
             errors.Add($"{where}: openClasses must name known classes.");
+        }
+
+        if (!quests.Any(quest => quest.Id == academy.FirstFriendQuest))
+        {
+            errors.Add($"{where}: firstFriendQuest '{academy.FirstFriendQuest}' is not a quest.");
         }
 
         if (!quests.Any(quest => quest.Id == academy.RankingQuest))

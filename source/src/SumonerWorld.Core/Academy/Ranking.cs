@@ -24,6 +24,9 @@ public sealed class AcademyStanding
     /// <summary>The practical moments done (M2-21b).</summary>
     public PracticalMoments Moments { get; internal set; }
 
+    /// <summary>The stable id of the first creature the Keeper brought (0 = none yet, M2-22).</summary>
+    public ulong FirstCreature { get; internal set; }
+
     /// <summary>True once the Headmaster gave the rank.</summary>
     public bool Ranked { get; internal set; }
 
@@ -36,11 +39,13 @@ public sealed class AcademyStanding
 /// <param name="Bonus">Practical bonus.</param>
 /// <param name="Ranked">True once ranked.</param>
 /// <param name="Moments">Practical moments done (M2-21b).</param>
-public sealed record AcademySave(IReadOnlyList<int> Answers, int Bonus, bool Ranked, int Moments = 0)
+/// <param name="FirstCreature">The first creature's stable id (M2-22).</param>
+public sealed record AcademySave(IReadOnlyList<int> Answers, int Bonus, bool Ranked, int Moments = 0, ulong FirstCreature = 0)
 {
     /// <summary>Equal when every field is, the answers compared one by one.</summary>
     public bool Equals(AcademySave? other) =>
-        other is not null && Bonus == other.Bonus && Ranked == other.Ranked && Moments == other.Moments && Answers.SequenceEqual(other.Answers);
+        other is not null && Bonus == other.Bonus && Ranked == other.Ranked && Moments == other.Moments && FirstCreature == other.FirstCreature
+        && Answers.SequenceEqual(other.Answers);
 
     /// <inheritdoc />
     public override int GetHashCode() => HashCode.Combine(Bonus, Ranked);
@@ -66,7 +71,7 @@ public sealed class AcademyBook
     /// <summary>For saving (null when the account never answered).</summary>
     public AcademySave? Export(ulong account) =>
         _byAccount.TryGetValue(account, out AcademyStanding? standing)
-            ? new AcademySave([.. standing.Answers.Select(answer => (int)answer)], standing.Bonus, standing.Ranked, (int)standing.Moments)
+            ? new AcademySave([.. standing.Answers.Select(answer => (int)answer)], standing.Bonus, standing.Ranked, (int)standing.Moments, standing.FirstCreature)
             : null;
 
     /// <summary>Restores a saved standing.</summary>
@@ -87,6 +92,21 @@ public sealed class AcademyBook
         standing.Bonus = saved.Bonus;
         standing.Ranked = saved.Ranked;
         standing.Moments = (PracticalMoments)saved.Moments;
+        standing.FirstCreature = saved.FirstCreature;
+    }
+
+    /// <summary>The student a creature is kept for (the Keeper's first creature not yet pacted), or 0.</summary>
+    public ulong ReservedFor(ulong creature)
+    {
+        foreach ((ulong account, AcademyStanding standing) in _byAccount)
+        {
+            if (creature != 0 && standing.FirstCreature == creature)
+            {
+                return account;
+            }
+        }
+
+        return 0;
     }
 
     /// <summary>Adds every standing, in account order, to a state hash.</summary>
@@ -103,6 +123,7 @@ public sealed class AcademyBook
 
             hash.Add((ulong)standing.Bonus);
             hash.Add((ulong)standing.Moments);
+            hash.Add(standing.FirstCreature);
             hash.Add(standing.Ranked ? 1UL : 0UL);
         }
     }
@@ -226,6 +247,9 @@ public static class TalkResult
     /// <summary>Set when this talk was the ranking ceremony.</summary>
     public const byte Ranked = 0x80;
 
+    /// <summary>The Keeper brought the student's first creature (M2-22).</summary>
+    public const byte Brought = 0x40;
+
     /// <summary>The detail of a ceremony: the rank in bits 0–1, the class leaning in bits 2–3.</summary>
     public static byte Ceremony(Rank rank, SummonerClass leaning) => (byte)(Ranked | ((int)rank & 3) | (((int)leaning & 3) << 2));
 
@@ -275,6 +299,12 @@ public record struct TalkTransaction(CreatureWorld Creatures, Entity Avatar, int
         ulong account = Creatures.World.GetComponent<PlayerAvatar>(Avatar).AccountId;
         Creatures.Events.Publish(new QuestEvent(account, ObjectiveType.Talk, Npc, 1));
         AcademyStanding standing = Creatures.Economy.Academy.Of(account);
+        if (academy.Npcs[Npc].Role == "keeper" && FirstCreatureRules.Waiting(Creatures, account))
+        {
+            FirstCreatureRules.Bring(Creatures, Avatar, academy.Npcs[Npc]);
+            return IntentResult.Applied(TalkResult.Brought);
+        }
+
         if (academy.Npcs[Npc].Role != "headmaster" || standing.Ranked || standing.Answered < AcademyDefinition.QuestionCount)
         {
             return IntentResult.Applied();

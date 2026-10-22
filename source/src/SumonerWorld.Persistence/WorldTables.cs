@@ -53,25 +53,7 @@ internal sealed class WorldTables(WorldStore store)
             foreach (PlayerSave player in players)
             {
                 account.Value = (long)player.Account;
-                PlayerProgress? progress = player.Progress;
-                payload.Value = _players.Encode(new PlayerRecord
-                {
-                    X = player.Position.X,
-                    Y = player.Position.Y,
-                    Z = player.Position.Z,
-                    Class = progress is PlayerProgress p ? (byte)p.Class : null,
-                    Rank = (byte)(progress?.Rank ?? 0),
-                    Level = progress?.Level ?? 0,
-                    Xp = progress?.Xp ?? 0,
-                    Gold = player.Inventory?.Gold,
-                    Items = [.. (player.Inventory?.Items ?? []).Select(item => new SlotRecord { Item = item.Item, Count = item.Count })],
-                    Equipped = player.Equipped ?? [],
-                    Quests = [.. (player.Quests ?? []).Select(quest => new QuestRecord { Quest = quest.Quest, Step = quest.Step, Counts = quest.Counts, Done = quest.Done })],
-                    AcademyAnswers = player.Academy?.Answers,
-                    AcademyBonus = player.Academy?.Bonus ?? 0,
-                    AcademyRanked = player.Academy?.Ranked ?? false,
-                    AcademyMoments = player.Academy?.Moments ?? 0,
-                });
+                payload.Value = _players.Encode(RecordOf(player));
                 insert.ExecuteNonQuery();
             }
         }
@@ -138,7 +120,7 @@ internal sealed class WorldTables(WorldStore store)
                 InventorySave? inventory = record.Gold is int gold ? new InventorySave(gold, [.. record.Items.Select(item => new SavedItem(item.Item, item.Count))]) : null;
                 IReadOnlyList<QuestSave> quests = [.. record.Quests.Select(quest => new QuestSave(quest.Quest, quest.Step, quest.Counts, quest.Done))];
                 SumonerWorld.Core.Academy.AcademySave? academy = record.AcademyAnswers is IReadOnlyList<int> answers
-                    ? new SumonerWorld.Core.Academy.AcademySave(answers, record.AcademyBonus, record.AcademyRanked, record.AcademyMoments)
+                    ? new SumonerWorld.Core.Academy.AcademySave(answers, record.AcademyBonus, record.AcademyRanked, record.AcademyMoments, record.AcademyFirstCreature)
                     : null;
                 players.Add(new PlayerSave((ulong)reader.GetInt64(0), new Vector3(record.X, record.Y, record.Z), progress, inventory, record.Equipped, quests, academy));
             }
@@ -169,5 +151,30 @@ internal sealed class WorldTables(WorldStore store)
         command.Parameters.AddWithValue("$key", key);
         command.Parameters.AddWithValue("$value", value);
         command.ExecuteNonQuery();
+    }
+
+    // A player as saved (M2-09 to M2-22).
+    private static PlayerRecord RecordOf(PlayerSave player)
+    {
+        PlayerProgress? progress = player.Progress;
+        return new PlayerRecord
+        {
+            X = player.Position.X,
+            Y = player.Position.Y,
+            Z = player.Position.Z,
+            Class = progress is PlayerProgress p ? (byte)p.Class : null,
+            Rank = (byte)(progress?.Rank ?? 0),
+            Level = progress?.Level ?? 0,
+            Xp = progress?.Xp ?? 0,
+            Gold = player.Inventory?.Gold,
+            Items = [.. (player.Inventory?.Items ?? []).Select(item => new SlotRecord { Item = item.Item, Count = item.Count })],
+            Equipped = player.Equipped ?? [],
+            Quests = [.. (player.Quests ?? []).Select(quest => new QuestRecord { Quest = quest.Quest, Step = quest.Step, Counts = quest.Counts, Done = quest.Done })],
+            AcademyAnswers = player.Academy?.Answers,
+            AcademyBonus = player.Academy?.Bonus ?? 0,
+            AcademyRanked = player.Academy?.Ranked ?? false,
+            AcademyMoments = player.Academy?.Moments ?? 0,
+            AcademyFirstCreature = player.Academy?.FirstCreature ?? 0,
+        };
     }
 }
