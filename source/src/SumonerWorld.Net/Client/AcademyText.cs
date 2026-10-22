@@ -46,10 +46,16 @@ public static class AcademyText
     /// The page a person shows now, from the ranking quest's current step (<paramref name="quest"/> is its definition):
     /// the Headmaster asks the questions and holds the ceremony, the Arena Master leads the practical moments (M2-21b).
     /// </summary>
-    public static DialoguePage PageOf(AcademyDefinition academy, int npc, QuestEntry? ranking, RosterEntry? profile, QuestDefinition? quest = null)
+    public static DialoguePage PageOf(
+        AcademyDefinition academy, int npc, QuestEntry? ranking, RosterEntry? profile, QuestDefinition? quest = null, QuestEntry? friend = null)
     {
         ArgumentNullException.ThrowIfNull(academy);
         NpcDefinition person = academy.Npcs[npc];
+        if (person.Role == "keeper")
+        {
+            return Keeper(person, friend);
+        }
+
         if (ranking is not QuestEntry entry || quest is null || person.Role is not ("headmaster" or "arena_master"))
         {
             return Words(person, person.Greeting);
@@ -91,6 +97,17 @@ public static class AcademyText
 
         return talkToMe || entry.Step == 0 ? Words(person, person.Greeting) : Words(person, "Go and see Arena Master Brann first. He stands right next to me.");
     }
+
+    // The Keeper and the first creature (M2-22).
+    private static DialoguePage Keeper(NpcDefinition person, QuestEntry? friend) => friend switch
+    {
+        { Status: (byte)QuestStatus.Active, Step: 0 } => Words(person, "Come closer, I have someone for you!"),
+        { Status: (byte)QuestStatus.Active } => Words(
+            person,
+            "Here is your new friend! It is young and a little shy. Feed it (E) and spend a moment with it, then offer it a Pact (P). It already likes you: it will say yes."),
+        { Status: (byte)QuestStatus.Done } => Words(person, "Take good care of your friend. Call it to your side with Z, and send it home with X."),
+        _ => Words(person, person.Greeting),
+    };
 
     private static DialoguePage ArenaMaster(NpcDefinition person, IReadOnlyList<QuestObjectiveDefinition> objectives)
     {

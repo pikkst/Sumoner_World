@@ -310,8 +310,8 @@ public sealed partial class PlaytestSelfTest(
             case 44:
                 PressKey(Key.J);
                 log.Write(LogLevel.Info, "selftest.quests", panels.Quests.Describe());
-                panels.Quests.Accept(1);
-                panels.Quests.Accept(4);
+                panels.Quests.Accept(QuestIndex("berries_for_the_road"));
+                panels.Quests.Accept(QuestIndex("a_friend_in_the_clearing"));
                 break;
             case 45:
                 log.Write(LogLevel.Info, "selftest.quests", $"{controls.Feedback} | {panels.Quests.Describe()} | tracker: {OneLine(panels.Quests.Tracker)}");
@@ -377,6 +377,8 @@ public sealed partial class PlaytestSelfTest(
 
         return null;
     }
+
+    private int QuestIndex(string id) => Enumerable.Range(0, panels.Data.Quests.Count).FirstOrDefault(i => panels.Data.Quests[i].Id == id, -1);
 
     private DragSpot BagSpotOf(string item)
     {

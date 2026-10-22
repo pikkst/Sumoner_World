@@ -96,6 +96,16 @@ Stakeholder (2026-10-21): **the class and rank come from the student's choices i
   most 15, added to the rank score. The arena always keeps one construct standing.
 - New quest objective kinds `read` and `offer`; protocol 23 (`Read`).
 
+## 9. Implementation notes (M2-22)
+- After the ranking, every student takes **A First Friend** at once: talk to Keeper Lisel (east of the campus) → she brings a
+  young creature beside her → feed it → offer it a Pact.
+- **Species:** each answer votes for one Elf creature (caring and steady → mossback, bold → bogfox, curious and wise → hollow
+  owl; there is no pixie yet); the most votes wins, a tie goes to the seeded roll. **Tier** = the student's rank, level 1, young.
+- The creature is **kept for that student**: their starter Pact always succeeds (any terms), anyone else's is refused. It is
+  still a real bond: PactOffered, PactSealed and a new core memory **FirstBond** (+80, salience 900, never fades; AI Bible
+  §5 table 23) are written, and from then on all the normal rules apply. It can be summoned (Z) at once.
+- Saved: the creature with the world, the link to it with the student's standing.
+
 ## Changelog
 - **0.2 (2026-10-21):** approved with the stakeholder's answers: the ranking quest now decides class and rank from **answers to
   questions plus randomness** (replacing the skill-only Arena Trial and the affinity gates); the class is for life; the first

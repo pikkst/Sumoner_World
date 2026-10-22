@@ -103,6 +103,7 @@ Values are **integers** so that decay, saves and replays are bit-exact (R11). Fl
 | 20 | `PactRefused` | player | −10 | 200 | 2 days | no |
 | 21 | `ReleasedBy` | player | −30 | 400 | 14 days | no |
 | 22 | `GrewUp` (M2-09) | player | +50 | 700 | — | yes |
+| 23 | `FirstBond` (M2-22: the starter Pact at the Academy) | player | +80 | 900 | never | yes |
 
 "2 days" means in-game days; 1 in-game day = 48 real minutes = 86,400 ticks (TDD §2.1). New event types are added in data, with a new id. Ids are never reused (save compatibility, R26).
 
@@ -185,6 +186,7 @@ For each remembered subject the creature holds four attitudes, each in [-100, +1
 | PactRefused | −20 | 0 | 0 | −10 |
 | ReleasedBy | −40 | 0 | −20 | 0 |
 | GrewUp | +20 | 0 | +30 | +10 |
+| FirstBond | +40 | 0 | +40 | +10 |
 
   BondedDied and OwnerDied have no weights (they drive Grief, not an opinion of the dead). AttackedBy fear is 100 so a single attack shows the Fear emote (M0-07 USP moment "a hit creature keeps its distance").
 

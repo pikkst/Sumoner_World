@@ -94,6 +94,12 @@ public interface IBondingRules
         Progression.PactConditions? conditions = null);
 
     /// <summary>
+    /// The starter Pact at the Academy (Academy spec §4, M2-22): the creature the Keeper brought for this student always accepts.
+    /// It is still a real bond: the offer, the sealed Pact and a <c>FirstBond</c> core memory are written as for any Pact.
+    /// </summary>
+    BondingOutcome SealStarterPact(MindHandle creature, MemorySubject player, PactTerms terms, ulong now);
+
+    /// <summary>
     /// The owner hands the creature to another player; the creature must accept the new player like a Pact (a player of another
     /// class never). Memories travel with it.
     /// </summary>
@@ -161,6 +167,7 @@ public sealed class BondingRules : IBondingRules
     private readonly RecalledMemory[] _recalled = new RecalledMemory[ICreatureMindStore.CoreCapacity + ICreatureMindStore.EpisodicCapacity];
     private readonly ushort _pactOffered;
     private readonly ushort _pactSealed;
+    private readonly ushort? _firstBond;
     private readonly ushort _pactRefused;
     private readonly ushort _pactTermKept;
     private readonly ushort _pactBroken;
@@ -202,6 +209,7 @@ public sealed class BondingRules : IBondingRules
         _pactTermKept = Require(rules, "PactTermKept");
         _pactBroken = Require(rules, "PactBroken");
         _releasedBy = Require(rules, "ReleasedBy");
+        _firstBond = rules.FindByKey("FirstBond");
     }
 
     /// <inheritdoc />
@@ -231,6 +239,26 @@ public sealed class BondingRules : IBondingRules
         }
 
         Seal(creature, player, terms, now);
+        return BondingOutcome.Accepted;
+    }
+
+    /// <inheritdoc />
+    public BondingOutcome SealStarterPact(MindHandle creature, MemorySubject player, PactTerms terms, ulong now)
+    {
+        RequirePlayer(player);
+        if (State(creature).State != OwnershipState.Wild)
+        {
+            return BondingOutcome.WrongState;
+        }
+
+        _store.Remember(creature, _pactOffered, player, now);
+        Seal(creature, player, terms, now);
+        if (_firstBond is ushort firstBond)
+        {
+            _store.Remember(creature, firstBond, player, now);
+            RecalculateBondLevel(creature, now);
+        }
+
         return BondingOutcome.Accepted;
     }
 

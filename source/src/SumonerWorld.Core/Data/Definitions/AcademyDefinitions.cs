@@ -45,6 +45,9 @@ public sealed record AcademyDefinition
     /// <summary>The id of the quest whose answers and ceremony this is.</summary>
     public string RankingQuest { get; init; } = "the_ranking";
 
+    /// <summary>The id of the quest in which the Keeper brings the first creature (M2-22).</summary>
+    public string FirstFriendQuest { get; init; } = "a_first_friend";
+
     /// <summary>The Grand Arena's centre, x in metres (M2-21b): fighting is allowed only here inside the campus.</summary>
     public float ArenaX { get; init; }
 
@@ -121,4 +124,7 @@ public sealed record RankingAnswerDefinition
 
     /// <summary>Rank points, 0–3.</summary>
     public int Rank { get; init; }
+
+    /// <summary>The species this answer votes for as the first creature (M2-22); empty for none.</summary>
+    public string Creature { get; init; } = string.Empty;
 }

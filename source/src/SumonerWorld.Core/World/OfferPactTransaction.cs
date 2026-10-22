@@ -84,15 +84,19 @@ public record struct OfferPactTransaction(CreatureWorld Creatures, CooldownTrack
         PlayerProgress player = world.GetComponent<PlayerProgress>(Avatar);
         var conditions = new PactConditions(
             (SummonerClass)player.Class, player.Level, Creatures.Data.Species[species].Class, world.GetComponent<CreatureGrowth>(creature).Level);
-        BondingOutcome outcome = Creatures.Services.Bonding.OfferPact(
-            world.GetComponent<MindRef>(creature).Handle,
-            Creatures.Data.Species[species],
-            new MemorySubject(SubjectKind.Player, account),
-            Terms,
-            reputation,
-            now,
-            out _,
-            conditions);
+        ulong keptFor = Creatures.Economy.Academy.ReservedFor(Creature.Value);
+        BondingOutcome outcome = keptFor == account
+            ? Creatures.Services.Bonding.SealStarterPact(world.GetComponent<MindRef>(creature).Handle, new MemorySubject(SubjectKind.Player, account), Terms, now)
+            : keptFor != 0 ? BondingOutcome.Refused
+            : Creatures.Services.Bonding.OfferPact(
+                world.GetComponent<MindRef>(creature).Handle,
+                Creatures.Data.Species[species],
+                new MemorySubject(SubjectKind.Player, account),
+                Terms,
+                reputation,
+                now,
+                out _,
+                conditions);
         Cooldowns.Start(account, Kind, now, CooldownTicks);
         if (outcome is BondingOutcome.Accepted or BondingOutcome.Refused or BondingOutcome.WrongClass)
         {

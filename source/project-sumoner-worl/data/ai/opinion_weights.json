@@ -141,6 +141,13 @@
       "fear": 0,
       "affection": 30,
       "respect": 10
+    },
+    {
+      "eventType": 23,
+      "trust": 40,
+      "fear": 0,
+      "affection": 40,
+      "respect": 10
     }
   ]
 }
