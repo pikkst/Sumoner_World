@@ -12,18 +12,24 @@ public class AcademyTextTests
     private static AcademyDefinition Academy => ShippedData.Current.Academy!;
 
     [Fact]
-    public void The_headmaster_asks_the_next_question_then_offers_the_ceremony()
+    public void The_headmaster_asks_the_questions_around_the_arena_and_then_offers_the_ceremony()
     {
         int headmaster = RankingRules.NpcIndex(ShippedData.Current, "headmaster");
+        int arena = RankingRules.NpcIndex(ShippedData.Current, "arena_master");
+        QuestDefinition quest = ShippedData.Current.Quests[RankingRules.RankingQuest(ShippedData.Current)];
 
-        DialoguePage question = AcademyText.PageOf(Academy, headmaster, new QuestEntry(0, 1, 1, 3), null);
-        Assert.Equal((DialogueKind.Question, 3, 4), (question.Kind, question.Question, question.Options.Count));
-        Assert.StartsWith("Question 4 of 8.", question.Text, StringComparison.Ordinal);
+        DialoguePage first = AcademyText.PageOf(Academy, headmaster, new QuestEntry(0, 1, 1, 3), null, quest);
+        Assert.Equal((DialogueKind.Question, 3, 4), (first.Kind, first.Question, first.Options.Count));
+        Assert.StartsWith("Question 4 of 8.", first.Text, StringComparison.Ordinal);
+        DialoguePage later = AcademyText.PageOf(Academy, headmaster, new QuestEntry(0, 1, 5, 1), null, quest);
+        Assert.Equal((DialogueKind.Question, 5), (later.Kind, later.Question));
 
-        Assert.Equal(DialogueKind.Ceremony, AcademyText.PageOf(Academy, headmaster, new QuestEntry(0, 1, 2), null).Kind);
-        Assert.Equal(DialogueKind.Words, AcademyText.PageOf(Academy, headmaster, new QuestEntry(0, 1, 0), null).Kind);
-        Assert.StartsWith("Rank D", AcademyText.PageOf(Academy, headmaster, new QuestEntry(0, 3, 0), new RosterEntry(1, 0, 2, 3, 0)).Text, StringComparison.Ordinal);
-        Assert.Equal(Academy.Npcs[1].Greeting, AcademyText.PageOf(Academy, 1, new QuestEntry(0, 1, 1), null).Text);
+        Assert.Equal(DialogueKind.Ceremony, AcademyText.PageOf(Academy, headmaster, new QuestEntry(0, 1, 6), null, quest).Kind);
+        Assert.StartsWith("Go and see Arena Master", AcademyText.PageOf(Academy, headmaster, new QuestEntry(0, 1, 3), null, quest).Text, StringComparison.Ordinal);
+        Assert.Equal(DialogueKind.Read, AcademyText.PageOf(Academy, arena, new QuestEntry(0, 1, 4), null, quest).Kind);
+        Assert.Contains("training construct", AcademyText.PageOf(Academy, arena, new QuestEntry(0, 1, 3), null, quest).Text, StringComparison.Ordinal);
+        Assert.StartsWith("Rank D", AcademyText.PageOf(Academy, headmaster, new QuestEntry(0, 3, 0), new RosterEntry(1, 0, 2, 3, 0), quest).Text, StringComparison.Ordinal);
+        Assert.Equal(Academy.Npcs[2].Greeting, AcademyText.PageOf(Academy, 2, new QuestEntry(0, 1, 1), null, quest).Text);
     }
 
     [Fact]

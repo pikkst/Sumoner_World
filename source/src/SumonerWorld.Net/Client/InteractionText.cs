@@ -144,6 +144,11 @@ public static class InteractionText
     /// <summary>The line shown for an intent's result; <paramref name="creature"/> is the target's display name (unused for Scare).</summary>
     public static string Result(IntentKind kind, IntentResult result, string creature, byte argument = 0)
     {
+        if (result.Reason == IntentRejectReason.WrongState && result.Detail == Core.Academy.ArenaRules.SafeZoneDetail && kind is IntentKind.Cast or IntentKind.Hit or IntentKind.Attack)
+        {
+            return "No fighting inside the Academy. The arena is just inside the gate.";
+        }
+
         if (!result.IsApplied && kind == IntentKind.Summon)
         {
             return (SummonRefusal)result.Detail switch
@@ -191,37 +196,9 @@ public static class InteractionText
             return result.IsApplied ? $"The {creature} learns a new skill." : $"Not yet: {SkillStateText((SkillState)result.Detail)}.";
         }
 
-        if (kind is IntentKind.Talk or IntentKind.Answer)
+        if (Later(kind, result, creature, argument) is string line)
         {
-            return result.IsApplied ? string.Empty : result.Reason == IntentRejectReason.OutOfRange ? "Come closer to talk." : string.Empty;
-        }
-
-        if (kind is IntentKind.AcceptQuest or IntentKind.AbandonQuest)
-        {
-            return QuestResult(kind, result, creature);
-        }
-
-        if (kind == IntentKind.CompanionSkill)
-        {
-            return result.IsApplied ? $"You call for {creature}!" : result.Reason switch
-            {
-                IntentRejectReason.WrongState when result.Detail == 1 => $"No companion at your side knows {creature}.",
-                IntentRejectReason.WrongState => "No companion is with you. Call one first [Z].",
-                IntentRejectReason.InvalidTarget => "Choose a creature to attack: lock on with T, or stand near it.",
-                IntentRejectReason.OutOfRange => "That is too far away.",
-                _ => "Nothing happens.",
-            };
-        }
-
-        if (kind == IntentKind.Command)
-        {
-            return result.IsApplied ? CommandSent((CompanionCommand)argument) : result.Reason switch
-            {
-                IntentRejectReason.WrongState => "No companion is with you. Call one first [Z].",
-                IntentRejectReason.InvalidTarget => "Choose a creature to attack: lock on with T, or stand near it.",
-                IntentRejectReason.OutOfRange => "That is too far away.",
-                _ => "Nothing happens.",
-            };
+            return line;
         }
 
         if (!result.IsApplied)
@@ -350,6 +327,52 @@ public static class InteractionText
         _ => SkillName(action.Id),
     };
 
+    // The lines of the intents added since M2-08 (commands, companion skills, quests, the Academy), or null for the older ones.
+    private static string? Later(IntentKind kind, IntentResult result, string creature, byte argument)
+    {
+        if (kind == IntentKind.Read)
+        {
+            return result.IsApplied
+                ? result.Detail == 1 ? "Yes! You read it right." : "Not quite. Look again: watch its ears, its tail and how it moves."
+                : result.Reason == IntentRejectReason.OutOfRange ? "That creature is too far away to read." : "Choose a creature first: lock on with T.";
+        }
+
+        if (kind is IntentKind.Talk or IntentKind.Answer)
+        {
+            return result.IsApplied ? string.Empty : result.Reason == IntentRejectReason.OutOfRange ? "Come closer to talk." : string.Empty;
+        }
+
+        if (kind is IntentKind.AcceptQuest or IntentKind.AbandonQuest)
+        {
+            return QuestResult(kind, result, creature);
+        }
+
+        if (kind == IntentKind.CompanionSkill)
+        {
+            return result.IsApplied ? $"You call for {creature}!" : result.Reason switch
+            {
+                IntentRejectReason.WrongState when result.Detail == 1 => $"No companion at your side knows {creature}.",
+                IntentRejectReason.WrongState => "No companion is with you. Call one first [Z].",
+                IntentRejectReason.InvalidTarget => "Choose a creature to attack: lock on with T, or stand near it.",
+                IntentRejectReason.OutOfRange => "That is too far away.",
+                _ => "Nothing happens.",
+            };
+        }
+
+        if (kind == IntentKind.Command)
+        {
+            return result.IsApplied ? CommandSent((CompanionCommand)argument) : result.Reason switch
+            {
+                IntentRejectReason.WrongState => "No companion is with you. Call one first [Z].",
+                IntentRejectReason.InvalidTarget => "Choose a creature to attack: lock on with T, or stand near it.",
+                IntentRejectReason.OutOfRange => "That is too far away.",
+                _ => "Nothing happens.",
+            };
+        }
+
+        return null;
+    }
+
     /// <summary>The line for taking or leaving a quest; <paramref name="title"/> is the quest's title (M2-19).</summary>
     public static string QuestResult(IntentKind kind, IntentResult result, string title)
     {
@@ -383,6 +406,8 @@ public static class InteractionText
             Core.Data.Definitions.ObjectiveType.Help => $"Free {target} from a snare",
             Core.Data.Definitions.ObjectiveType.Talk => $"Talk to the {DisplayName(objective.Target)}",
             Core.Data.Definitions.ObjectiveType.Answer => "Answer the questions",
+            Core.Data.Definitions.ObjectiveType.Read => "Tell how a creature feels",
+            Core.Data.Definitions.ObjectiveType.Offer => $"Offer a Pact to {target}",
             _ => $"Go to {objective.Place}",
         };
         return objective.Type == Core.Data.Definitions.ObjectiveType.Reach

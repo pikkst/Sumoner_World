@@ -76,7 +76,9 @@ public class DataRegistryLoaderTests
 
         Assert.NotEmpty(registry.MemoryEventTypes);
         Assert.NotEmpty(registry.Species);
-        Assert.All(registry.Species, species => Assert.NotNull(registry.SkillTreeOf(registry.Species.ToList().IndexOf(species))));
+        Assert.All(
+            registry.Species.Where(species => species.PactThreshold < 1000), // a training construct never becomes a companion
+            species => Assert.NotNull(registry.SkillTreeOf(registry.Species.ToList().IndexOf(species))));
     }
 
     [Fact]

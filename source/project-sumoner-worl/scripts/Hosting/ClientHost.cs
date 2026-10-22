@@ -170,7 +170,8 @@ public sealed partial class ClientHost : Node
         AddChild(_companionBar);
         _companionPanel = new CompanionPanel(_client!, data, controls);
         AddChild(_companionPanel);
-        SelfTestPanels panels = Ui.Panels.AddTo(this, _client!, data, controls, _combat!, _companionBar!, () => _avatar?.Feet ?? Vector3.Zero, _options.SelfTest ? string.Empty : $"user://actionbar-{_options.Account}.txt");
+        SelfTestPanels panels = Ui.Panels.AddTo(this, _client!, data, controls, _combat!, _companionBar!, () => _avatar?.Feet ?? Vector3.Zero,
+            () => _lockOn?.Target is ulong locked and not 0 ? locked : controls.Target.Id, _options.SelfTest ? string.Empty : $"user://actionbar-{_options.Account}.txt");
         if (_options.SelfTest)
         {
             _selfTest = new PlaytestSelfTest(controls, _companionBar, _companionPanel, panels, _combat, _lockOn, _client!, _orbit, () => _views.Shown > 0 && _elapsed > ScreenshotAfterSeconds, _log, Capture);

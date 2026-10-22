@@ -110,7 +110,7 @@ public sealed class QuestSystem : ISimulationSystem
             {
                 ObjectiveType.Gather or ObjectiveType.Craft => _world.Data.Items[happened.Key].Id,
                 ObjectiveType.Talk => _world.Data.Academy!.Npcs[happened.Key].Id,
-                ObjectiveType.Answer => string.Empty,
+                ObjectiveType.Answer or ObjectiveType.Read => string.Empty,
                 _ => _world.Data.Species[happened.Key].Id,
             };
             book.Record(_world.Data, happened.Account, happened.Type, id, happened.Count);
@@ -118,9 +118,14 @@ public sealed class QuestSystem : ISimulationSystem
 
         foreach (PlayerInteracted action in _world.Events.Read<PlayerInteracted>())
         {
-            if (action.Kind is InteractionKind.Feed or InteractionKind.Help)
+            if (action.Kind is InteractionKind.Feed or InteractionKind.Help or InteractionKind.Pact)
             {
-                ObjectiveType type = action.Kind == InteractionKind.Feed ? ObjectiveType.Feed : ObjectiveType.Help;
+                ObjectiveType type = action.Kind switch
+                {
+                    InteractionKind.Feed => ObjectiveType.Feed,
+                    InteractionKind.Help => ObjectiveType.Help,
+                    _ => ObjectiveType.Offer,
+                };
                 book.Record(_world.Data, action.Account, type, _world.Data.Species[action.Species].Id, 1);
             }
         }

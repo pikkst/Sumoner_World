@@ -51,6 +51,18 @@ public sealed partial class AcademyView(AcademyDefinition academy, Func<float, f
             AddChild(pillar);
         }
 
+        // The Grand Arena (M2-21b): a ring of low posts.
+        var sand = new StandardMaterial3D { AlbedoColor = new Color(0.78f, 0.68f, 0.48f) };
+        for (int i = 0; i < 16; i++)
+        {
+            float angle = i * Mathf.Tau / 16;
+            float x = academy.ArenaX + (academy.ArenaRadius * Mathf.Sin(angle));
+            float z = academy.ArenaZ + (academy.ArenaRadius * Mathf.Cos(angle));
+            var post = new MeshInstance3D { Mesh = new CylinderMesh { TopRadius = 0.18f, BottomRadius = 0.22f, Height = 0.9f, Material = sand } };
+            post.Position = new Vector3(x, heightAt(x, z) + 0.4f, z);
+            AddChild(post);
+        }
+
         foreach (NpcDefinition npc in academy.Npcs)
         {
             AddPerson(npc);

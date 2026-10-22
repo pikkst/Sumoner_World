@@ -1,12 +1,15 @@
 // The Summoner Academy (Academy spec §1, §3, M2-21). The campus lies just south of the spawn point (256, 256); the Headmaster
-// waits at its north gate. Answers' class points and rank points are never shown to the player (§3.1). Plain words: the
+// and the Arena Master wait at its north gate, the Grand Arena lies just inside it (M2-21b). Answers' class points and rank points are never shown to the player (§3.1). Plain words: the
 // youngest testers are four (§6).
 {
   "schemaVersion": 1,
   "kind": "academy",
   "entries": [
     {
-      "x": 256, "z": 232, "radius": 20,
+      "x": 256, "z": 234, "radius": 14,
+      "arenaX": 256, "arenaZ": 240, "arenaRadius": 5,
+      "constructSpecies": "training_construct",
+      "momentBonus": 5, "lateReadBonus": 2,
       "rankingQuest": "the_ranking",
       "scorePerAnswerPoint": 3,
       "randomRange": 15,
@@ -24,8 +27,8 @@
           "greeting": "Welcome to the Summoner Academy, young one. Every summoner begins with a few questions."
         },
         {
-          "id": "arena_master", "name": "Arena Master Brann", "role": "arena_master", "x": 243, "z": 232, "facing": 90, "robe": "#8f3f3f",
-          "greeting": "The arena opens soon. Then I will show you how a summoner fights without losing their head."
+          "id": "arena_master", "name": "Arena Master Brann", "role": "arena_master", "x": 258.5, "z": 253.5, "facing": 0, "robe": "#8f3f3f",
+          "greeting": "No fighting inside the Academy walls, except in the arena. There, anything goes!"
         },
         {
           "id": "elf_keeper", "name": "Keeper Lisel", "role": "keeper", "x": 269, "z": 232, "facing": 270, "robe": "#3f7f4a",

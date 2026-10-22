@@ -21,6 +21,7 @@ public static class Panels
         CombatControls combat,
         CompanionBar companions,
         Func<Vector3> feet,
+        Func<ulong> creature,
         string layoutFile)
     {
         ArgumentNullException.ThrowIfNull(parent);
@@ -39,7 +40,7 @@ public static class Panels
         if (data.Academy is Core.Data.Definitions.AcademyDefinition academy)
         {
             var view = new AcademyView(academy, World.DevWorld.Ground.HeightAt);
-            dialogue = new AcademyDialogue(client, data, controls, view, feet);
+            dialogue = new AcademyDialogue(client, data, controls, view, feet, creature);
             parent.AddChild(view);
             parent.AddChild(dialogue);
         }

@@ -1,5 +1,6 @@
 using System.Numerics;
 using SumonerWorld.Core.Academy;
+using SumonerWorld.Core.Combat;
 using SumonerWorld.Core.Data.Definitions;
 using SumonerWorld.Core.Ecs;
 using SumonerWorld.Core.Intents;
@@ -47,7 +48,7 @@ public sealed class AcademyTests : IDisposable
     }
 
     [Fact]
-    public void A_new_student_is_given_the_ranking_quest_answers_in_order_and_is_ranked_at_the_ceremony()
+    public void A_new_student_answers_practises_in_the_arena_and_is_ranked_at_the_ceremony()
     {
         Ticks(16);
         Assert.Equal(QuestStatus.Active, Quests.StatusOf(RankingQuest));
@@ -55,16 +56,29 @@ public sealed class AcademyTests : IDisposable
 
         Assert.True(Talk().IsApplied);
         Ticks(1);
-        Assert.Equal(1, Quests.Find(RankingQuest)!.Step);
         Assert.Equal(IntentRejectReason.InvalidArguments, Answer(1, 0).Reason);
-
-        for (int q = 0; q < AcademyDefinition.QuestionCount; q++)
-        {
-            Assert.True(Answer(q, q % 4).IsApplied);
-            Ticks(1);
-        }
-
+        AnswerFrom(0, 4);
         Assert.Equal(2, Quests.Find(RankingQuest)!.Step);
+        Assert.Equal(IntentRejectReason.WrongState, Answer(4, 0).Reason);
+
+        Assert.True(Run(new TalkTransaction(_world, _alice, RankingRules.NpcIndex(_world.Data, "arena_master"))).IsApplied);
+        Ticks(1);
+        ushort construct = _world.SpeciesIndex("training_construct");
+        _world.Events.Publish(new CombatantDefeated(default, construct, Alice, 0, AtGate, new SumonerWorld.Core.Items.Fighters(Alice, 0, 0, 0)));
+        _world.Events.Publish(new PlayerInteracted(Alice, InteractionKind.Pact, construct, 1));
+        Ticks(1);
+        Assert.Equal(4, Quests.Find(RankingQuest)!.Step);
+
+        Entity fox = _world.SpawnCreature(_world.SpeciesIndex("bogfox"), AtGate + new Vector3(0, 0, 8), new SumonerWorld.Core.Cognition.Personality(0, 0, 0, 0), group: 2);
+        _world.World.GetComponent<CurrentEmote>(fox) = new CurrentEmote(SumonerWorld.Core.Cognition.Appraisal.Emote.Fear);
+        Assert.Equal(0, Read(fox, Feeling.Calm).Detail);
+        Assert.Equal(1, Read(fox, Feeling.Scared).Detail);
+        Ticks(1);
+        Assert.Equal(5, Quests.Find(RankingQuest)!.Step);
+        Assert.Equal(5 + 5 + 2, _world.Economy.Academy.Of(Alice).Bonus);
+
+        AnswerFrom(4, 8);
+        Assert.Equal(6, Quests.Find(RankingQuest)!.Step);
         IntentResult ceremony = Talk();
         Ticks(16);
 
@@ -75,6 +89,29 @@ public sealed class AcademyTests : IDisposable
         Assert.Equal(QuestStatus.Done, Quests.StatusOf(RankingQuest));
         Assert.Equal(0, Talk().Detail);
         Assert.Equal(IntentRejectReason.InvalidArguments, Answer(0, 1).Reason);
+    }
+
+    [Fact]
+    public void The_academy_is_a_safe_zone_except_its_arena()
+    {
+        Assert.True(Academy.IsSafe(256, 232));
+        Assert.False(Academy.IsSafe(Academy.ArenaX, Academy.ArenaZ));
+        Assert.False(Academy.IsSafe(256, 300));
+
+        _world.World.GetComponent<Position>(_alice) = new Position(new Vector3(256, 0, 230));
+        IntentResult attack = Run(new AttackTransaction(_world, _alice, 0, 0));
+        Assert.Equal((IntentRejectReason.WrongState, ArenaRules.SafeZoneDetail), (attack.Reason, attack.Detail));
+
+        _world.World.GetComponent<Position>(_alice) = new Position(new Vector3(Academy.ArenaX, 0, Academy.ArenaZ));
+        Assert.True(Run(new AttackTransaction(_world, _alice, 0, 0)).IsApplied);
+    }
+
+    [Fact]
+    public void The_arena_keeps_a_training_construct_standing()
+    {
+        Ticks(91);
+        ushort construct = _world.SpeciesIndex("training_construct");
+        Assert.Single(_world.World.Store<SpeciesRef>().Components.ToArray(), species => species.Index == construct);
     }
 
     [Fact]
@@ -125,6 +162,17 @@ public sealed class AcademyTests : IDisposable
     private IntentResult Talk() => Run(new TalkTransaction(_world, _alice, _headmaster));
 
     private IntentResult Answer(int question, int answer) => Run(new AnswerTransaction(_world, _alice, _headmaster, question, answer));
+
+    private IntentResult Read(Entity creature, Feeling feeling) => Run(new ReadTransaction(_world, _alice, _world.World.GetComponent<StableId>(creature), feeling));
+
+    private void AnswerFrom(int first, int end)
+    {
+        for (int q = first; q < end; q++)
+        {
+            Assert.True(Answer(q, q % 4).IsApplied);
+            Ticks(1);
+        }
+    }
 
     private void Ticks(int count)
     {

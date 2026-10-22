@@ -82,7 +82,19 @@ Stakeholder (2026-10-21): **the class and rank come from the student's choices i
 - **Ranking:** answers are kept per player on the server (saved); at the ceremony the server adds answer points × 3, the
   practical bonus (0 until M2-21b) and a seeded roll of −15…+15, and sets class (Elf in M2; another leaning is told) and rank
   F–C once. Rank sets the level cap and Bond Capacity (M2-20).
-- **Not yet:** the arena and the practical moments, the safe zone, the vendor (M2-21b and later).
+- **Not yet:** the vendor (later).
+
+## 8. Implementation notes (M2-21b)
+- **Campus:** radius 14 m around (256, 234), so the spawn point and the first meadow stay outside; the Headmaster and Arena
+  Master wait together at the north gate; the **Grand Arena** (radius 5 m, a ring of posts) lies just inside it.
+- **Safe zone:** inside the campus but outside the arena, players cannot attack, hit or cast, and creatures do not attack
+  players; the screen says so.
+- **Ranking quest steps:** 4 questions → the Arena Master → beat the **training construct** and offer it a Pact (a rehearsal:
+  it never accepts, it is not alive) → read how a creature feels (lock on with T, pick Calm, Scared, Curious, Angry, Happy or
+  Sad; a wrong answer is met kindly and can be tried again) → 4 more questions → ceremony.
+- **Practical bonus:** +5 each for the construct, the rehearsal and a reading right the first time (+2 after a miss), at
+  most 15, added to the rank score. The arena always keeps one construct standing.
+- New quest objective kinds `read` and `offer`; protocol 23 (`Read`).
 
 ## Changelog
 - **0.2 (2026-10-21):** approved with the stakeholder's answers: the ranking quest now decides class and rank from **answers to

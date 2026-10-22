@@ -1,5 +1,5 @@
 // The ranking quest (Academy spec §3, M2-21): every new character takes it at once. Loaded before the slice quests, which need it.
-// The practical moments in the arena come in M2-21b.
+// Between the questions, the Arena Master's practical moments (M2-21b) add a little to the rank score.
 {
   "schemaVersion": 1,
   "kind": "quests",
@@ -11,7 +11,14 @@
       "autoStart": true,
       "steps": [
         { "text": "Talk to the Headmaster at the Academy gate (E).", "objectives": [ { "type": "talk", "target": "headmaster" } ] },
-        { "text": "Answer the Headmaster's questions. There are no wrong answers.", "objectives": [ { "type": "answer", "count": 8 } ] },
+        { "text": "Answer the Headmaster's first questions. There are no wrong answers.", "objectives": [ { "type": "answer", "count": 4 } ] },
+        { "text": "Talk to Arena Master Brann, next to the Headmaster.", "objectives": [ { "type": "talk", "target": "arena_master" } ] },
+        {
+          "text": "Practise in the arena, just inside the gate: beat the training construct and offer it a Pact (P), just to practise.",
+          "objectives": [ { "type": "defeat", "target": "training_construct" }, { "type": "offer", "target": "training_construct" } ]
+        },
+        { "text": "Look at a creature and tell the Arena Master how it feels.", "objectives": [ { "type": "read" } ] },
+        { "text": "Answer the Headmaster's last questions.", "objectives": [ { "type": "answer", "count": 4 } ] },
         { "text": "Hear your rank from the Headmaster.", "objectives": [ { "type": "talk", "target": "headmaster" } ] }
       ],
       "rewards": { "xp": 40, "gold": 10, "items": [ { "item": "berry_meal", "count": 2 } ] }

@@ -125,7 +125,9 @@ public sealed class CreatureAttackSystem : ISimulationSystem
     {
         FocusRef focus = _focus.Get(actor);
         if (focus.Has == 0 || _snared.Has(actor) || !_combatants.Has(actor) || !_positions.Has(focus.Entity)
-            || !_combatants.Has(focus.Entity) || _combatants.Get(focus.Entity).Health == 0 || IsOwnSummoner(actor, focus.Entity))
+            || !_combatants.Has(focus.Entity) || _combatants.Get(focus.Entity).Health == 0 || IsOwnSummoner(actor, focus.Entity)
+            || (_players.Has(focus.Entity) && _world.Data.Academy is Data.Definitions.AcademyDefinition academy
+                && academy.IsSafe(_positions.Get(focus.Entity).Value.X, _positions.Get(focus.Entity).Value.Z)))
         {
             return;
         }

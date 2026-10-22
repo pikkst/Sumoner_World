@@ -34,7 +34,7 @@ public record struct AttackTransaction(CreatureWorld Creatures, Entity Avatar, i
             return IntentResult.Reject(IntentRejectReason.InvalidArguments);
         }
 
-        return CombatRules.CanStart(Creatures.World, Creatures.Data, Avatar, Move(Creatures, Slot));
+        return Academy.ArenaRules.SafeZone(Creatures, Avatar) ?? CombatRules.CanStart(Creatures.World, Creatures.Data, Avatar, Move(Creatures, Slot));
     }
 
     /// <inheritdoc />
