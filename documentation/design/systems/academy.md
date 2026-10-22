@@ -66,7 +66,7 @@ Stakeholder (2026-10-21): **the class and rank come from the student's choices i
 - Saved per account: display name, class (for life), rank, level and XP, gold, Academy standing, quest progress. Server state,
   versioned.
 
-## 6. Children and families
+## 6. Readable for every player
 - Questions and answers are short, in plain words, and read aloud by the NPC voice later (M3); in M2 the dialogue box has a
   "read again" button. There are no wrong answers.
 - The reading test uses clear, exaggerated body language; wrong answers are met kindly ("Look at its tail: is it tucked in?").

@@ -36,3 +36,4 @@ E1 → E2 → E3a, E3b (in parallel) → E3c → E4 → E5 → E6 → E7, E8, E9
 | Task | Status |
 |---|---|
 | E1 | **Done** 2026-10-22: test package (`package-game.sh`, `packaging/game/`, new README with F1 and Esc), DEC-003 0.2 (testers 7–37, normal game package), this plan |
+| E2 | **Done** 2026-10-22: story and world bible v0.1 (`design/content/story.md`): Aerwyn and the Vale of Oaths, the Breaking, the four traditions and their homes, the Binders and Warden Morvane, the cast, chapter 1 "Shards of the Oath" and four class prologues; GDD 0.5 |
