@@ -7,12 +7,15 @@ using SumonerWorld.Net.Client;
 namespace SumonerWorld.Game.Ui;
 
 /// <summary>
-/// The ability book (M2-14b): L opens it. It shows the player's spells and the companion commands as tiles; drag one onto the
-/// action bar to put it on a key. Clicking a tile uses it once. L or Esc closes it.
+/// The ability book (M2-14b): L opens it. It shows the spells of the player's class's school (E3a) and the companion commands as
+/// tiles; drag one onto the action bar to put it on a key. Clicking a tile uses it once. L or Esc closes it.
 /// </summary>
-public sealed partial class AbilityBook(IDataRegistry data, InteractionControls controls, Action<ActionRef> use) : CanvasLayer
+public sealed partial class AbilityBook(IDataRegistry data, InteractionControls controls, Action<ActionRef> use, Func<Core.Progression.SummonerClass> summonerClass)
+    : CanvasLayer
 {
     private PanelContainer? _window;
+    private VBoxContainer? _rows;
+    private Core.Progression.SummonerClass? _shownFor;
 
     /// <summary>True while it is shown.</summary>
     public bool IsOpen => _window?.Visible ?? false;
@@ -20,7 +23,7 @@ public sealed partial class AbilityBook(IDataRegistry data, InteractionControls 
     /// <summary>Every action in the book, in order.</summary>
     public IReadOnlyList<ActionRef> Actions =>
     [
-        .. data.Spells.Select(spell => new ActionRef(ActionKind.Spell, spell.Id)),
+        .. ClassSpells.Of(data, summonerClass()).Select(spell => new ActionRef(ActionKind.Spell, spell)),
         .. new[] { CompanionCommand.Attack, CompanionCommand.GuardMe, CompanionCommand.Hold, CompanionCommand.Retreat }
             .Select(command => new ActionRef(ActionKind.Command, command.ToString())),
     ];
@@ -37,13 +40,30 @@ public sealed partial class AbilityBook(IDataRegistry data, InteractionControls 
         _window.SetAnchorsPreset(Control.LayoutPreset.CenterLeft);
         _window.Position += new Vector2(24, -170);
         AddChild(_window);
-        var rows = new VBoxContainer();
-        rows.AddThemeConstantOverride("separation", 8);
-        _window.AddChild(rows);
-        rows.AddChild(ItemLook.Text("Abilities", 19));
-        AddSection(rows, "Spells", Actions.Where(action => action.Kind == ActionKind.Spell));
-        AddSection(rows, "Companion commands", Actions.Where(action => action.Kind == ActionKind.Command));
-        rows.AddChild(ItemLook.Text("Drag onto the bar (keys 1-0)   click: use   [L/Esc] close", 12));
+        _rows = new VBoxContainer();
+        _rows.AddThemeConstantOverride("separation", 8);
+        _window.AddChild(_rows);
+    }
+
+    /// <inheritdoc />
+    public override void _Process(double delta)
+    {
+        Core.Progression.SummonerClass now = summonerClass();
+        if (now == _shownFor)
+        {
+            return;
+        }
+
+        _shownFor = now;
+        foreach (Node child in _rows!.GetChildren())
+        {
+            child.QueueFree();
+        }
+
+        _rows.AddChild(ItemLook.Text("Abilities", 19));
+        AddSection(_rows, $"{InteractionText.SchoolName(Core.Progression.Schools.Of(now))} spells", Actions.Where(action => action.Kind == ActionKind.Spell));
+        AddSection(_rows, "Companion commands", Actions.Where(action => action.Kind == ActionKind.Command));
+        _rows.AddChild(ItemLook.Text("Drag onto the bar (keys 1-0)   click: use   [L/Esc] close", 12));
     }
 
     /// <inheritdoc />

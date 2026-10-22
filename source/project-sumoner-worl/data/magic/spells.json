@@ -1,10 +1,19 @@
-// The player's first three spells (combat spec §8). Cast ticks at 30 per second: the telegraph before the spell takes effect.
+// Each school's three spells (combat spec §8, §8a): a class casts its own school's. Cast ticks at 30 per second: the telegraph.
 {
   "schemaVersion": 1,
   "kind": "spells",
   "entries": [
     { "id": "thornbolt", "runes": ["bolt", "thorns"], "mana": 10, "castTicks": 12 },
     { "id": "entangle", "runes": ["burst", "roots"], "mana": 20, "castTicks": 24 },
-    { "id": "mend", "runes": ["ward", "growth"], "mana": 15, "castTicks": 30 }
+    { "id": "mend", "runes": ["ward", "growth"], "mana": 15, "castTicks": 30 },
+    { "id": "spark", "runes": ["bolt", "spark"], "mana": 8, "castTicks": 8 },
+    { "id": "thunderclap", "runes": ["burst", "thunder"], "mana": 22, "castTicks": 20 },
+    { "id": "tailwind", "runes": ["ward", "tailwind"], "mana": 12, "castTicks": 10 },
+    { "id": "soulbolt", "runes": ["bolt", "soul"], "mana": 10, "castTicks": 12 },
+    { "id": "shade_grip", "runes": ["burst", "shade"], "mana": 18, "castTicks": 20 },
+    { "id": "veil", "runes": ["ward", "veil"], "mana": 15, "castTicks": 18 },
+    { "id": "firebolt", "runes": ["bolt", "flame"], "mana": 10, "castTicks": 12 },
+    { "id": "cinder_burst", "runes": ["burst", "cinder"], "mana": 24, "castTicks": 26 },
+    { "id": "ember_shield", "runes": ["ward", "hearth"], "mana": 15, "castTicks": 18 }
   ]
 }

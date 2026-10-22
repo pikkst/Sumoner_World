@@ -49,12 +49,21 @@ public static class Sigil
         return root;
     }
 
-    /// <summary>The sigils' glowing material (transparent so a flash can fade).</summary>
-    public static StandardMaterial3D Material() => new()
+    /// <summary>A magic school's colour (E3a): Primal green, Storm pale blue, Umbral violet, Ember orange.</summary>
+    public static Color SchoolColour(string school) => school switch
     {
-        AlbedoColor = Primal,
+        "storm" => new Color(0.62f, 0.8f, 1f),
+        "umbral" => new Color(0.62f, 0.42f, 0.95f),
+        "ember" => new Color(1f, 0.52f, 0.16f),
+        _ => Primal,
+    };
+
+    /// <summary>The sigils' glowing material (transparent so a flash can fade), Primal unless <paramref name="colour"/> is given.</summary>
+    public static StandardMaterial3D Material(Color? colour = null) => new()
+    {
+        AlbedoColor = colour ?? Primal,
         EmissionEnabled = true,
-        Emission = Primal,
+        Emission = colour ?? Primal,
         EmissionEnergyMultiplier = Energy,
         ShadingMode = BaseMaterial3D.ShadingModeEnum.Unshaded,
         Transparency = BaseMaterial3D.TransparencyEnum.Alpha,
@@ -68,12 +77,14 @@ public sealed partial class SigilFlash : Node3D
     public const double Seconds = 1.5;
 
     private readonly float _radius;
+    private readonly Color _colour;
     private double _age;
 
-    /// <summary>Creates a flash for a creature of about <paramref name="radius"/> metres.</summary>
-    public SigilFlash(float radius)
+    /// <summary>Creates a flash of about <paramref name="radius"/> metres, Primal unless <paramref name="colour"/> is given.</summary>
+    public SigilFlash(float radius, Color? colour = null)
     {
         _radius = radius;
+        _colour = colour ?? Sigil.Primal;
         Name = "SigilFlash";
     }
 
@@ -97,7 +108,8 @@ public sealed partial class SigilFlash : Node3D
         {
             if (child is MeshInstance3D { MaterialOverride: StandardMaterial3D material })
             {
-                material.AlbedoColor = new Color(Sigil.Primal, 1 - t);
+                material.AlbedoColor = new Color(_colour, 1 - t);
+                material.Emission = _colour;
             }
         }
     }

@@ -134,11 +134,12 @@ public sealed class DataRegistry : IDataRegistry
     /// <inheritdoc />
     public EffectDefinition? EffectOf(string id)
     {
-        foreach (EffectDefinition effect in Effects)
+        // Indexed, not foreach: the list is an interface, and its enumerator would allocate every tick.
+        for (int i = 0; i < Effects.Count; i++)
         {
-            if (effect.Id == id)
+            if (Effects[i].Id == id)
             {
-                return effect;
+                return Effects[i];
             }
         }
 

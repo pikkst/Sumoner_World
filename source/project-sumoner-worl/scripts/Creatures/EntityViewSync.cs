@@ -207,7 +207,8 @@ public sealed partial class EntityViewSync : Node3D
         bool flight = shown.Action == (byte)CombatAction.Cast && state.Action is (byte)CombatAction.Strike or (byte)CombatAction.Recover;
         if (flight && state.Move > 0 && state.Move - 1 < _data.Moves.Count && _data.Moves[state.Move - 1].Tags.Contains("bolt"))
         {
-            AddChild(new BoltStreak(view.Position, state.Yaw, _data.Moves[state.Move - 1].Shape.ReachCm / 100f));
+            Core.Data.Definitions.MoveDefinition bolt = _data.Moves[state.Move - 1];
+            AddChild(new BoltStreak(view.Position, state.Yaw, bolt.Shape.ReachCm / 100f, Characters.Sigil.SchoolColour(bolt.School)));
         }
 
         _marks[view] = (shown.Marks, state.Action);

@@ -9,8 +9,9 @@ using SumonerWorld.Core.World;
 namespace SumonerWorld.Core.Combat;
 
 /// <summary>
-/// A player casts a spell (combat spec §4, §8, M2-11): validated like any move (<see cref="CombatRules.CanStart"/>: not busy,
-/// enough mana), then started as the spell's move. A bolt flies along <paramref name="Heading"/>; a burst lands
+/// A player casts a spell (combat spec §4, §8, M2-11): only a spell of the player's class's school (§8a, E3a: another is
+/// <see cref="IntentRejectReason.WrongState"/>), validated like any move (<see cref="CombatRules.CanStart"/>: not busy, enough
+/// mana), then started as the spell's move. A bolt flies along <paramref name="Heading"/>; a burst lands
 /// <paramref name="Distance"/> metres ahead (at most its range); a ward goes on <paramref name="Target"/> when that is one of the
 /// player's own creatures, otherwise on the player. <b>Resonance</b>: with a summoned companion whose class shares the spell's
 /// school within <see cref="ResonanceMetres"/>, the spell costs <see cref="ResonanceDiscountPercent"/>% less.
@@ -47,6 +48,12 @@ public record struct CastTransaction(CreatureWorld Creatures, Entity Avatar, int
         }
 
         int move = Creatures.Data.MoveIndex(Creatures.Data.Spells[Spell].Id);
+        var summonerClass = (Progression.SummonerClass)Creatures.World.GetComponent<Progression.PlayerProgress>(Avatar).Class;
+        if (Creatures.Data.Moves[move].School != Progression.Schools.Of(summonerClass))
+        {
+            return IntentResult.Reject(IntentRejectReason.WrongState);
+        }
+
         return Academy.ArenaRules.SafeZone(Creatures, Avatar) ?? CombatRules.CanStart(Creatures.World, Creatures.Data, Avatar, move, Cost(move));
     }
 
@@ -80,7 +87,7 @@ public record struct CastTransaction(CreatureWorld Creatures, Entity Avatar, int
         {
             BondState bond = Creatures.Services.Bonding.GetBond(minds.Components[i].Handle);
             if (bond.Summoned && bond.Owner == account
-                && SchoolOf(Creatures.Data.Species[world.GetComponent<SpeciesRef>(creatures[i]).Index].Class) == school
+                && Progression.Schools.Of(Creatures.Data.Species[world.GetComponent<SpeciesRef>(creatures[i]).Index].Class) == school
                 && Vector3.Distance(world.GetComponent<Position>(creatures[i]).Value, at) <= ResonanceMetres)
             {
                 return true;
@@ -95,13 +102,4 @@ public record struct CastTransaction(CreatureWorld Creatures, Entity Avatar, int
         BondState bond = Creatures.Services.Bonding.GetBond(Creatures.World.GetComponent<MindRef>(creature).Handle);
         return bond.State == OwnershipState.Pacted && bond.Owner == Creatures.World.GetComponent<PlayerAvatar>(Avatar).AccountId;
     }
-
-    // The school each class's creatures resonate with (GDD §11: Elves are Primal; the others arrive with their schools).
-    private static string SchoolOf(Progression.SummonerClass summonerClass) => summonerClass switch
-    {
-        Progression.SummonerClass.Elf => "primal",
-        Progression.SummonerClass.Necromancer => "umbral",
-        Progression.SummonerClass.Dwarf => "ember",
-        _ => "storm",
-    };
 }

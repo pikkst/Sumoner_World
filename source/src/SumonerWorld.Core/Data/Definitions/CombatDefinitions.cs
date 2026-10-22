@@ -8,6 +8,15 @@ public enum DamageType
 
     /// <summary>The Primal school (nature).</summary>
     Primal,
+
+    /// <summary>The Storm school (lightning, wind; Humans).</summary>
+    Storm,
+
+    /// <summary>The Umbral school (spirits, shadow; Necromancers).</summary>
+    Umbral,
+
+    /// <summary>The Ember school (fire, forge; Dwarves).</summary>
+    Ember,
 }
 
 /// <summary>Where a move can hit, around the attacker (combat spec §3).</summary>
@@ -95,6 +104,12 @@ public sealed record MoveDefinition
 
     /// <summary>The magic school of a spell (resonance), empty for other moves.</summary>
     public string School { get; init; } = string.Empty;
+
+    /// <summary>Spells: share of the damage dealt the caster heals, in percent (Umbral drain; E3a).</summary>
+    public int DrainPercent { get; init; }
+
+    /// <summary>Spells: damage a shield it puts on takes before health (Ember shield; E3a).</summary>
+    public int Shield { get; init; }
 
     /// <summary>True for spells (moves built from runes); everyone with a spell book may cast them.</summary>
     public bool IsSpell => School.Length > 0;

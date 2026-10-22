@@ -195,7 +195,7 @@ public sealed partial class ClientHost : Node
             AddChild(_devTools);
         }
 
-        _avatar = new OwnAvatar(_client!);
+        _avatar = new OwnAvatar(_client!, data);
         AddChild(_avatar);
     }
 

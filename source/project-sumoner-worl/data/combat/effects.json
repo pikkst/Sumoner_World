@@ -5,6 +5,11 @@
   "entries": [
     { "id": "rooted", "ticks": 60, "speedPercent": 0, "tags": ["rooted"] },
     { "id": "slowed", "ticks": 90, "speedPercent": 50, "tags": ["slowed"] },
-    { "id": "mending", "ticks": 120, "tags": ["mending"] }
+    { "id": "mending", "ticks": 120, "tags": ["mending"] },
+    { "id": "burning", "ticks": 120, "damage": 18, "tags": ["burning"] },
+    { "id": "quickened", "ticks": 150, "regenPercent": 300, "tags": ["quickened"] },
+    { "id": "weakened", "ticks": 150, "damagePercent": 60, "tags": ["weakened"] },
+    { "id": "warded", "ticks": 180, "damagePercent": 60, "tags": ["warded"] },
+    { "id": "shielded", "ticks": 240, "tags": ["shielded"] }
   ]
 }
