@@ -33,6 +33,9 @@
     {"id": "silverleaf_charm", "category": "charm", "stack": 1, "weightGrams": 50, "goldValue": 20, "tags": ["elf"], "slot": "charm", "wearers": ["player", "quadruped", "avian"], "stats": {"resistPrimal": 150, "stamina": 10}},
     {"id": "hound_tag", "category": "charm", "stack": 1, "weightGrams": 80, "goldValue": 20, "tags": ["human"], "slot": "charm", "wearers": ["player", "quadruped", "avian"], "stats": {"stamina": 25}},
     {"id": "lantern_charm", "category": "charm", "stack": 1, "weightGrams": 60, "goldValue": 20, "tags": ["necromancer"], "slot": "charm", "wearers": ["player", "quadruped", "avian", "biped"], "stats": {"resistPrimal": 80, "guard": 1}},
-    {"id": "ember_rune", "category": "charm", "stack": 1, "weightGrams": 120, "goldValue": 20, "tags": ["dwarf"], "slot": "charm", "wearers": ["player", "quadruped", "avian"], "stats": {"power": 6, "guard": 1}}
+    {"id": "ember_rune", "category": "charm", "stack": 1, "weightGrams": 120, "goldValue": 20, "tags": ["dwarf"], "slot": "charm", "wearers": ["player", "quadruped", "avian"], "stats": {"power": 6, "guard": 1}},
+    {"id": "thorn_plate", "category": "material", "stack": 10, "weightGrams": 600, "goldValue": 12, "tags": ["horn", "chained_thornback"]},
+    {"id": "oathstone_shard", "category": "material", "stack": 5, "weightGrams": 300, "goldValue": 0, "tags": ["story"]},
+    {"id": "collar_breaker", "category": "charm", "stack": 1, "weightGrams": 400, "goldValue": 15, "tags": ["iron"], "slot": "charm", "wearers": ["player"], "stats": {"power": 4, "guard": 1}}
 ]
 }

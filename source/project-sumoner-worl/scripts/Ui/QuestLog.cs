@@ -33,7 +33,7 @@ public sealed partial class QuestLog(GameClient client, IDataRegistry data, Inte
     public string Describe()
     {
         var text = new StringBuilder("offered: ");
-        text.AppendJoin(", ", QuestJournal.Offered(data, client.Quests, client.OwnVitals.Level).Select(quest => data.Quests[quest].Title));
+        text.AppendJoin(", ", QuestJournal.Offered(data, client.Quests, client.OwnVitals.Level, client.OwnVitals.Class).Select(quest => data.Quests[quest].Title));
         text.Append("; taken: ").AppendJoin(", ", client.Quests.Where(entry => entry.Status != (byte)QuestStatus.Done).Select(entry => data.Quests[entry.Quest].Title));
         text.Append("; done: ").AppendJoin(", ", client.Quests.Where(entry => entry.Status == (byte)QuestStatus.Done).Select(entry => data.Quests[entry.Quest].Title));
         return text.ToString();
@@ -145,7 +145,7 @@ public sealed partial class QuestLog(GameClient client, IDataRegistry data, Inte
             }
         }
 
-        return text.Length == 0 && QuestJournal.Offered(data, quests, client.OwnVitals.Level).Count > 0 ? "[J] new quests" : text.ToString().TrimEnd();
+        return text.Length == 0 && QuestJournal.Offered(data, quests, client.OwnVitals.Level, client.OwnVitals.Class).Count > 0 ? "[J] new quests" : text.ToString().TrimEnd();
     }
 
     private void Rebuild(IReadOnlyList<QuestEntry> quests)
@@ -156,7 +156,7 @@ public sealed partial class QuestLog(GameClient client, IDataRegistry data, Inte
         }
 
         _rows.AddChild(ItemLook.Text("Quests", 19));
-        IReadOnlyList<int> offered = QuestJournal.Offered(data, quests, client.OwnVitals.Level);
+        IReadOnlyList<int> offered = QuestJournal.Offered(data, quests, client.OwnVitals.Level, client.OwnVitals.Class);
         Section("Offered", offered.Count == 0 ? "(nothing new for now)" : null);
         foreach (int quest in offered)
         {

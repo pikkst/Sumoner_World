@@ -41,6 +41,11 @@ internal static partial class QuestValidation
                 errors.Add($"{where}: requires '{required}', which is not a quest earlier in the files.");
             }
 
+            if (quest.Class.Length > 0 && !AcademyDefinition.ClassIds.Contains(quest.Class))
+            {
+                errors.Add($"{where}: quest '{quest.Id}' names unknown class '{quest.Class}'.");
+            }
+
             if (!DataRegistryLoader.IsSnakeCaseId(quest.Id) || !ids.Add(quest.Id))
             {
                 errors.Add($"{where}: id '{quest.Id}' must be snake_case and unique.");

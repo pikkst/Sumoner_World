@@ -92,6 +92,12 @@
       "damage": 14, "damageType": "physical", "stamina": 28, "poise": 50, "tags": ["skill", "area", "heavy"]},
     {"id": "cinder_spray", "windupTicks": 12, "activeTicks": 4, "recoveryTicks": 16,
       "shape": {"kind": "arc", "reachCm": 220, "angleDeg": 120},
-      "damage": 8, "damageType": "ember", "stamina": 18, "poise": 20, "tags": ["skill"], "effect": "burning"}
+      "damage": 8, "damageType": "ember", "stamina": 18, "poise": 20, "tags": ["skill"], "effect": "burning"},
+    {"id": "thornback_charge", "windupTicks": 24, "activeTicks": 6, "recoveryTicks": 26,
+      "shape": {"kind": "line", "reachCm": 700, "widthCm": 220},
+      "damage": 26, "damageType": "physical", "stamina": 40, "poise": 90, "tags": ["charge", "heavy"]},
+    {"id": "thornback_stomp", "windupTicks": 20, "activeTicks": 4, "recoveryTicks": 24,
+      "shape": {"kind": "circle", "reachCm": 400},
+      "damage": 18, "damageType": "physical", "stamina": 35, "poise": 70, "tags": ["area", "heavy"]}
 ]
 }

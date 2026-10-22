@@ -26,15 +26,18 @@ public static class QuestJournal
         return QuestStatus.None;
     }
 
-    /// <summary>Quests offered now: not taken, the level reached and every quest before them done.</summary>
-    public static IReadOnlyList<int> Offered(IDataRegistry data, IReadOnlyList<QuestEntry> quests, int level)
+    /// <summary>
+    /// Quests offered now: not taken, the level reached, every quest before them done, and for the player's class
+    /// (<paramref name="summonerClass"/>; −1 = any; E6).
+    /// </summary>
+    public static IReadOnlyList<int> Offered(IDataRegistry data, IReadOnlyList<QuestEntry> quests, int level, int summonerClass = -1)
     {
         ArgumentNullException.ThrowIfNull(data);
         var offered = new List<int>();
         for (int i = 0; i < data.Quests.Count; i++)
         {
             QuestDefinition quest = data.Quests[i];
-            if (StatusOf(quests, i) == QuestStatus.None && level >= quest.MinLevel
+            if (StatusOf(quests, i) == QuestStatus.None && level >= quest.MinLevel && (summonerClass < 0 || Core.Quests.QuestBook.IsFor(quest, summonerClass))
                 && quest.Requires.All(required => StatusOf(quests, IndexOf(data, required)) == QuestStatus.Done))
             {
                 offered.Add(i);

@@ -1,0 +1,84 @@
+// The chained Thornback (E6): an old apex of the Vale, collared by the Binders; the chapter 1 boss at the Shattered Ring.
+{
+  "schemaVersion": 1,
+  "kind": "species",
+  "entries": [
+    {
+      "id": "chained_thornback",
+      "nameKey": "species.chained_thornback.name",
+      "role": "apex",
+      "bodyType": "quadruped",
+      "group": "solitary",
+      "boldness": {
+        "mean": -10,
+        "spread": 5
+      },
+      "loyalty": {
+        "mean": 30,
+        "spread": 10
+      },
+      "curiosity": {
+        "mean": 0,
+        "spread": 10
+      },
+      "temper": {
+        "mean": 50,
+        "spread": 10
+      },
+      "needs": {
+        "hunger": 40,
+        "rest": 40,
+        "safety": 30,
+        "social": 10,
+        "territory": 80
+      },
+      "bodyRadiusCm": 160,
+      "class": "elf",
+      "tier": "e",
+      "levels": {
+        "min": 10,
+        "max": 10
+      },
+      "pactThreshold": 950,
+      "perception": {
+        "sightRange": 60,
+        "sightHalfAngle": 100,
+        "hearingRange": 60
+      },
+      "combat": {
+        "health": 420,
+        "stamina": 220,
+        "mana": 40,
+        "power": 135,
+        "guard": 6,
+        "poise": 120,
+        "resist": {
+          "physical": 100,
+          "primal": 100
+        },
+        "moves": [
+          "thornback_charge",
+          "thornback_stomp"
+        ]
+      },
+      "goals": [
+        "Flee",
+        "Fight",
+        "Eat",
+        "Rest",
+        "Explore",
+        "DefendTerritory",
+        "Approach",
+        "Avoid"
+      ],
+      "look": {
+        "colour": "#4E5A44",
+        "dark": "#2A2F26",
+        "accent": "#8A5A3A",
+        "scale": 1.9,
+        "length": 1.2,
+        "feature": "horns"
+      }
+    }
+  ]
+}
