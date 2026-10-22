@@ -34,7 +34,7 @@ public sealed partial class PlaytestSelfTest(
     private const float CloseMetres = 3f; // inside the basic attack's reach of a mossback (2 m + its 1.6 m body)
     private const double StepSeconds = 1.2;
     private const double WatchSeconds = 6;
-    private const int LastStep = 43;
+    private const int LastStep = 45;
 
     private double _clock;
     private double _walking;
@@ -292,6 +292,17 @@ public sealed partial class PlaytestSelfTest(
                 log.Write(LogLevel.Info, "selftest.skillbar", $"{panels.Bar.Describe()} | {controls.Feedback}");
                 capture("skill-bar");
                 break;
+            case 44:
+                PressKey(Key.J);
+                log.Write(LogLevel.Info, "selftest.quests", panels.Quests.Describe());
+                panels.Quests.Accept(0);
+                panels.Quests.Accept(3);
+                break;
+            case 45:
+                log.Write(LogLevel.Info, "selftest.quests", $"{controls.Feedback} | {panels.Quests.Describe()} | tracker: {OneLine(panels.Quests.Tracker)}");
+                capture("quests");
+                PressKey(Key.J);
+                break;
             case 33 or 34 or 38:
                 break;
             default:
@@ -379,5 +390,7 @@ public sealed partial class PlaytestSelfTest(
 /// <param name="Crafting">The crafting window.</param>
 /// <param name="Character">The character window.</param>
 /// <param name="Bar">The action bar.</param>
+/// <param name="Quests">The quest log and tracker.</param>
 /// <param name="Data">The data both sides load.</param>
-public sealed record SelfTestPanels(Items.ItemControls Items, Items.CraftingPanel Crafting, Ui.CharacterWindow Character, Ui.ActionBar Bar, Core.Data.IDataRegistry Data);
+public sealed record SelfTestPanels(
+    Items.ItemControls Items, Items.CraftingPanel Crafting, Ui.CharacterWindow Character, Ui.ActionBar Bar, Ui.QuestLog Quests, Core.Data.IDataRegistry Data);

@@ -81,7 +81,7 @@ public static class InteractionText
     public static string ItemLine(string item, int count) => $"{SkillName(item)} x{count}";
 
     /// <summary>The window and bar keys (M2-14b), shown with the combat keys.</summary>
-    public const string SpellHints = "1-0: action bar   L: abilities   I: bag   B: crafting   K: companion";
+    public const string SpellHints = "1-0: action bar   L: abilities   I: bag   B: crafting   K: companion   J: quests";
 
     /// <summary>The companion keys, shown under the companion list.</summary>
     public const string CompanionHints = "[Z] call   [X] send back\nCommands are on the action bar (7-0)";
@@ -166,6 +166,11 @@ public static class InteractionText
         if (kind == IntentKind.LearnSkill)
         {
             return result.IsApplied ? $"The {creature} learns a new skill." : $"Not yet: {SkillStateText((SkillState)result.Detail)}.";
+        }
+
+        if (kind is IntentKind.AcceptQuest or IntentKind.AbandonQuest)
+        {
+            return QuestResult(kind, result, creature);
         }
 
         if (kind == IntentKind.CompanionSkill)
@@ -316,6 +321,63 @@ public static class InteractionText
         },
         _ => SkillName(action.Id),
     };
+
+    /// <summary>The line for taking or leaving a quest; <paramref name="title"/> is the quest's title (M2-19).</summary>
+    public static string QuestResult(IntentKind kind, IntentResult result, string title)
+    {
+        if (result.IsApplied)
+        {
+            return kind == IntentKind.AcceptQuest ? $"New quest: {title}." : $"You leave the quest: {title}.";
+        }
+
+        return (Core.Quests.QuestRefusal)result.Detail switch
+        {
+            Core.Quests.QuestRefusal.AlreadyTaken => "You have that quest already.",
+            Core.Quests.QuestRefusal.LevelTooLow => "You need a higher level for that quest.",
+            Core.Quests.QuestRefusal.NeedsEarlierQuest => "Finish the quest before it first.",
+            Core.Quests.QuestRefusal.TooMany => "You have too many quests. Finish or leave one first.",
+            _ => "Nothing happens.",
+        };
+    }
+
+    /// <summary>An objective with its progress, e.g. <c>Defeat bogfox 1/2</c> or <c>Reach the north clearing (done)</c> (M2-19).</summary>
+    public static string ObjectiveLine(Core.Data.Definitions.QuestObjectiveDefinition objective, int count)
+    {
+        ArgumentNullException.ThrowIfNull(objective);
+        string target = objective.Target.Length == 0 ? "any creature" : DisplayName(objective.Target);
+        string what = objective.Type switch
+        {
+            Core.Data.Definitions.ObjectiveType.Defeat => $"Defeat {target}",
+            Core.Data.Definitions.ObjectiveType.Gather => $"Gather {(objective.Target.Length == 0 ? "anything" : DisplayName(objective.Target))}",
+            Core.Data.Definitions.ObjectiveType.Craft => $"Make {(objective.Target.Length == 0 ? "anything" : DisplayName(objective.Target))}",
+            Core.Data.Definitions.ObjectiveType.Pact => $"Make a Pact with {target}",
+            Core.Data.Definitions.ObjectiveType.Feed => $"Feed {target}",
+            Core.Data.Definitions.ObjectiveType.Help => $"Free {target} from a snare",
+            _ => $"Go to {objective.Place}",
+        };
+        return objective.Type == Core.Data.Definitions.ObjectiveType.Reach
+            ? what + (count > 0 ? " (done)" : string.Empty)
+            : $"{what} {Math.Min(count, objective.Count)}/{objective.Count}";
+    }
+
+    /// <summary>A quest's rewards in a few words, e.g. <c>40 XP, 10 gold, Berry meal x2</c> (M2-19).</summary>
+    public static string RewardsLine(Core.Data.Definitions.QuestRewardsDefinition rewards)
+    {
+        ArgumentNullException.ThrowIfNull(rewards);
+        var parts = new List<string>();
+        if (rewards.Xp > 0)
+        {
+            parts.Add($"{rewards.Xp} XP");
+        }
+
+        if (rewards.Gold > 0)
+        {
+            parts.Add($"{rewards.Gold} gold");
+        }
+
+        parts.AddRange(rewards.Items.Select(item => ItemLine(item.Item, item.Count)));
+        return string.Join(", ", parts);
+    }
 
     /// <summary>The name of an equipment position.</summary>
     public static string PositionName(EquipPosition position) => position switch

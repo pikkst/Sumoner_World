@@ -120,6 +120,7 @@ public record struct GatherTransaction(CreatureWorld Creatures, Entity Avatar, u
         ulong account = Creatures.World.GetComponent<PlayerAvatar>(Avatar).AccountId;
         Creatures.Economy.Inventories.Of(account).Add(Creatures.Data, [new ItemCount(Creatures.Data.ItemIndex(kind.Item), count)]);
         node.ReadyAt = now + (ulong)kind.RegrowTicks;
+        Creatures.Events.Publish(new Quests.QuestEvent(account, ObjectiveType.Gather, Creatures.Data.ItemIndex(kind.Item), count));
         return IntentResult.Applied((byte)count);
     }
 }

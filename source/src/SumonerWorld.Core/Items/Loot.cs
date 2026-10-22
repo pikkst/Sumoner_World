@@ -95,6 +95,16 @@ public sealed class Economy
     /// <summary>Pacted creatures' bags (M2-14b).</summary>
     public CreatureBags CreatureBags { get; } = new();
 
+    /// <summary>Every player's quests (M2-19).</summary>
+    public Quests.QuestBook Quests { get; } = new();
+
+    /// <summary>Registers the events of player progress (quest objectives) with a world's event bus.</summary>
+    public static void RegisterEvents(Events.EventBus events, int capacity)
+    {
+        ArgumentNullException.ThrowIfNull(events);
+        events.Register<Quests.QuestEvent>(capacity);
+    }
+
     /// <summary>Loot bags lying in the world.</summary>
     public IReadOnlyList<LootBag> Bags => _bags;
 
@@ -215,6 +225,7 @@ public sealed class Economy
     {
         Inventories.AddTo(ref hash);
         CreatureBags.AddTo(ref hash);
+        Quests.AddTo(ref hash);
         foreach (LootBag bag in _bags)
         {
             hash.Add(bag.Id);

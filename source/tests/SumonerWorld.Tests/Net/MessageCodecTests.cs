@@ -65,6 +65,8 @@ public class MessageCodecTests
         InventoryList worn = RoundTrip(new InventoryListCodec(), new InventoryList(5, [], new WornItems(12, 0, 0, 13, 14, 14), 4));
         Assert.Equal((new WornItems(12, 0, 0, 13, 14, 14), 4), (worn.Worn, worn.Crafting));
         Assert.Equal((11, -1), (worn.Worn[0], worn.Worn[1]));
+        QuestEntry[] quests = [new(0, 3, 0), new(2, 1, 1, 4, 0, 1, 0)];
+        Assert.Equal(quests, RoundTrip(new QuestListCodec(), new QuestList(quests)).Entries);
     }
 
     [Fact]

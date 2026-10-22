@@ -80,6 +80,7 @@ public sealed record CreatureServices(AiLodPolicy Lod, CreatureSubjectResolver R
 /// <param name="Growth">Companion experience, levels and life stages (M2-09).</param>
 /// <param name="Skills">Skill upkeep: picking unspent points, reluctance (M2-10).</param>
 /// <param name="ReputationFlush">Reputation aggregation.</param>
+/// <param name="Quests">Quest objectives and rewards (M2-19).</param>
 public sealed record CreatureSystems(
     JobApplySystem JobApply,
     LodSystem Lod,
@@ -95,7 +96,8 @@ public sealed record CreatureSystems(
     FightSystems Fight,
     GrowthSystem Growth,
     SkillSystem Skills,
-    ReputationFlushSystem ReputationFlush)
+    ReputationFlushSystem ReputationFlush,
+    Quests.QuestSystem Quests)
 {
     /// <summary>Builds the systems for <paramref name="world"/> (wires the path planner to the movement system).</summary>
     public static CreatureSystems Create(CreatureWorld world)
@@ -119,7 +121,8 @@ public sealed record CreatureSystems(
             FightSystems.Create(world),
             new GrowthSystem(world),
             new SkillSystem(world),
-            new ReputationFlushSystem(world.Reputation));
+            new ReputationFlushSystem(world.Reputation),
+            new Quests.QuestSystem(world));
     }
 
     /// <summary>Creatures' attack intents (M2-03).</summary>
@@ -173,6 +176,7 @@ public sealed record CreatureSystems(
         scheduler.Register(Fight.Vitals);
         scheduler.Register(Fight.Loot);
         scheduler.Register(Fight.Crafting);
+        scheduler.Register(Quests);
         scheduler.Register(Growth);
         scheduler.Register(Skills);
         scheduler.Register(ReputationFlush);
@@ -263,6 +267,7 @@ public sealed class CreatureWorld : IDisposable
         Events.Register<NeighboursSensed>(NeighbourEventCapacity);
         Events.Register<CreatureIntent>(settings.IntentCapacity);
         Events.Register<PlayerInteracted>(InteractionEventCapacity);
+        Economy.RegisterEvents(Events, InteractionEventCapacity);
         Events.Register<MemoryFormed>(InteractionEventCapacity);
         Events.Register<CombatHit>(CombatEventCapacity);
         Events.Register<CombatantDefeated>(InteractionEventCapacity);

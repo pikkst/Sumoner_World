@@ -102,6 +102,7 @@ public record struct OfferPactTransaction(CreatureWorld Creatures, CooldownTrack
         if (outcome == BondingOutcome.Accepted)
         {
             Items.PlayerStats.Earn(Creatures, Avatar, Creatures.Growth.Definition.PlayerPactXp);
+            Creatures.Events.Publish(new Quests.QuestEvent(account, Data.Definitions.ObjectiveType.Pact, species, 1));
         }
 
         PublishMemories(creature, account, outcome, now);

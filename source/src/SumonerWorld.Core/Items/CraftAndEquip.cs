@@ -327,7 +327,9 @@ public sealed class CraftingSystem : ISimulationSystem
             inventory.Remove(_world.Data.ItemIndex(part.Item), part.Count);
         }
 
-        inventory.Add(_world.Data, [new ItemCount(_world.Data.ItemIndex(recipe.Output.Item), recipe.Output.Count)]);
+        int output = _world.Data.ItemIndex(recipe.Output.Item);
+        inventory.Add(_world.Data, [new ItemCount(output, recipe.Output.Count)]);
+        _world.Events.Publish(new Quests.QuestEvent(account, ObjectiveType.Craft, output, recipe.Output.Count));
         Made++;
     }
 }

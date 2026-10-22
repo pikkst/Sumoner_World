@@ -364,7 +364,8 @@ public class AuthoritativeLoopTests
         var veteran = new PlayerProgress((int)SummonerClass.Elf, (int)Rank.E, 12, lan.World.Growth.XpFor(12));
         var bag = new InventorySave(12, [new SavedItem("fox_fur", 3)]);
         string[] worn = ["wooden_staff", string.Empty, string.Empty, string.Empty, "mossback_charm", string.Empty];
-        lan.Server.RestorePlayers([new PlayerSave(1001, new Vector3(100, 0, 120), veteran, bag, worn), new PlayerSave(3003, new Vector3(5, 0, 5))]);
+        SumonerWorld.Core.Quests.QuestSave[] quests = [new("a_friend_in_the_clearing", 1, [1, 0, 0, 0], false), new("berries_for_the_road", 0, [], true)];
+        lan.Server.RestorePlayers([new PlayerSave(1001, new Vector3(100, 0, 120), veteran, bag, worn, quests), new PlayerSave(3003, new Vector3(5, 0, 5))]);
         lan.Join(1001);
         lan.Join(1002);
         lan.Run(10, _ => MoveInput.None);
@@ -378,7 +379,7 @@ public class AuthoritativeLoopTests
         Assert.Equal(lan.World.Data.Combat.Player.Resist.Primal + 100, aliceStats.ResistPrimal);
         Assert.Equal(
             [
-                new PlayerSave(1001, new Vector3(100, 0, 120), veteran, bag, worn),
+                new PlayerSave(1001, new Vector3(100, 0, 120), veteran, bag, worn, quests),
                 new PlayerSave(1002, lan.Settings.SpawnPoint, PlayerProgress.New, new InventorySave(0, [])),
                 new PlayerSave(3003, new Vector3(5, 0, 5)),
             ],

@@ -2,6 +2,7 @@ using System.Numerics;
 using Microsoft.Data.Sqlite;
 using SumonerWorld.Core.Ecs;
 using SumonerWorld.Core.Progression;
+using SumonerWorld.Core.Quests;
 using SumonerWorld.Core.World;
 using SumonerWorld.Persistence.Records;
 
@@ -65,6 +66,7 @@ internal sealed class WorldTables(WorldStore store)
                     Gold = player.Inventory?.Gold,
                     Items = [.. (player.Inventory?.Items ?? []).Select(item => new SlotRecord { Item = item.Item, Count = item.Count })],
                     Equipped = player.Equipped ?? [],
+                    Quests = [.. (player.Quests ?? []).Select(quest => new QuestRecord { Quest = quest.Quest, Step = quest.Step, Counts = quest.Counts, Done = quest.Done })],
                 });
                 insert.ExecuteNonQuery();
             }
@@ -130,7 +132,8 @@ internal sealed class WorldTables(WorldStore store)
                 PlayerRecord record = _players.Decode((byte[])reader.GetValue(1));
                 PlayerProgress? progress = record.Class is byte playerClass ? new PlayerProgress(playerClass, record.Rank, record.Level, record.Xp) : null;
                 InventorySave? inventory = record.Gold is int gold ? new InventorySave(gold, [.. record.Items.Select(item => new SavedItem(item.Item, item.Count))]) : null;
-                players.Add(new PlayerSave((ulong)reader.GetInt64(0), new Vector3(record.X, record.Y, record.Z), progress, inventory, record.Equipped));
+                IReadOnlyList<QuestSave> quests = [.. record.Quests.Select(quest => new QuestSave(quest.Quest, quest.Step, quest.Counts, quest.Done))];
+                players.Add(new PlayerSave((ulong)reader.GetInt64(0), new Vector3(record.X, record.Y, record.Z), progress, inventory, record.Equipped, quests));
             }
         }
 

@@ -140,6 +140,12 @@ public enum IntentKind : byte
     /// </summary>
     CompanionSkill = 20,
 
+    /// <summary>Take a quest offered in the quest log (since protocol 20): argument = quest index; detail = a <c>QuestRefusal</c>.</summary>
+    AcceptQuest = 21,
+
+    /// <summary>Leave a taken quest (since protocol 20): argument = quest index.</summary>
+    AbandonQuest = 22,
+
     /// <summary>
     /// Cast a spell (since protocol 14): argument = index in the spells data; target = aim heading in 1/256 turns (bits 0–7),
     /// burst distance in decimetres (bits 8–23) and the ward's creature stable id (bits 24 and up, 0 = self).
