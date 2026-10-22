@@ -4,12 +4,12 @@ namespace SumonerWorld.Game.Hosting;
 
 /// <summary>
 /// The third-person camera around the own character: hold the right mouse button and move the mouse to turn it around the
-/// character (left/right) and raise or lower it (up/down); the mouse wheel moves it closer or further. The start view is behind
+/// character (left/right) and raise or lower it (up/down); the mouse wheel moves it closer or further. The player sets how fast it turns (<see cref="MouseFactor"/>). The start view is behind
 /// the character, 5 m up and 10 m back, looking along +Z. WASD stays relative to wherever the camera looks.
 /// </summary>
 public sealed partial class OrbitCamera : Node
 {
-    /// <summary>Radians turned per pixel of mouse movement.</summary>
+    /// <summary>Radians turned per pixel of mouse movement at the normal mouse speed.</summary>
     public const float Sensitivity = 0.005f;
 
     private const float MinPitch = 0.1f;
@@ -32,6 +32,9 @@ public sealed partial class OrbitCamera : Node
     /// <summary>A locked-on target (combat lock-on): the camera swings behind the character to keep it in view; null = free.</summary>
     public Vector3? Focus { get; set; }
 
+    /// <summary>The player's mouse speed as a factor of <see cref="Sensitivity"/> (settings, M2-17).</summary>
+    public float MouseFactor { get; set; } = 1f;
+
     /// <summary>Distance to the character in metres.</summary>
     public float Distance { get; private set; } = Mathf.Sqrt(125);
 
@@ -51,8 +54,8 @@ public sealed partial class OrbitCamera : Node
                 Distance = Mathf.Min(MaxDistance, Distance * ZoomStep);
                 break;
             case InputEventMouseMotion motion when _turning:
-                Yaw = Focus is null ? Mathf.Wrap(Yaw + (motion.Relative.X * Sensitivity), -Mathf.Pi, Mathf.Pi) : Yaw;
-                Pitch = Mathf.Clamp(Pitch + (motion.Relative.Y * Sensitivity), MinPitch, MaxPitch);
+                Yaw = Focus is null ? Mathf.Wrap(Yaw + (motion.Relative.X * Sensitivity * MouseFactor), -Mathf.Pi, Mathf.Pi) : Yaw;
+                Pitch = Mathf.Clamp(Pitch + (motion.Relative.Y * Sensitivity * MouseFactor), MinPitch, MaxPitch);
                 break;
             default:
                 return;

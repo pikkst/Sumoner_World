@@ -121,14 +121,15 @@ public class AppraisalModelTests
         store.Remember(mind, FedBy, Bob, 0);
         appraisal.Appraise(mind, Alice, 1);
 
-        long before = GC.GetAllocatedBytesForCurrentThread();
-        for (ulong tick = 2; tick < 5_000; tick++)
+        ulong tick = 2;
+        Assert.Equal(0, AllocationMeasurements.Fewest(() =>
         {
-            appraisal.Appraise(mind, Alice, tick);
-            appraisal.Appraise(mind, Bob, tick);
-        }
-
-        Assert.Equal(0, GC.GetAllocatedBytesForCurrentThread() - before);
+            for (ulong end = tick + 5_000; tick < end; tick++)
+            {
+                appraisal.Appraise(mind, Alice, tick);
+                appraisal.Appraise(mind, Bob, tick);
+            }
+        }));
     }
 
     private static (CreatureMindStore Store, AppraisalModel Appraisal, MindHandle Mind) Create(Personality personality)

@@ -103,12 +103,6 @@ public static class InteractionText
     /// <summary>An inventory line: the item's name and how many (M2-13).</summary>
     public static string ItemLine(string item, int count) => $"{SkillName(item)} x{count}";
 
-    /// <summary>The window and bar keys (M2-14b), shown with the combat keys.</summary>
-    public const string SpellHints = "1-0: action bar   L: abilities   I: bag   B: crafting   K: companion   J: quests";
-
-    /// <summary>The companion keys, shown under the companion list.</summary>
-    public const string CompanionHints = "[Z] call   [X] send back\nCommands are on the action bar (7-0)";
-
     /// <summary>The line after a command was given (the companions answer with their bodies).</summary>
     public static string CommandSent(CompanionCommand command) => command switch
     {
@@ -118,10 +112,6 @@ public static class InteractionText
         CompanionCommand.Retreat => "You call: come back!",
         _ => string.Empty,
     };
-
-    /// <summary>A companion's line in the list: its name, level and life stage, and whether it is at the player's side.</summary>
-    public static string CompanionLine(string creature, int level, LifeStage stage, bool summoned) =>
-        $"{creature} Lv {level} ({stage.ToString().ToLowerInvariant()}): {(summoned ? "with you" : "away")}";
 
     /// <summary>The keys shown at the bottom of the Pact menu.</summary>
     public const string PactMenuHints = "[1-6] choose up to 3 promises   [Enter] offer   [Esc] cancel";
