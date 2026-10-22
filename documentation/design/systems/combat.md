@@ -163,7 +163,8 @@ window. Combos are data (`data/combat/combos.json`).
   status effects (bit flags). Exact numbers stay on the server.
 - **Feedback:** a hit flash and a short sound on hit; a clear "block" and "parry" sound; the telegraph is part of each move's
   animation. No floating damage numbers by default (readability through bodies first, DEC-002); an option can show them.
-- **Health bars:** over creatures only while in a fight with them, and always for your companions in the HUD (M2-17).
+- **Health bars:** over creatures only while in a fight with them, and always for your companions in the HUD (M2-17, see
+  `systems/hud.md`).
 - **Children:** no blood or gore anywhere. A defeated creature lies down and fades; the death is shown through the others'
   grief, not through injury.
 

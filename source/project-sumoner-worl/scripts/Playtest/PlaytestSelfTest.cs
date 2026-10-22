@@ -17,7 +17,9 @@ namespace SumonerWorld.Game.Playtest;
 /// W again (it holds), 4 (come back, M2-08), X (send it back), and the companion panel (K, M2-10): it logs the skill tree and
 /// teaches skill 2; then the spells (M2-11): C thornbolt, V entangle, G mend; the inventory (I, M2-13); crafting (B, M2-14): it makes
 /// a wooden staff from the branches the fixture gave; the character window (I, M2-14b): it drags the charm onto a charm slot,
-/// calls the owl and drags berries into its bag. Spells and commands go through the action bar (1-3, 8-0).
+/// calls the owl and drags berries into its bag. Spells and commands go through the action bar (1-3, 8-0). Last the HUD (M2-17):
+/// F1 opens and closes the key list, Esc the settings, where it turns the text size and mouse speed up; the key list again at the
+/// bigger text, then everything back.
 ///  It logs the interaction lines, the attack's result and the calf's health, the own stamina, the calf's
 /// emote while it answers and the answer line, then watches for <see cref="WatchSeconds"/> so the creature can react.
 /// <see cref="Done"/> lets the host take its screenshot afterwards.
@@ -34,7 +36,7 @@ public sealed partial class PlaytestSelfTest(
     private const float CloseMetres = 3f; // inside the basic attack's reach of a mossback (2 m + its 1.6 m body)
     private const double StepSeconds = 1.2;
     private const double WatchSeconds = 6;
-    private const int LastStep = 45;
+    private const int LastStep = 52;
     private const int AcademyLastStep = 7;
 
     private double _clock;
@@ -321,6 +323,55 @@ public sealed partial class PlaytestSelfTest(
             case 33 or 34 or 38:
                 break;
             default:
+                return HudStep();
+        }
+
+        return true;
+    }
+
+    // The key list and the settings (M2-17); false when every step is done.
+    private bool HudStep()
+    {
+        if (panels.Settings is not Ui.SettingsWindow settings || panels.Hud is not CombatHud hud)
+        {
+            return false;
+        }
+
+        switch (_step)
+        {
+            case 46:
+                log.Write(LogLevel.Info, "selftest.hud", $"companions: {companions.Shown} | warning: '{hud.Warning}'");
+                PressKey(Key.F1);
+                break;
+            case 47:
+                log.Write(LogLevel.Info, "selftest.hud", $"key list open {settings.Keys.IsOpen}");
+                capture("keys");
+                PressKey(Key.F1);
+                break;
+            case 48:
+                log.Write(LogLevel.Info, "selftest.hud", $"key list open {settings.Keys.IsOpen}");
+                PressKey(Key.Escape);
+                break;
+            case 49:
+                log.Write(LogLevel.Info, "selftest.settings", $"open {settings.IsOpen}: {settings.Describe()}");
+                settings.Change(settings.Settings.NextTextSize() with { MouseSpeed = 150 });
+                break;
+            case 50:
+                log.Write(LogLevel.Info, "selftest.settings", $"{settings.Describe()}; camera turns x{camera.MouseFactor:F2}");
+                capture("settings");
+                PressKey(Key.Escape);
+                PressKey(Key.F1);
+                break;
+            case 51:
+                log.Write(LogLevel.Info, "selftest.hud", $"key list open {settings.Keys.IsOpen} at text {settings.Settings.TextSize}%");
+                capture("keys-big");
+                PressKey(Key.F1);
+                settings.Change(new PlayerSettings());
+                break;
+            case 52:
+                log.Write(LogLevel.Info, "selftest.settings", $"open {settings.IsOpen}: {settings.Describe()}; camera turns x{camera.MouseFactor:F2}");
+                break;
+            default:
                 return false;
         }
 
@@ -442,6 +493,8 @@ public sealed partial class PlaytestSelfTest(
 /// <param name="Quests">The quest log and tracker.</param>
 /// <param name="Dialogue">Talking to the Academy's people (null without an Academy in the data).</param>
 /// <param name="Data">The data both sides load.</param>
+/// <param name="Settings">The settings window with the key list (M2-17; set by the host).</param>
+/// <param name="Hud">The own bars (M2-17; set by the host).</param>
 public sealed record SelfTestPanels(
     Items.ItemControls Items,
     Items.CraftingPanel Crafting,
@@ -449,4 +502,6 @@ public sealed record SelfTestPanels(
     Ui.ActionBar Bar,
     Ui.QuestLog Quests,
     Ui.AcademyDialogue? Dialogue,
-    Core.Data.IDataRegistry Data);
+    Core.Data.IDataRegistry Data,
+    Ui.SettingsWindow? Settings = null,
+    CombatHud? Hud = null);

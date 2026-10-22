@@ -9,25 +9,29 @@ using SumonerWorld.Net.Messages;
 namespace SumonerWorld.Game.Playtest;
 
 /// <summary>
-/// The player's companions (M2-06) at the top left: each pacted creature with "with you" or "away", from the server's companion
-/// list. Z calls the first one that is away (a summoning sigil, AI Bible §10.4), X sends back the last one that is with you; the
+/// The player's companions (M2-06) at the top left, one card each (M2-17): name, level and life stage, and "away" or "with you"
+/// with a health bar and its health in words, from the server's companion list and the snapshot. Z calls the first one that is away (a summoning sigil, AI Bible §10.4), X sends back the last one that is with you; the
 /// result line comes through the <see cref="InteractionControls"/>. When a creature arrives, a sigil flares under it. Commands v1
 /// (M2-08) go to every companion with you from the action bar (M2-14b; by default 7 attack the lock-on target, else the creature
 /// in reach, 8 guard me, 9 hold here, 0 come back); each answers with its body (AI Bible §7.4).
 /// </summary>
 public sealed partial class CompanionBar(
-    GameClient client, IDataRegistry data, EntityViewSync views, InteractionControls controls, Func<ulong> lockedTarget) : CanvasLayer
+    GameClient client, IDataRegistry data, EntityViewSync views, InteractionControls controls, Func<ulong> lockedTarget, Ui.SettingsWindow settings)
+    : CanvasLayer
 {
     private const double ArrivalWaitSeconds = 3;
+    private const float CardBarWidth = 180f;
 
     private readonly HashSet<ulong> _summoned = [];
     private readonly Dictionary<ulong, byte> _combos = [];
     private readonly List<(ulong Id, double At)> _arrivals = [];
-    private Label? _list;
+    private readonly List<(Label Title, Label State, ColorRect Back, ColorRect Fill)> _cards = [];
+    private VBoxContainer? _column;
+    private Label? _hint;
     private double _clock;
 
-    /// <summary>The list as shown.</summary>
-    public string Shown => _list?.Text ?? string.Empty;
+    /// <summary>The cards as text, one line per companion (for the self-test log).</summary>
+    public string Shown { get; private set; } = string.Empty;
 
     /// <summary>Calls the first companion that is away (also used by the self-test); false when there is none.</summary>
     public bool CallNext()
@@ -81,11 +85,12 @@ public sealed partial class CompanionBar(
     public override void _Ready()
     {
         Layer = 4;
-        _list = new Label { Position = new Vector2(24, 20) };
-        _list.AddThemeFontSizeOverride("font_size", 16);
-        _list.AddThemeColorOverride("font_outline_color", new Color(0, 0, 0));
-        _list.AddThemeConstantOverride("outline_size", 5);
-        AddChild(_list);
+        _column = new VBoxContainer { Position = new Vector2(20, 18), MouseFilter = Control.MouseFilterEnum.Ignore };
+        _column.AddThemeConstantOverride("separation", 6);
+        AddChild(_column);
+        _hint = Text(14);
+        _hint.Text = HudText.CompanionHint;
+        _column.AddChild(_hint);
     }
 
     /// <inheritdoc />
@@ -116,10 +121,7 @@ public sealed partial class CompanionBar(
     public override void _Process(double delta)
     {
         IReadOnlyList<CompanionEntry> companions = client.Companions;
-        _list!.Visible = companions.Count > 0;
-        _list.Text = companions.Count == 0
-            ? string.Empty
-            : "Companions\n" + string.Join("\n", companions.Select(c => InteractionText.CompanionLine(NameOf(c), c.Level, (Core.Progression.LifeStage)c.Stage, c.Summoned))) + "\n" + InteractionText.CompanionHints;
+        ShowCards(companions);
 
         _clock += delta;
         foreach (CompanionEntry companion in companions)
@@ -149,6 +151,71 @@ public sealed partial class CompanionBar(
                 _arrivals.RemoveAt(i);
             }
         }
+    }
+
+    // One card per companion, made when the list grows; the hint under them while the key hints are on.
+    private void ShowCards(IReadOnlyList<CompanionEntry> companions)
+    {
+        while (_cards.Count < companions.Count)
+        {
+            AddCard();
+        }
+
+        var shown = new System.Text.StringBuilder();
+        for (int i = 0; i < _cards.Count; i++)
+        {
+            (Label title, Label state, ColorRect back, ColorRect fill) = _cards[i];
+            bool used = i < companions.Count;
+            title.GetParent().GetParent<Control>().Visible = used;
+            if (!used)
+            {
+                continue;
+            }
+
+            CompanionEntry companion = companions[i];
+            byte? health = companion.Summoned && client.Entities.TryGetValue((SnapshotEntityKind.Creature, companion.Id), out SnapshotEntity entity) ? entity.Health : null;
+            title.Text = HudText.CompanionTitle(NameOf(companion), companion.Level, (Core.Progression.LifeStage)companion.Stage);
+            state.Text = HudText.CompanionState(companion.Summoned, health);
+            state.Modulate = companion.Summoned ? Colors.White : new Color(0.7f, 0.7f, 0.7f);
+            back.Visible = health is not null;
+            fill.Size = new Vector2(CardBarWidth * (health ?? 0) / 255f, 8);
+            shown.Append(title.Text).Append(": ").Append(state.Text).Append(';');
+        }
+
+        Shown = shown.ToString().TrimEnd(';');
+        _hint!.Visible = companions.Count > 0 && settings.Settings.ShowHints;
+    }
+
+    private void AddCard()
+    {
+        var card = new PanelContainer { MouseFilter = Control.MouseFilterEnum.Ignore };
+        var style = new StyleBoxFlat { BgColor = new Color(0, 0, 0, 0.45f) };
+        style.SetCornerRadiusAll(6);
+        style.SetContentMarginAll(6);
+        card.AddThemeStyleboxOverride("panel", style);
+        var rows = new VBoxContainer();
+        rows.AddThemeConstantOverride("separation", 2);
+        card.AddChild(rows);
+        Label title = Text(16);
+        Label state = Text(14);
+        var back = new ColorRect { Color = new Color(0, 0, 0, 0.6f), CustomMinimumSize = new Vector2(CardBarWidth, 8) };
+        var fill = new ColorRect { Color = new Color(0.4f, 0.8f, 0.35f) };
+        back.AddChild(fill);
+        rows.AddChild(title);
+        rows.AddChild(state);
+        rows.AddChild(back);
+        _column!.AddChild(card);
+        _column.MoveChild(_hint, -1);
+        _cards.Add((title, state, back, fill));
+    }
+
+    private static Label Text(int size)
+    {
+        var label = new Label();
+        label.AddThemeFontSizeOverride("font_size", size);
+        label.AddThemeColorOverride("font_outline_color", new Color(0, 0, 0));
+        label.AddThemeConstantOverride("outline_size", 5);
+        return label;
     }
 
     // A combo bit that was not there before: the companion just learned it (the first list only records what it knows).

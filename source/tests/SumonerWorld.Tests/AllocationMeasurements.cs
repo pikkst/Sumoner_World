@@ -10,4 +10,24 @@ public sealed class AllocationMeasurements
 {
     /// <summary>The collection name.</summary>
     public const string Name = "Allocation measurements";
+
+    /// <summary>
+    /// Bytes <paramref name="body"/> allocates on this thread: the fewest of up to <paramref name="runs"/> measurements after one
+    /// warm-up run. The runtime can allocate a little on the thread while it recompiles a hot loop (tiered compilation, on-stack
+    /// replacement), once and not per call, so one clean run is enough to show the code itself does not allocate.
+    /// </summary>
+    public static long Fewest(Action body, int runs = 3)
+    {
+        ArgumentNullException.ThrowIfNull(body);
+        body();
+        long fewest = long.MaxValue;
+        for (int run = 0; run < runs && fewest != 0; run++)
+        {
+            long before = GC.GetAllocatedBytesForCurrentThread();
+            body();
+            fewest = Math.Min(fewest, GC.GetAllocatedBytesForCurrentThread() - before);
+        }
+
+        return fewest;
+    }
 }

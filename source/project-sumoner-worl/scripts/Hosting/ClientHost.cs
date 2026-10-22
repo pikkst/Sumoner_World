@@ -67,6 +67,7 @@ public sealed partial class ClientHost : Node
     private DevToolsLayer? _devTools;
     private PlaytestSelfTest? _selfTest;
     private OrbitCamera? _orbit;
+    private Ui.SettingsWindow? _settings;
     private CombatControls? _combat;
     private LockOn? _lockOn;
     private Core.Data.DataRegistry? _data;
@@ -155,6 +156,10 @@ public sealed partial class ClientHost : Node
         AddChild(_region);
         _orbit = new OrbitCamera();
         AddChild(_orbit);
+
+        // Before the other windows: they close on Esc first, and only then does Esc open the settings (M2-17).
+        _settings = new Ui.SettingsWindow(_orbit, _options.SelfTest ? string.Empty : $"user://settings-{_options.Account}.txt");
+        AddChild(_settings);
         Core.Data.DataRegistry data = _data!;
         _views = new EntityViewSync(_client!, data, new QuadrupedEmotePresenter());
         AddChild(_views);
@@ -170,8 +175,9 @@ public sealed partial class ClientHost : Node
             () => _lockOn.Target,
             controls.Send);
         AddChild(_combat);
-        AddChild(new CombatHud(_client!));
-        _companionBar = new CompanionBar(_client!, data, _views, controls, () => _lockOn?.Target ?? 0);
+        var hud = new CombatHud(_client!, _settings);
+        AddChild(hud);
+        _companionBar = new CompanionBar(_client!, data, _views, controls, () => _lockOn?.Target ?? 0, _settings);
         AddChild(_companionBar);
         _companionPanel = new CompanionPanel(_client!, data, controls);
         AddChild(_companionPanel);
@@ -179,7 +185,7 @@ public sealed partial class ClientHost : Node
             () => _lockOn?.Target is ulong locked and not 0 ? locked : controls.Target.Id, _options.SelfTest ? string.Empty : $"user://actionbar-{_options.Account}.txt");
         if (_options.SelfTest)
         {
-            _selfTest = new PlaytestSelfTest(controls, _companionBar, _companionPanel, panels, _combat, _lockOn, _client!, _orbit, () => _views.Shown > 0 && _elapsed > ScreenshotAfterSeconds, _log, Capture);
+            _selfTest = new PlaytestSelfTest(controls, _companionBar, _companionPanel, panels with { Settings = _settings, Hud = hud }, _combat, _lockOn, _client!, _orbit, () => _views.Shown > 0 && _elapsed > ScreenshotAfterSeconds, _log, Capture);
             AddChild(_selfTest);
         }
 

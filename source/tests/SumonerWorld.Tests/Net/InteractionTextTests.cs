@@ -40,9 +40,14 @@ public class InteractionTextTests
             InteractionText.Hints,
             InteractionText.ShoutHint,
             InteractionText.PactMenuHints,
-            InteractionText.CompanionHints,
-            InteractionText.CompanionLine("x", 1, SumonerWorld.Core.Progression.LifeStage.Young, true),
-            InteractionText.CompanionLine("x", 9, SumonerWorld.Core.Progression.LifeStage.Elder, false),
+            HudText.CompanionHint,
+            HudText.KeyListText(),
+            HudText.Warning(0, 0, 0, down: false),
+            HudText.Warning(255, 0, 0, down: false),
+            HudText.Warning(255, 255, 0, down: false),
+            HudText.CompanionTitle("x", 9, SumonerWorld.Core.Progression.LifeStage.Elder),
+            .. new byte?[] { null, 0, 10, 100, 255 }.Select(health => HudText.CompanionState(summoned: true, health)),
+            HudText.CompanionState(summoned: false, null),
             .. Enum.GetValues<SummonRefusal>().Select(refusal => InteractionText.Result(IntentKind.Summon, new IntentResult(IntentStatus.Rejected, IntentRejectReason.WrongState, (byte)refusal), "x")),
             InteractionText.PactMenuTitle("x"),
             .. ShippedData.Current.PactTerms.Select(term => InteractionText.PactTerm(term.Key)),
@@ -53,14 +58,19 @@ public class InteractionTextTests
     }
 
     [Fact]
-    public void A_companion_line_shows_level_stage_and_where_it_is()
+    public void A_companion_card_shows_level_stage_where_it_is_and_its_health()
     {
-        Assert.Equal("hollow owl Lv 3 (young): with you", InteractionText.CompanionLine("hollow owl", 3, SumonerWorld.Core.Progression.LifeStage.Young, summoned: true));
+        Assert.Equal("hollow owl · Level 3 · young", HudText.CompanionTitle("hollow owl", 3, SumonerWorld.Core.Progression.LifeStage.Young));
+        Assert.Equal("with you · well", HudText.CompanionState(summoned: true, 255));
+        Assert.Equal("with you · hurt", HudText.CompanionState(summoned: true, 120));
+        Assert.Equal("with you · badly hurt", HudText.CompanionState(summoned: true, 20));
+        Assert.Equal("with you · knocked out", HudText.CompanionState(summoned: true, 0));
+        Assert.Equal("with you", HudText.CompanionState(summoned: true, null));
+        Assert.Equal("away (Z to call)", HudText.CompanionState(summoned: false, 255));
         Assert.Equal(
             "The mossback does not answer to your kind of summoner.",
             InteractionText.Result(IntentKind.OfferPact, IntentResult.Applied((byte)BondingOutcome.WrongClass), "mossback"));
         Assert.Equal("Elf · Rank D · Level 23", InteractionText.PlayerLine(SumonerWorld.Core.Progression.SummonerClass.Elf, SumonerWorld.Core.Progression.Rank.D, 23));
-        Assert.Equal("bogfox Lv 8 (elder): away", InteractionText.CompanionLine("bogfox", 8, SumonerWorld.Core.Progression.LifeStage.Elder, summoned: false));
     }
 
     [Fact]
