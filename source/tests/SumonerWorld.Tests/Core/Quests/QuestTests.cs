@@ -32,7 +32,7 @@ public sealed class QuestTests : IDisposable
         _world.CreateSystems().RegisterAll(_scheduler);
         _alice = _world.SpawnPlayerAvatar(Alice, Start);
         _world.SpawnPlayerAvatar(Bob, Start + new Vector3(2, 0, 0));
-        _world.Economy.Quests.Import(Alice, [Ranked], _world.Data);
+        Done();
     }
 
     private static QuestSave Ranked => new("the_ranking", 0, [], Done: true);
@@ -47,6 +47,7 @@ public sealed class QuestTests : IDisposable
         int berries = Quest("berries_for_the_road");
         int staff = Quest("a_staff_of_your_own");
         int foxes = Quest("bogfox_trouble");
+        Done("a_friend_in_the_clearing");
 
         Assert.Equal(QuestRefusal.NeedsEarlierQuest, Refusal(new AcceptQuestTransaction(_world, _alice, staff)));
         Assert.Equal(QuestRefusal.LevelTooLow, Refusal(new AcceptQuestTransaction(_world, _alice, foxes)));
@@ -68,11 +69,15 @@ public sealed class QuestTests : IDisposable
     public void Gathering_counts_only_while_the_quest_is_taken_and_the_quest_rewards_once_done()
     {
         int berries = Quest("berries_for_the_road");
-        GatherNode bush = Bush();
+        Done("a_friend_in_the_clearing");
+        var meadow = new Vector3(306, 0, 300);
+        _world.World.GetComponent<Position>(_alice) = new Position(meadow);
+        GatherNode bush = _world.Economy.AddNode(Bush().Kind, meadow + new Vector3(1, 0, 1));
         Assert.True(Run(new GatherTransaction(_world, _alice, bush.Id), 0).IsApplied);
         _scheduler.RunTick();
         Assert.True(Run(new AcceptQuestTransaction(_world, _alice, berries)).IsApplied);
-        Assert.Equal(0, Mine.Find(berries)!.Counts[0]);
+        Ticks(16);
+        Assert.Equal((1, 0), (Mine.Find(berries)!.Step, Mine.Find(berries)!.Counts[0]));
 
         int xp = _world.World.GetComponent<PlayerProgress>(_alice).Xp;
         int gathered = 0;
@@ -92,7 +97,7 @@ public sealed class QuestTests : IDisposable
     [Fact]
     public void Steps_follow_one_another_and_crafting_counts()
     {
-        _world.Economy.Quests.Import(Alice, [Ranked, new QuestSave("berries_for_the_road", 0, [], Done: true)], _world.Data);
+        Done("a_friend_in_the_clearing", "berries_for_the_road");
         int staff = Quest("a_staff_of_your_own");
         Assert.True(Run(new AcceptQuestTransaction(_world, _alice, staff)).IsApplied);
 
@@ -111,8 +116,10 @@ public sealed class QuestTests : IDisposable
     public void Every_player_who_fought_a_defeated_creature_gets_the_kill()
     {
         int foxes = Quest("bogfox_trouble");
+        Done("a_friend_in_the_clearing", "berries_for_the_road", "a_staff_of_your_own");
         _world.World.GetComponent<PlayerProgress>(_alice).Level = 2;
         Assert.True(Run(new AcceptQuestTransaction(_world, _alice, foxes)).IsApplied);
+        _world.Economy.Quests.Record(_world.Data, Alice, ObjectiveType.Reach, string.Empty, 1);
         ushort bogfox = _world.SpeciesIndex("bogfox");
         Entity fox = _world.SpawnCreature(bogfox, Start + new Vector3(0, 0, 6), new Personality(0, 0, 0, 0), group: 3);
 
@@ -123,7 +130,7 @@ public sealed class QuestTests : IDisposable
     }
 
     [Fact]
-    public void Reaching_a_place_finishes_a_reach_objective_and_the_next_step_needs_a_feed_and_a_pact()
+    public void Reaching_the_grove_finishes_a_reach_objective_and_the_next_step_needs_two_feeds()
     {
         int friend = Quest("a_friend_in_the_clearing");
         Assert.True(Run(new AcceptQuestTransaction(_world, _alice, friend)).IsApplied);
@@ -136,7 +143,7 @@ public sealed class QuestTests : IDisposable
 
         _world.Economy.Quests.Record(_world.Data, Alice, ObjectiveType.Feed, "mossback", 1);
         Assert.Equal(QuestStatus.Active, Mine.StatusOf(friend));
-        _world.Economy.Quests.Record(_world.Data, Alice, ObjectiveType.Pact, "mossback", 1);
+        _world.Economy.Quests.Record(_world.Data, Alice, ObjectiveType.Feed, "hollow_owl", 1);
         Assert.Equal(QuestStatus.Ready, Mine.StatusOf(friend));
         Ticks(30);
         Assert.Equal(QuestStatus.Done, Mine.StatusOf(friend));
@@ -146,7 +153,9 @@ public sealed class QuestTests : IDisposable
     public void A_ready_quest_waits_for_room_in_the_bag()
     {
         int berries = Quest("berries_for_the_road");
+        Done("a_friend_in_the_clearing");
         Assert.True(Run(new AcceptQuestTransaction(_world, _alice, berries)).IsApplied);
+        _world.Economy.Quests.Record(_world.Data, Alice, ObjectiveType.Reach, string.Empty, 1);
         _world.Economy.Inventories.Of(Alice).Add(_world.Data, [new ItemCount(_world.Data.ItemIndex("owl_feather"), 30 * Inventory.Slots)]);
 
         _world.Economy.Quests.Record(_world.Data, Alice, ObjectiveType.Gather, "sweet_berries", 5);
@@ -163,7 +172,7 @@ public sealed class QuestTests : IDisposable
     {
         int berries = Quest("berries_for_the_road");
         int friend = Quest("a_friend_in_the_clearing");
-        _world.Economy.Quests.Import(Alice, [Ranked, new QuestSave("berries_for_the_road", 0, [], Done: true)], _world.Data);
+        Done("berries_for_the_road");
         Assert.True(Run(new AcceptQuestTransaction(_world, _alice, friend)).IsApplied);
         _world.Economy.Quests.Record(_world.Data, Alice, ObjectiveType.Reach, string.Empty, 1);
 
@@ -174,6 +183,11 @@ public sealed class QuestTests : IDisposable
         Assert.Equal(QuestStatus.Done, _world.Economy.Quests.Of(Bob).StatusOf(berries));
         Assert.Equal(QuestStatus.Active, _world.Economy.Quests.Of(Bob).StatusOf(friend));
     }
+
+    // Marks the ranking, the first creature and the given quests done for Alice (the slice path is a chain).
+    private void Done(params string[] quests) =>
+        _world.Economy.Quests.Import(
+            Alice, [Ranked, new QuestSave("a_first_friend", 0, [], Done: true), .. quests.Select(id => new QuestSave(id, 0, [], Done: true))], _world.Data);
 
     private int Quest(string id) => _world.Data.Quests.Select((quest, i) => (quest, i)).Single(item => item.quest.Id == id).i;
 

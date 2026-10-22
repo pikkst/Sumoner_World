@@ -82,6 +82,7 @@ public sealed record CreatureServices(AiLodPolicy Lod, CreatureSubjectResolver R
 /// <param name="ReputationFlush">Reputation aggregation.</param>
 /// <param name="Quests">Quest objectives and rewards (M2-19).</param>
 /// <param name="Arena">The Academy's arena: the training construct and the practical moments (M2-21b).</param>
+/// <param name="Spawners">The slice region's places kept lived in (M2-16).</param>
 public sealed record CreatureSystems(
     JobApplySystem JobApply,
     LodSystem Lod,
@@ -99,7 +100,8 @@ public sealed record CreatureSystems(
     SkillSystem Skills,
     ReputationFlushSystem ReputationFlush,
     Quests.QuestSystem Quests,
-    Academy.ArenaSystem Arena)
+    Academy.ArenaSystem Arena,
+    SpawnerSystem Spawners)
 {
     /// <summary>Builds the systems for <paramref name="world"/> (wires the path planner to the movement system).</summary>
     public static CreatureSystems Create(CreatureWorld world)
@@ -125,7 +127,8 @@ public sealed record CreatureSystems(
             new SkillSystem(world),
             new ReputationFlushSystem(world.Reputation),
             new Quests.QuestSystem(world),
-            new Academy.ArenaSystem(world));
+            new Academy.ArenaSystem(world),
+            new SpawnerSystem(world));
     }
 
     /// <summary>Creatures' attack intents (M2-03).</summary>
@@ -181,6 +184,7 @@ public sealed record CreatureSystems(
         scheduler.Register(Fight.Crafting);
         scheduler.Register(Quests);
         scheduler.Register(Arena);
+        scheduler.Register(Spawners);
         scheduler.Register(Growth);
         scheduler.Register(Skills);
         scheduler.Register(ReputationFlush);

@@ -143,4 +143,14 @@ public class InteractionTextTests
         Assert.Contains("Bond Capacity 2", lines, StringComparison.Ordinal);
         Assert.Contains("rank up", InteractionText.ProfileLines(profile with { Rank = 0, Level = 10 }, growth, ShippedData.Current.Combat), StringComparison.Ordinal);
     }
+
+    [Fact]
+    public void Directions_name_the_distance_and_the_way_with_north_along_z()
+    {
+        Assert.Equal("40 m north", InteractionText.Direction(0, 40));
+        Assert.Equal("50 m east", InteractionText.Direction(50, 2));
+        Assert.Equal("70 m north-east", InteractionText.Direction(50, 50));
+        Assert.Equal("20 m south-west", InteractionText.Direction(-14, -14));
+        Assert.Equal("here", InteractionText.Direction(1, 1));
+    }
 }

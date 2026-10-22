@@ -31,11 +31,13 @@ public sealed class DataRegistry : IDataRegistry
         IReadOnlyList<GatherNodeDefinition> gatherNodes,
         IReadOnlyList<RecipeDefinition> recipes,
         IReadOnlyList<QuestDefinition> quests,
-        AcademyDefinition? academy)
+        AcademyDefinition? academy,
+        RegionDefinition? region)
     {
         Recipes = recipes;
         Quests = quests;
         Academy = academy;
+        Region = region;
         Items = items;
         GatherNodes = gatherNodes;
         _itemIndexById = items.Select((definition, index) => (definition.Id, index)).ToDictionary(item => item.Id, item => item.index, StringComparer.Ordinal);
@@ -115,6 +117,9 @@ public sealed class DataRegistry : IDataRegistry
 
     /// <inheritdoc />
     public AcademyDefinition? Academy { get; }
+
+    /// <inheritdoc />
+    public RegionDefinition? Region { get; }
 
     /// <inheritdoc />
     public int ItemIndex(string id)

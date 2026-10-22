@@ -61,6 +61,9 @@ The game plays on the local dev server, which runs in Docker on this PC. Nothing
    Inside the Academy walls nobody can fight, except in the arena.
    After your rank, Keeper Lisel (in the east of the Academy) brings you a young creature of your
    own! Feed it (E) and offer it a Pact (P): it will always say yes. Then call it with Z.
+   THE PATH: after the Academy, the quests lead you north to the Memory Grove, east to the
+   Gathering Meadow and then to the Bogfox Den. The top right of the screen tells you how far and
+   which way to go. Big letters show the name of each place when you arrive.
    J opens your quests: take new ones with Accept. What to do next is shown at the top right, and a
    line tells you when a quest is done and what you get.
    B opens crafting: click a recipe to make it. Stand still for a few seconds; if something hits

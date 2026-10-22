@@ -23,6 +23,9 @@ public static partial class DataRegistryLoader
     /// <summary>File kind for <see cref="AcademyDefinition"/> (at most one, M2-21).</summary>
     public const string AcademyKind = "academy";
 
+    /// <summary>File kind for <see cref="RegionDefinition"/> (at most one, M2-16).</summary>
+    public const string RegionKind = "region";
+
     private static readonly string[] KnownWearers = ["player", "quadruped", "avian", "serpentine", "biped"];
 
     private const int MaxStack = 999;

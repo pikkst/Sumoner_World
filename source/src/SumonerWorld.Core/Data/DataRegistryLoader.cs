@@ -149,6 +149,7 @@ public static partial class DataRegistryLoader
         private readonly List<(RecipeDefinition Entry, string Where)> _recipes = [];
         private readonly List<(QuestDefinition Entry, string Where)> _quests = [];
         private readonly List<(AcademyDefinition Entry, string Where)> _academies = [];
+        private readonly List<(RegionDefinition Entry, string Where)> _regions = [];
         private readonly Dictionary<string, string> _speciesSources = new(StringComparer.Ordinal);
         private readonly Dictionary<string, List<string>> _filesByKind = new(StringComparer.Ordinal);
 
@@ -227,7 +228,7 @@ public static partial class DataRegistryLoader
                 case RunesKind or SpellsKind or EffectsKind or CombosKind:
                     AddMagic(kind, file);
                     break;
-                case ItemsKind or LootTablesKind or GatherNodesKind or RecipesKind or QuestsKind or AcademyKind:
+                case ItemsKind or LootTablesKind or GatherNodesKind or RecipesKind or QuestsKind or AcademyKind or RegionKind:
                     AddEconomy(kind, file);
                     break;
                 case SkillTreesKind:
@@ -240,7 +241,7 @@ public static partial class DataRegistryLoader
 
                     break;
                 default:
-                    Errors.Add($"{file.Path}: unknown kind '{kind}'. Known kinds: {MemoryEventTypesKind}, {SpeciesKind}, {OpinionWeightsKind}, {GoalsKind}, {BehaviourTreesKind}, {PactTermsKind}, {BondLevelsKind}, {MovesKind}, {CombatKind}, {SkillTreesKind}, {RunesKind}, {SpellsKind}, {EffectsKind}, {CombosKind}, {ItemsKind}, {LootTablesKind}, {GatherNodesKind}, {RecipesKind}, {QuestsKind}, {AcademyKind}.");
+                    Errors.Add($"{file.Path}: unknown kind '{kind}'. Known kinds: {MemoryEventTypesKind}, {SpeciesKind}, {OpinionWeightsKind}, {GoalsKind}, {BehaviourTreesKind}, {PactTermsKind}, {BondLevelsKind}, {MovesKind}, {CombatKind}, {SkillTreesKind}, {RunesKind}, {SpellsKind}, {EffectsKind}, {CombosKind}, {ItemsKind}, {LootTablesKind}, {GatherNodesKind}, {RecipesKind}, {QuestsKind}, {AcademyKind}, {RegionKind}.");
                     break;
             }
         }
@@ -286,10 +287,17 @@ public static partial class DataRegistryLoader
                     }
 
                     break;
-                default:
+                case AcademyKind:
                     foreach ((AcademyDefinition entry, int index) in ReadEntries<AcademyDefinition>(file, Errors))
                     {
                         _academies.Add((entry, $"{file.Path}: entries[{index}]"));
+                    }
+
+                    break;
+                default:
+                    foreach ((RegionDefinition entry, int index) in ReadEntries<RegionDefinition>(file, Errors))
+                    {
+                        _regions.Add((entry, $"{file.Path}: entries[{index}]"));
                     }
 
                     break;
@@ -358,6 +366,16 @@ public static partial class DataRegistryLoader
             ValidateEconomy(_items, _lootTables, _gatherNodes, _recipes, _species, Errors);
             AcademyDefinition? academy = _academies.Count == 1 ? _academies[0].Entry : null;
             QuestValidation.ValidateQuests(_quests, _species, _items, academy, Errors);
+            RegionDefinition? region = _regions.Count == 1 ? _regions[0].Entry : null;
+            if (_regions.Count > 1)
+            {
+                Errors.Add($"Expected at most one region entry, found {_regions.Count}.");
+            }
+            else if (region is not null)
+            {
+                RegionValidation.Validate(region, _regions[0].Where, _species, _gatherNodes, Errors);
+            }
+
             if (_academies.Count > 1)
             {
                 Errors.Add($"Expected at most one academy entry, found {_academies.Count}.");
@@ -391,7 +409,8 @@ public static partial class DataRegistryLoader
                 [.. _gatherNodes.Select(item => item.Entry).OrderBy(definition => definition.Id, StringComparer.Ordinal)],
                 [.. _recipes.Select(item => item.Entry)],
                 [.. _quests.Select(item => item.Entry)],
-                academy);
+                academy,
+                region);
         }
 
         private void AddSpecies(DataFile file)

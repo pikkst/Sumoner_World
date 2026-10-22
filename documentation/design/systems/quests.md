@@ -49,9 +49,16 @@ creature end at the creature, which still accepts or refuses a Pact itself, GDD 
 - Progress comes from the simulation: the quest system reads defeats, gathers, crafts, Pacts, feeds and helps of the tick,
   and checks places twice a second.
 
-## 7. Slice content (M2-19)
-Four short quests around the spawn point teach the slice loop: gather berries, craft a staff, deal with bogfoxes, and make a
-friend in the grove (reach the grove, then a Pact).
+## 7. Slice content (M2-19, path M2-16)
+The slice is one path (`data/world/slice_region.json`), about 30 minutes, each quest opening the next:
+1. **The Ranking** and **A First Friend** at the **Summoner Academy** (just south of the spawn).
+2. **The Memory Grove** (40 m north): go there, feed two creatures; a mossback herd and an owl live there.
+3. **Berries for the Road** and **A Staff of Your Own** in the **Gathering Meadow** (east of the grove): berries, roots and
+   branches, two owls.
+4. **The Bogfox Den** (north-east of the meadow, from level 2): a ring of rocks, a pack of four bogfoxes (levels 2-4) and their
+   leader (level 6); defeat three with your companion.
+Spawners keep each place lived in, also in worlds saved before the places existed; entering a place shows its name; the quest
+tracker shows how far and which way the next place is.
 
 ## 8. Academy additions (M2-21a)
 The Academy spec §2 (approved) lists more objective kinds; `talk` (to one of the Academy's people) and `answer` (the ranking
