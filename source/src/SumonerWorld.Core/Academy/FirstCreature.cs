@@ -10,9 +10,9 @@ using SumonerWorld.Core.World;
 namespace SumonerWorld.Core.Academy;
 
 /// <summary>
-/// The guaranteed first creature (Academy spec §4, M2-22): when a ranked student talks to the Keeper, the Keeper brings a young
-/// creature of the student's class whose tier matches their rank; its species is the one the student's answers voted for most
-/// (a tie goes to the seeded roll). It stands beside the Keeper, kept for that student: their starter Pact always succeeds,
+/// The guaranteed first creature (Academy spec §4, M2-22, E3c): when a ranked student talks to the Keeper of their class, the
+/// Keeper brings a young creature of the student's class whose tier matches their rank; its species is the class's creature for
+/// the one the student's answers voted for most (a tie goes to the seeded roll). It stands beside the Keeper, kept for that student: their starter Pact always succeeds,
 /// anyone else's is refused.
 /// </summary>
 public static class FirstCreatureRules
@@ -68,7 +68,8 @@ public static class FirstCreatureRules
         AcademyDefinition academy = world.Data.Academy!;
         ulong account = world.World.GetComponent<PlayerAvatar>(avatar).AccountId;
         AcademyStanding standing = world.Economy.Academy.Of(account);
-        string id = Species(academy, standing, world.Random.NextInt(0, 1000)) ?? world.Data.Species[0].Id;
+        var summonerClass = (SummonerClass)world.World.GetComponent<PlayerProgress>(avatar).Class;
+        string id = academy.FirstCreatureOf(summonerClass, Species(academy, standing, world.Random.NextInt(0, 1000)) ?? world.Data.Species[0].Id);
         ushort species = world.SpeciesIndex(id);
         Vector3 player = world.World.GetComponent<Position>(avatar).Value;
         Vector2 toward = Vector2.Normalize(new Vector2(player.X - keeper.X, player.Z - keeper.Z) + new Vector2(0.001f, 0));

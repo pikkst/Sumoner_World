@@ -65,6 +65,25 @@ public sealed class FirstCreatureTests : IDisposable
     }
 
     [Fact]
+    public void A_dwarf_gets_a_dwarf_creature_from_keeper_borra_and_lisel_brings_nothing()
+    {
+        _world.World.GetComponent<PlayerProgress>(_alice).Class = (int)SummonerClass.Dwarf;
+        Ticks(16);
+        int borra = RankingRules.NpcIndex(_world.Data, "dwarf_keeper");
+        NpcDefinition keeper = Academy.Npcs[borra];
+
+        Assert.Equal(0, Run(new TalkTransaction(_world, _alice, _keeper)).Detail);
+        _world.World.GetComponent<Position>(_alice) = new Position(new Vector3(keeper.X - 2, 0, keeper.Z));
+        IntentResult talk = Run(new TalkTransaction(_world, _alice, borra));
+
+        Assert.Equal(TalkResult.Brought, talk.Detail);
+        Assert.True(_world.TryFindCreature(new StableId(_world.Economy.Academy.Of(Alice).FirstCreature), out Entity creature));
+        Assert.Equal("cinder_mole", _world.Data.Species[_world.World.GetComponent<SpeciesRef>(creature).Index].Id);
+        Ticks(1);
+        Assert.Equal(1, _world.Economy.Quests.Of(Alice).Find(Quest(Academy.FirstFriendQuest))!.Step);
+    }
+
+    [Fact]
     public void The_keeper_brings_a_young_creature_kept_for_the_student_whose_starter_pact_always_succeeds()
     {
         Ticks(16);

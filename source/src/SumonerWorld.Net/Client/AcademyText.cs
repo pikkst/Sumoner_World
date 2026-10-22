@@ -51,9 +51,13 @@ public static class AcademyText
     {
         ArgumentNullException.ThrowIfNull(academy);
         NpcDefinition person = academy.Npcs[npc];
+        var summonerClass = (SummonerClass)(profile?.Class ?? 0);
         if (person.Role == "keeper")
         {
-            return Keeper(person, friend);
+            // Another class's Keeper sends the student to their own (E3c); before the ranking every Keeper just greets.
+            return ranking is { Status: (byte)QuestStatus.Done } && academy.KeeperOf(summonerClass) is NpcDefinition own && own != person
+                ? Words(person, $"My creatures answer only to {Plural(person.Class)}. Your Keeper is {own.Name}: {own.Name.Split(' ')[^1]} has someone for you.")
+                : Keeper(person, friend);
         }
 
         if (ranking is not QuestEntry entry || quest is null || person.Role is not ("headmaster" or "arena_master"))
@@ -64,7 +68,7 @@ public static class AcademyText
         if (entry.Status != (byte)QuestStatus.Active)
         {
             return person.Role == "headmaster"
-                ? Words(person, $"{RankLine(academy, profile?.Rank ?? 0)} Keeper Lisel will soon have someone for you to meet.")
+                ? Words(person, $"{RankLine(academy, profile?.Rank ?? 0)} {academy.KeeperOf(summonerClass)?.Name ?? "Your Keeper"} will soon have someone for you to meet.")
                 : Words(person, person.Greeting);
         }
 
@@ -142,9 +146,19 @@ public static class AcademyText
         SummonerClass joined = RankingRules.Joined(academy, leaning);
         string place = leaning == joined
             ? $"You are {Article(joined)} {joined} summoner, now and always."
-            : $"Your answers sound like {Article(leaning)} {leaning} summoner, but the Elves' grove calls to you for now. You are an Elf summoner, now and always.";
-        return $"{place} {RankLine(academy, (int)rank)}";
+            : $"Your answers sound like {Article(leaning)} {leaning} summoner, but the {Plural(AcademyDefinition.ClassIds[(int)joined])} call to you for now. You are {Article(joined)} {joined} summoner, now and always.";
+        string keeper = academy.KeeperOf(joined) is NpcDefinition own ? $" {own.Name} has a young friend waiting for you." : string.Empty;
+        return $"{place} {RankLine(academy, (int)rank)}{keeper}";
     }
+
+    // A class id as people: elf → Elves, human → Humans, necromancer → Necromancers, dwarf → Dwarves.
+    private static string Plural(string classId) => classId switch
+    {
+        "elf" => "Elves",
+        "dwarf" => "Dwarves",
+        "" => "summoners",
+        _ => char.ToUpperInvariant(classId[0]) + classId[1..] + "s",
+    };
 
     /// <summary>The Headmaster's line for a rank.</summary>
     public static string RankLine(AcademyDefinition academy, int rank)

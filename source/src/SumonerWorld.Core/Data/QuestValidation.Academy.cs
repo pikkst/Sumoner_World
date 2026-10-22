@@ -34,6 +34,8 @@ internal static partial class QuestValidation
             errors.Add($"{where}: the Academy needs exactly one headmaster.");
         }
 
+        ValidateKeepers(academy, where, species, errors);
+
         DataRegistryLoader.CheckRange(academy.Questions.Count, AcademyDefinition.QuestionCount, AcademyDefinition.QuestionCount, "questions", where, errors);
         for (int q = 0; q < academy.Questions.Count; q++)
         {
@@ -74,6 +76,30 @@ internal static partial class QuestValidation
         if (!quests.Any(quest => quest.Id == academy.RankingQuest))
         {
             errors.Add($"{where}: rankingQuest '{academy.RankingQuest}' is not a quest.");
+        }
+    }
+
+    // Every open class has its Keeper, and each class's first creatures are its own species (E3c).
+    private static void ValidateKeepers(AcademyDefinition academy, string where, List<SpeciesDefinition> species, List<string> errors)
+    {
+        foreach (string open in academy.OpenClasses.Where(AcademyDefinition.ClassIds.Contains))
+        {
+            if (academy.KeeperOf((Progression.SummonerClass)AcademyDefinition.ClassIds.ToList().IndexOf(open)) is null)
+            {
+                errors.Add($"{where}: open class '{open}' has no keeper (an npc with role keeper and class '{open}').");
+            }
+        }
+
+        foreach ((string classId, IReadOnlyDictionary<string, string> map) in academy.FirstCreatures)
+        {
+            int index = AcademyDefinition.ClassIds.ToList().IndexOf(classId);
+            foreach (string creature in map.Values)
+            {
+                if (index < 0 || !species.Any(definition => definition.Id == creature && (int)definition.Class == index))
+                {
+                    errors.Add($"{where}: firstCreatures of '{classId}' names '{creature}', which is not a species of that class.");
+                }
+            }
         }
     }
 }

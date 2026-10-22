@@ -36,8 +36,18 @@ public sealed record AcademyDefinition
     /// <summary>Lowest rank scores of ranks E, D and C (below the first is F).</summary>
     public IReadOnlyList<int> RankThresholds { get; init; } = [30, 50, 70];
 
-    /// <summary>Classes students can join now (M2: <c>elf</c> only).</summary>
+    /// <summary>Classes students can join now (M2: <c>elf</c> only; all four since E3c).</summary>
     public IReadOnlyList<string> OpenClasses { get; init; } = ["elf"];
+
+    /// <summary>
+    /// The first creature of each class (E3c): for a class id, the species a vote for each Elf creature brings instead (caring and
+    /// steady, bold, curious). A class or vote that is not listed brings the voted species itself.
+    /// </summary>
+    public IReadOnlyDictionary<string, IReadOnlyDictionary<string, string>> FirstCreatures { get; init; } =
+        new Dictionary<string, IReadOnlyDictionary<string, string>>();
+
+    /// <summary>The objective target that means "the Keeper of the player's own class" (E3c).</summary>
+    public const string OwnKeeper = "keeper";
 
     /// <summary>The Headmaster's line for each rank F, E, D, C at the ceremony.</summary>
     public IReadOnlyList<string> RankLines { get; init; } = [];
@@ -65,6 +75,27 @@ public sealed record AcademyDefinition
 
     /// <summary>Rank score a reading adds when it took more than one try.</summary>
     public int LateReadBonus { get; init; } = 2;
+
+    /// <summary>The Keeper of <paramref name="summonerClass"/> (E3c), or null.</summary>
+    public NpcDefinition? KeeperOf(Progression.SummonerClass summonerClass)
+    {
+        string id = ClassIds[(int)summonerClass];
+        foreach (NpcDefinition npc in Npcs)
+        {
+            if (npc.Role == "keeper" && npc.Class == id)
+            {
+                return npc;
+            }
+        }
+
+        return null;
+    }
+
+    /// <summary>The species a <paramref name="summonerClass"/> student gets for a vote for <paramref name="voted"/> (E3c).</summary>
+    public string FirstCreatureOf(Progression.SummonerClass summonerClass, string voted) =>
+        FirstCreatures.TryGetValue(ClassIds[(int)summonerClass], out IReadOnlyDictionary<string, string>? map) && map.TryGetValue(voted, out string? species)
+            ? species
+            : voted;
 
     /// <summary>True when <paramref name="x"/>, <paramref name="z"/> is inside the campus but outside the arena: no fighting there.</summary>
     public bool IsSafe(float x, float z)
@@ -101,6 +132,9 @@ public sealed record NpcDefinition
 
     /// <summary>What they say when there is nothing else to say.</summary>
     public string Greeting { get; init; } = string.Empty;
+
+    /// <summary>A Keeper's class id (E3c): the young creatures of that class wait with them; empty for others.</summary>
+    public string Class { get; init; } = string.Empty;
 }
 
 /// <summary>One ranking question (Academy spec §3.1).</summary>

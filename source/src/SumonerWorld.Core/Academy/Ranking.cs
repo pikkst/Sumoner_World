@@ -299,7 +299,15 @@ public record struct TalkTransaction(CreatureWorld Creatures, Entity Avatar, int
         ulong account = Creatures.World.GetComponent<PlayerAvatar>(Avatar).AccountId;
         Creatures.Events.Publish(new QuestEvent(account, ObjectiveType.Talk, Npc, 1));
         AcademyStanding standing = Creatures.Economy.Academy.Of(account);
-        if (academy.Npcs[Npc].Role == "keeper" && FirstCreatureRules.Waiting(Creatures, account))
+        var summonerClass = (SummonerClass)Creatures.World.GetComponent<PlayerProgress>(Avatar).Class;
+        bool ownKeeper = academy.Npcs[Npc].Role == "keeper" && academy.KeeperOf(summonerClass) == academy.Npcs[Npc];
+        if (ownKeeper)
+        {
+            // Only the Keeper of the student's own class counts as "your Keeper" (E3c).
+            Creatures.Events.Publish(new QuestEvent(account, ObjectiveType.Talk, -1, 1));
+        }
+
+        if (ownKeeper && standing.Ranked && FirstCreatureRules.Waiting(Creatures, account))
         {
             FirstCreatureRules.Bring(Creatures, Avatar, academy.Npcs[Npc]);
             return IntentResult.Applied(TalkResult.Brought);

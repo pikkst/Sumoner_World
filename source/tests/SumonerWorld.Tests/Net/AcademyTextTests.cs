@@ -38,11 +38,27 @@ public class AcademyTextTests
     public void The_ceremony_names_the_class_and_the_rank_and_says_when_another_class_called()
     {
         string elf = AcademyText.Ceremony(Academy, TalkResult.Ceremony(Rank.C, SummonerClass.Elf));
-        string human = AcademyText.Ceremony(Academy, TalkResult.Ceremony(Rank.F, SummonerClass.Human));
+        string dwarf = AcademyText.Ceremony(Academy, TalkResult.Ceremony(Rank.D, SummonerClass.Dwarf));
+        string closed = AcademyText.Ceremony(Academy with { OpenClasses = ["elf"] }, TalkResult.Ceremony(Rank.F, SummonerClass.Human));
 
         Assert.StartsWith("You are an Elf summoner", elf, StringComparison.Ordinal);
         Assert.Contains("Rank C", elf, StringComparison.Ordinal);
-        Assert.Contains("sound like a Human summoner, but the Elves' grove calls to you for now", human, StringComparison.Ordinal);
-        Assert.Contains("Rank F", human, StringComparison.Ordinal);
+        Assert.Contains("Keeper Lisel has a young friend waiting", elf, StringComparison.Ordinal);
+        Assert.StartsWith("You are a Dwarf summoner", dwarf, StringComparison.Ordinal);
+        Assert.Contains("Keeper Borra", dwarf, StringComparison.Ordinal);
+        Assert.Contains("sound like a Human summoner, but the Elves call to you for now", closed, StringComparison.Ordinal);
+        Assert.Contains("Rank F", closed, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void Another_classes_keeper_sends_a_ranked_student_to_their_own()
+    {
+        int tomas = Academy.Npcs.ToList().FindIndex(npc => npc.Id == "human_keeper");
+        var dwarf = new RosterEntry(1, (byte)SummonerClass.Dwarf, 1, 1, 0);
+
+        string text = AcademyText.PageOf(Academy, tomas, new QuestEntry(0, 3, 0), dwarf).Text;
+
+        Assert.Equal("My creatures answer only to Humans. Your Keeper is Keeper Borra: Borra has someone for you.", text);
+        Assert.Equal(Academy.Npcs[tomas].Greeting, AcademyText.PageOf(Academy, tomas, new QuestEntry(0, 1, 0), dwarf).Text);
     }
 }
