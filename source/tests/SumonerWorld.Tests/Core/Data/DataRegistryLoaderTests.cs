@@ -367,7 +367,7 @@ public class DataRegistryLoaderTests
         List<DataFile> files = ReadShippedData();
         Replace(files, "slice_quests.json", "\"target\": \"bogfox\"", "\"target\": \"dragon\"");
         Replace(files, "slice_quests.json", "\"requires\": [\"berries_for_the_road\"]", "\"requires\": [\"bogfox_trouble\"]");
-        Replace(files, "slice_quests.json", "\"radius\": 10", "\"radius\": 0");
+        Replace(files, "slice_quests.json", "\"radius\": 12", "\"radius\": 0");
 
         var error = Assert.Throws<DataValidationException>(() => DataRegistryLoader.Load(files));
 
@@ -381,9 +381,9 @@ public class DataRegistryLoaderTests
         DataRegistry registry = DataRegistryLoader.Load(ReadShippedData());
 
         Assert.Equal(
-            ["the_ranking", "a_first_friend", "berries_for_the_road", "a_staff_of_your_own", "bogfox_trouble", "a_friend_in_the_clearing"],
+            ["the_ranking", "a_first_friend", "a_friend_in_the_clearing", "berries_for_the_road", "a_staff_of_your_own", "bogfox_trouble"],
             registry.Quests.Select(quest => quest.Id));
-        Assert.Equal(ObjectiveType.Reach, registry.Quests[5].Steps[0].Objectives[0].Type);
+        Assert.Equal(ObjectiveType.Reach, registry.Quests[2].Steps[0].Objectives[0].Type);
     }
 
     private static void Replace(List<DataFile> files, string name, string find, string replace)

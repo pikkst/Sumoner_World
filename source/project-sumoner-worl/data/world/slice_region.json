@@ -1,0 +1,29 @@
+// The slice region (M2-16): the path Academy → Memory Grove → Gathering Meadow → Bogfox Den around the spawn point (256, 256).
+// Spawners keep each place lived in (also in worlds saved before a place existed); gathering spots are placed at every start.
+{
+  "schemaVersion": 1,
+  "kind": "region",
+  "entries": [
+    {
+      "places": [
+        { "id": "academy", "name": "Summoner Academy", "x": 256, "z": 234, "radius": 14, "line": "No fighting inside the walls, except in the arena." },
+        { "id": "memory_grove", "name": "Memory Grove", "x": 256, "z": 296, "radius": 20, "line": "The creatures here remember how you treat them." },
+        { "id": "gathering_meadow", "name": "Gathering Meadow", "x": 306, "z": 300, "radius": 18, "line": "Berries, roots and branches: press H to gather." },
+        { "id": "bogfox_den", "name": "Bogfox Den", "x": 338, "z": 352, "radius": 12, "line": "Careful: the pack defends its den.", "look": "den" }
+      ],
+      "spawners": [
+        { "place": "memory_grove", "species": "mossback", "count": 6, "minLevel": 1, "maxLevel": 3, "respawnSeconds": 240, "group": 9001 },
+        { "place": "memory_grove", "species": "hollow_owl", "count": 1, "minLevel": 2, "maxLevel": 3, "respawnSeconds": 300, "group": 9002 },
+        { "place": "gathering_meadow", "species": "hollow_owl", "count": 2, "minLevel": 1, "maxLevel": 2, "respawnSeconds": 300, "group": 9003 },
+        { "place": "bogfox_den", "species": "bogfox", "count": 4, "minLevel": 2, "maxLevel": 4, "respawnSeconds": 180, "group": 9004 },
+        { "place": "bogfox_den", "species": "bogfox", "count": 1, "minLevel": 6, "maxLevel": 6, "respawnSeconds": 600, "group": 9005 }
+      ],
+      "gatherSpots": [
+        { "place": "gathering_meadow", "node": "berry_bush", "count": 4 },
+        { "place": "gathering_meadow", "node": "sweetroot_patch", "count": 3 },
+        { "place": "gathering_meadow", "node": "fallen_branches", "count": 4 },
+        { "place": "memory_grove", "node": "berry_bush", "count": 2 }
+      ]
+    }
+  ]
+}

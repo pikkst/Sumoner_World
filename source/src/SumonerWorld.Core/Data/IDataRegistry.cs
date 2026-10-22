@@ -62,6 +62,9 @@ public interface IDataRegistry
     /// <summary>The Summoner Academy (M2-21), or null when the data has none.</summary>
     AcademyDefinition? Academy { get; }
 
+    /// <summary>The slice region's places, spawners and gathering spots (M2-16), or null.</summary>
+    RegionDefinition? Region { get; }
+
     /// <summary>Index of the item with this id in <see cref="Items"/>; throws when unknown.</summary>
     int ItemIndex(string id);
 

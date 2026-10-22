@@ -434,6 +434,21 @@ public static class InteractionText
         return string.Join(", ", parts);
     }
 
+    /// <summary>How far and which way an offset on the ground lies (+z is north, +x east), e.g. <c>40 m north-east</c> (M2-16).</summary>
+    public static string Direction(float dx, float dz)
+    {
+        float distance = MathF.Sqrt((dx * dx) + (dz * dz));
+        if (distance < 3)
+        {
+            return "here";
+        }
+
+        string[] ways = ["north", "north-east", "east", "south-east", "south", "south-west", "west", "north-west"];
+        float bearing = MathF.Atan2(dx, dz) * 180 / MathF.PI;
+        int sector = (int)MathF.Round(((bearing % 360) + 360) % 360 / 45) % 8;
+        return string.Create(System.Globalization.CultureInfo.InvariantCulture, $"{MathF.Round(distance / 5) * 5:0} m {ways[sector]}");
+    }
+
     /// <summary>The name of an equipment position.</summary>
     public static string PositionName(EquipPosition position) => position switch
     {

@@ -15,7 +15,7 @@ namespace SumonerWorld.Game.Ui;
 /// their step, objectives and Abandon, and the quests done. The tracker at the top right always shows the taken quests'
 /// objectives. A line says when a step moves on or a quest is done. J or Esc closes the log. The server decides everything.
 /// </summary>
-public sealed partial class QuestLog(GameClient client, IDataRegistry data, InteractionControls controls) : CanvasLayer
+public sealed partial class QuestLog(GameClient client, IDataRegistry data, InteractionControls controls, Func<Godot.Vector3> player) : CanvasLayer
 {
     private PanelContainer? _window;
     private VBoxContainer? _rows;
@@ -128,9 +128,20 @@ public sealed partial class QuestLog(GameClient client, IDataRegistry data, Inte
         foreach (QuestEntry entry in quests.Where(entry => entry.Status != (byte)QuestStatus.Done))
         {
             text.Append(data.Quests[entry.Quest].Title).Append('\n');
-            foreach (string line in QuestJournal.Objectives(data, entry))
+            IReadOnlyList<string> lines = QuestJournal.Objectives(data, entry);
+            IReadOnlyList<QuestObjectiveDefinition> objectives = entry.Step < data.Quests[entry.Quest].Steps.Count
+                ? data.Quests[entry.Quest].Steps[entry.Step].Objectives
+                : [];
+            for (int i = 0; i < lines.Count; i++)
             {
-                text.Append("  ").Append(line).Append('\n');
+                text.Append("  ").Append(lines[i]);
+                if (i < objectives.Count && objectives[i].Type == ObjectiveType.Reach && entry[i] == 0)
+                {
+                    Godot.Vector3 at = player();
+                    text.Append(" (").Append(InteractionText.Direction(objectives[i].X - at.X, objectives[i].Z - at.Z)).Append(')');
+                }
+
+                text.Append('\n');
             }
         }
 

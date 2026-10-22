@@ -128,6 +128,7 @@ public sealed class GameServer : IServerSessionHandler
         {
             // Placed from the same seed at every start: nodes are not saved, their places do not change.
             world.Economy.PlaceNodes(world.Data, world.Settings.Ground, settings.SpawnPoint, settings.GatherNodesPerKind, GatherNodeSeed);
+            Core.World.GatherSpots.Place(world.Economy, world.Data, world.Settings.Ground);
         }
         _dev = settings.DevTools ? new DevToolsHost(world, transport, metrics) : null;
         _scheduler = new SimulationScheduler(world.Clock, world.Events, _dev?.Metrics ?? metrics);

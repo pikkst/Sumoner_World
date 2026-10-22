@@ -30,10 +30,15 @@ public static class Panels
         var character = new CharacterWindow(client, data, controls);
         var bar = new ActionBar(client, data, controls, combat, companions, layoutFile);
         var book = new AbilityBook(data, controls, bar.Run);
-        var quests = new QuestLog(client, data, controls);
+        var quests = new QuestLog(client, data, controls, feet);
         foreach (Node panel in new Node[] { items, crafting, character, bar, book, quests })
         {
             parent.AddChild(panel);
+        }
+
+        if (data.Region is Core.Data.Definitions.RegionDefinition region)
+        {
+            parent.AddChild(new RegionView(region, World.DevWorld.Ground.HeightAt, feet));
         }
 
         AcademyDialogue? dialogue = null;
