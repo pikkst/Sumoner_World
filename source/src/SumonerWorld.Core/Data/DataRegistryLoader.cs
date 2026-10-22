@@ -374,7 +374,7 @@ public static partial class DataRegistryLoader
             }
             else if (region is not null)
             {
-                RegionValidation.Validate(region, _regions[0].Where, _species, _gatherNodes, Errors);
+                RegionValidation.Validate(region, _regions[0].Where, _species, _gatherNodes, _items, Errors);
             }
 
             if (_academies.Count > 1)

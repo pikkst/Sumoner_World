@@ -158,6 +158,15 @@ public enum IntentKind : byte
     /// <summary>Tell how a creature feels (since protocol 23): target = its stable id; argument = <c>Feeling</c>; detail 1 right, 0 wrong.</summary>
     Read = 25,
 
+    /// <summary>Buy from a vendor (since protocol 25): target = person index (bits 0–7) and count (bits 8–15); argument = shop entry.</summary>
+    Buy = 26,
+
+    /// <summary>Sell to a person (since protocol 25): target = person index (bits 0–7) and count (bits 8–15); argument = bag slot.</summary>
+    Sell = 27,
+
+    /// <summary>Rest at an inn (since protocol 25): target = the innkeeper's index.</summary>
+    Rest = 28,
+
     /// <summary>
     /// Cast a spell (since protocol 14): argument = index in the spells data; target = aim heading in 1/256 turns (bits 0–7),
     /// burst distance in decimetres (bits 8–23) and the ward's creature stable id (bits 24 and up, 0 = self).

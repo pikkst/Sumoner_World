@@ -80,6 +80,8 @@ internal sealed class PlayerIntents(CreatureWorld world, TransactionProcessor tr
             case IntentKind.Command:
                 var command = new CommandTransaction(world, avatar, (CompanionCommand)request.Argument, target);
                 return transactions.Execute(id, ref command, now);
+            case IntentKind.Buy or IntentKind.Sell or IntentKind.Rest:
+                return ExecuteTrade(id, avatar, request, now);
             case IntentKind.Attack when request.Target <= byte.MaxValue:
                 var attack = new AttackTransaction(world, avatar, request.Argument, (byte)request.Target);
                 return transactions.Execute(id, ref attack, now);
@@ -121,6 +123,25 @@ internal sealed class PlayerIntents(CreatureWorld world, TransactionProcessor tr
                 return transactions.Execute(id, ref use, now);
             default:
                 return IntentResult.Reject(IntentRejectReason.InvalidArguments);
+        }
+    }
+
+    // Trade and rest with the Vale's people (E5b): target = person index, with the count in bits 8–15.
+    private IntentResult ExecuteTrade(IntentId id, Entity avatar, IntentRequest request, ulong now)
+    {
+        int npc = (int)(request.Target & 0xFF);
+        int count = (int)((request.Target >> 8) & 0xFF);
+        switch (request.Kind)
+        {
+            case IntentKind.Buy:
+                var buy = new BuyTransaction(world, avatar, npc, request.Argument, count);
+                return transactions.Execute(id, ref buy, now);
+            case IntentKind.Sell:
+                var sell = new SellTransaction(world, avatar, npc, request.Argument, count);
+                return transactions.Execute(id, ref sell, now);
+            default:
+                var rest = new RestTransaction(world, avatar, npc);
+                return transactions.Execute(id, ref rest, now);
         }
     }
 

@@ -17,7 +17,7 @@ namespace SumonerWorld.Game.Ui;
 /// closes. The server checks every answer and decides the class and the rank.
 /// </summary>
 public sealed partial class AcademyDialogue(
-    GameClient client, IDataRegistry data, InteractionControls controls, PeopleView view, Func<Godot.Vector3> player, Func<ulong> creature)
+    GameClient client, IDataRegistry data, InteractionControls controls, PeopleView view, ShopWindow shop, Func<Godot.Vector3> player, Func<ulong> creature)
     : CanvasLayer
 {
     private PanelContainer? _window;
@@ -65,7 +65,21 @@ public sealed partial class AcademyDialogue(
             return;
         }
 
-        if (page.Kind == DialogueKind.Question)
+        if (page.Kind == DialogueKind.Person)
+        {
+            // A shop or an inn (E5b).
+            if (page.Options[option] == AcademyText.Trade)
+            {
+                int npc = _npc;
+                Close();
+                shop.Open(npc);
+            }
+            else
+            {
+                controls.Send(IntentKind.Rest, (ulong)_npc, "a rest");
+            }
+        }
+        else if (page.Kind == DialogueKind.Question)
         {
             client.SendIntent(IntentKind.Answer, (ulong)_npc, (byte)((page.Question * AcademyDefinition.AnswerCount) + option));
             _text!.Text = "...";

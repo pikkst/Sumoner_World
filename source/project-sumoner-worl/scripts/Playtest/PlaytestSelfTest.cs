@@ -36,7 +36,7 @@ public sealed partial class PlaytestSelfTest(
     private const float CloseMetres = 3f; // inside the basic attack's reach of a mossback (2 m + its 1.6 m body)
     private const double StepSeconds = 1.2;
     private const double WatchSeconds = 6;
-    private const int LastStep = 52;
+    private const int LastStep = 54;
     private const int AcademyLastStep = 7;
 
     private double _clock;
@@ -370,6 +370,14 @@ public sealed partial class PlaytestSelfTest(
                 break;
             case 52:
                 log.Write(LogLevel.Info, "selftest.settings", $"open {settings.IsOpen}: {settings.Describe()}; camera turns x{camera.MouseFactor:F2}");
+                panels.Shop?.Open(Core.World.People.IndexOf(panels.Data, "hadda"), preview: true);
+                break;
+            case 53:
+                log.Write(LogLevel.Info, "selftest.shop", panels.Shop?.Describe() ?? "no shop");
+                capture("shop");
+                panels.Shop?.Close();
+                break;
+            case 54:
                 break;
             default:
                 return false;
@@ -495,6 +503,7 @@ public sealed partial class PlaytestSelfTest(
 /// <param name="Data">The data both sides load.</param>
 /// <param name="Settings">The settings window with the key list (M2-17; set by the host).</param>
 /// <param name="Hud">The own bars (M2-17; set by the host).</param>
+/// <param name="Shop">The shop window (E5b).</param>
 public sealed record SelfTestPanels(
     Items.ItemControls Items,
     Items.CraftingPanel Crafting,
@@ -504,4 +513,5 @@ public sealed record SelfTestPanels(
     Ui.AcademyDialogue? Dialogue,
     Core.Data.IDataRegistry Data,
     Ui.SettingsWindow? Settings = null,
-    CombatHud? Hud = null);
+    CombatHud? Hud = null,
+    Ui.ShopWindow? Shop = null);

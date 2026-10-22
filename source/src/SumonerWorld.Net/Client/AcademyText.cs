@@ -20,6 +20,9 @@ public enum DialogueKind
 
     /// <summary>The reading test: pick how the creature feels (M2-21b).</summary>
     Read,
+
+    /// <summary>One of the Vale's people: their words, and "Trade" or "Rest" when they keep a shop or an inn (E5b).</summary>
+    Person,
 }
 
 /// <summary>One page of a dialogue: who speaks, what they say and the options.</summary>
@@ -167,16 +170,34 @@ public static class AcademyText
         return academy.RankLines.Count == 0 ? $"Rank {(Rank)rank}." : academy.RankLines[Math.Clamp(rank, 0, academy.RankLines.Count - 1)];
     }
 
+    /// <summary>The option that opens a shop (E5b).</summary>
+    public const string Trade = "Trade";
+
     /// <summary>
     /// What one of the Vale's people says (E5a): their greeting the first time, then their lines in turn
-    /// (<paramref name="talks"/> counts the talks so far, this one included).
+    /// (<paramref name="talks"/> counts the talks so far, this one included); with "Trade" and "Rest (n gold)" options when they
+    /// keep a shop or an inn (E5b).
     /// </summary>
     public static DialoguePage PersonPage(NpcDefinition person, int talks)
     {
         ArgumentNullException.ThrowIfNull(person);
         string words = talks <= 1 || person.Lines.Count == 0 ? person.Greeting : person.Lines[(talks - 2) % person.Lines.Count];
-        return Words(person, words);
+        var options = new List<string>();
+        if (person.Shop.Count > 0 || person.Buys.Count > 0)
+        {
+            options.Add(Trade);
+        }
+
+        if (person.RestPrice > 0)
+        {
+            options.Add(RestOption(person.RestPrice));
+        }
+
+        return new DialoguePage(person.Name, words, DialogueKind.Person, 0, options);
     }
+
+    /// <summary>The rest option's label.</summary>
+    public static string RestOption(int price) => $"Rest ({price} gold)";
 
     /// <summary>The prompt shown near a person.</summary>
     public static string Prompt(NpcDefinition npc)

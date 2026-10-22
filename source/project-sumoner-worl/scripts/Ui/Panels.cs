@@ -47,14 +47,17 @@ public static class Panels
         }
 
         AcademyDialogue? dialogue = null;
+        ShopWindow? shop = null;
         if (data.People.Count > 0)
         {
             var people = new PeopleView(data, World.DevWorld.Ground.HeightAt, () => client.LastSnapshotTick);
-            dialogue = new AcademyDialogue(client, data, controls, people, feet, creature);
+            shop = new ShopWindow(client, data, controls, () => people.PersonNear(feet()));
+            dialogue = new AcademyDialogue(client, data, controls, people, shop, feet, creature);
             parent.AddChild(people);
+            parent.AddChild(shop);
             parent.AddChild(dialogue);
         }
 
-        return new SelfTestPanels(items, crafting, character, bar, quests, dialogue, data);
+        return new SelfTestPanels(items, crafting, character, bar, quests, dialogue, data, Shop: shop);
     }
 }
