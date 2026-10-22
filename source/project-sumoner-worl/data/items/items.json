@@ -19,6 +19,13 @@
     { "id": "leather_vest", "category": "armour", "stack": 1, "weightGrams": 2000, "goldValue": 14, "tags": ["fur"],
       "slot": "body", "wearers": ["player", "quadruped"], "minLevel": 3, "stats": { "guard": 2, "resistPhysical": 50 } },
     { "id": "mossback_charm", "category": "charm", "stack": 1, "weightGrams": 100, "goldValue": 12, "tags": ["horn"],
-      "slot": "charm", "wearers": ["player", "quadruped", "avian"], "stats": { "resistPrimal": 100, "stamina": 10 } }
-  ]
+      "slot": "charm", "wearers": ["player", "quadruped", "avian"], "stats": { "resistPrimal": 100, "stamina": 10 } },
+    {"id": "storm_feather", "category": "material", "stack": 30, "weightGrams": 20, "goldValue": 4, "tags": ["feather", "storm_hawk"]},
+    {"id": "hound_fang", "category": "material", "stack": 20, "weightGrams": 40, "goldValue": 4, "tags": ["tooth", "plains_hound"]},
+    {"id": "wisp_essence", "category": "material", "stack": 20, "weightGrams": 10, "goldValue": 6, "tags": ["spirit", "wisp_hound"]},
+    {"id": "old_bone", "category": "material", "stack": 30, "weightGrams": 100, "goldValue": 2, "tags": ["bone", "bone_sprite"]},
+    {"id": "salamander_scale", "category": "material", "stack": 20, "weightGrams": 60, "goldValue": 5, "tags": ["scale", "ember_salamander"]},
+    {"id": "cinder_claw", "category": "material", "stack": 20, "weightGrams": 80, "goldValue": 5, "tags": ["claw", "cinder_mole"]},
+    {"id": "raw_ore", "category": "material", "stack": 30, "weightGrams": 500, "goldValue": 3, "tags": ["ore"]}
+]
 }

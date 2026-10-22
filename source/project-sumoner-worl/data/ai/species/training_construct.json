@@ -61,6 +61,7 @@
           "charge"
         ]
       },
+      "look": {"colour": "#8A8A80", "dark": "#4A4A44", "accent": "#B8E05A", "scale": 1.2, "length": 1.0, "feature": "none"},
       "goals": [
         "Rest"
       ]

@@ -1,0 +1,85 @@
+// Plains Hound (Human class, E3b). Starting values.
+{
+  "schemaVersion": 1,
+  "kind": "species",
+  "entries": [
+    {
+      "id": "plains_hound",
+      "nameKey": "species.plains_hound.name",
+      "role": "predator",
+      "bodyType": "quadruped",
+      "group": "pack",
+      "boldness": {
+        "mean": 20,
+        "spread": 25
+      },
+      "loyalty": {
+        "mean": 50,
+        "spread": 25
+      },
+      "curiosity": {
+        "mean": 10,
+        "spread": 25
+      },
+      "temper": {
+        "mean": 0,
+        "spread": 20
+      },
+      "needs": {
+        "hunger": 60,
+        "rest": 40,
+        "safety": 30,
+        "social": 60,
+        "territory": 40
+      },
+      "bodyRadiusCm": 60,
+      "class": "human",
+      "tier": "f",
+      "levels": {
+        "min": 1,
+        "max": 4
+      },
+      "pactThreshold": 500,
+      "perception": {
+        "sightRange": 60,
+        "sightHalfAngle": 80,
+        "hearingRange": 60
+      },
+      "combat": {
+        "health": 70,
+        "stamina": 120,
+        "mana": 20,
+        "power": 100,
+        "guard": 2,
+        "poise": 20,
+        "resist": {
+          "physical": 0,
+          "primal": 0
+        },
+        "moves": [
+          "hound_bite"
+        ]
+      },
+      "goals": [
+        "Flee",
+        "Fight",
+        "Hunt",
+        "Eat",
+        "Rest",
+        "Socialize",
+        "Explore",
+        "DefendTerritory",
+        "Approach",
+        "Avoid"
+      ],
+      "look": {
+        "colour": "#B08A5A",
+        "dark": "#4A3626",
+        "accent": "#F0E6D2",
+        "scale": 1.1,
+        "length": 1.0,
+        "feature": "ears"
+      }
+    }
+  ]
+}

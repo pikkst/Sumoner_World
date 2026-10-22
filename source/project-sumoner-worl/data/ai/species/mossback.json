@@ -56,6 +56,7 @@
           "charge"
         ]
       },
+      "look": {"colour": "#857860", "dark": "#4D4233", "accent": "#54853F", "scale": 1.0, "length": 1.0, "feature": "crest"},
       "goals": [
         "Flee",
         "Eat",

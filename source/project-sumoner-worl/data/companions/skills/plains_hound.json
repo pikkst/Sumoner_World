@@ -1,0 +1,164 @@
+// Fort companion: Tracker follows any trail, Packmate fights beside you, Guardian stands its ground. Node order is the saved bit order: append only. Starting values (E3b).
+{
+  "schemaVersion": 1,
+  "kind": "skillTrees",
+  "entries": [
+    {
+      "species": "plains_hound",
+      "branches": [
+        {
+          "id": "tracker",
+          "traits": [
+            {
+              "trait": "curiosity",
+              "factor": 6
+            }
+          ],
+          "roles": [
+            {
+              "role": "travel",
+              "factor": 5
+            }
+          ]
+        },
+        {
+          "id": "packmate",
+          "traits": [
+            {
+              "trait": "boldness",
+              "factor": 4
+            },
+            {
+              "trait": "temper",
+              "factor": 2
+            }
+          ],
+          "roles": [
+            {
+              "role": "combat",
+              "factor": 5
+            }
+          ]
+        },
+        {
+          "id": "guardian",
+          "traits": [
+            {
+              "trait": "loyalty",
+              "factor": 4
+            },
+            {
+              "trait": "temper",
+              "factor": -4
+            }
+          ],
+          "roles": [
+            {
+              "role": "work",
+              "factor": 4
+            }
+          ]
+        }
+      ],
+      "nodes": [
+        {
+          "id": "good_nose",
+          "branch": "tracker",
+          "level": 3,
+          "passive": {
+            "stat": "poise",
+            "amount": 10
+          }
+        },
+        {
+          "id": "pack_lunge",
+          "branch": "packmate",
+          "level": 3,
+          "move": "pack_lunge"
+        },
+        {
+          "id": "thick_coat",
+          "branch": "guardian",
+          "level": 3,
+          "passive": {
+            "stat": "health",
+            "amount": 10
+          }
+        },
+        {
+          "id": "long_run",
+          "branch": "tracker",
+          "level": 5,
+          "requires": [
+            "good_nose"
+          ],
+          "passive": {
+            "stat": "stamina",
+            "amount": 20
+          }
+        },
+        {
+          "id": "rally_howl",
+          "branch": "packmate",
+          "level": 5,
+          "requires": [
+            "pack_lunge"
+          ],
+          "move": "rally_howl"
+        },
+        {
+          "id": "stand_fast",
+          "branch": "guardian",
+          "level": 6,
+          "bondLevel": 2,
+          "requires": [
+            "thick_coat"
+          ],
+          "passive": {
+            "stat": "guard",
+            "amount": 2
+          }
+        },
+        {
+          "id": "endless_trail",
+          "branch": "tracker",
+          "level": 9,
+          "requires": [
+            "long_run"
+          ],
+          "passive": {
+            "stat": "health",
+            "amount": 15
+          }
+        },
+        {
+          "id": "pack_fury",
+          "branch": "packmate",
+          "level": 9,
+          "stage": "grown",
+          "requires": [
+            "rally_howl"
+          ],
+          "passive": {
+            "stat": "power",
+            "amount": 15
+          }
+        },
+        {
+          "id": "loyal_heart",
+          "branch": "guardian",
+          "level": 10,
+          "bondLevel": 3,
+          "stage": "grown",
+          "requires": [
+            "stand_fast"
+          ],
+          "passive": {
+            "stat": "guard",
+            "amount": 3
+          }
+        }
+      ]
+    }
+  ]
+}

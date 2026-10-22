@@ -155,6 +155,40 @@ public sealed record SpeciesDefinition
 
     /// <summary>Levels wild ones have (each creature gets one from its stable id).</summary>
     public LevelRange Levels { get; init; } = new();
+
+    /// <summary>How the client draws it (E3b); the default is the look of its role.</summary>
+    public LookDefinition? Look { get; init; }
+}
+
+/// <summary>
+/// How a species looks (E3b): the client builds its placeholder model from the body type, these colours, a size and a signature
+/// feature. Colours are <c>#RRGGBB</c>.
+/// </summary>
+public sealed record LookDefinition
+{
+    /// <summary>The signature features a model can have.</summary>
+    public static readonly IReadOnlyList<string> Features = ["none", "crest", "ears", "horns", "wings", "bones", "flame", "claws"];
+
+    /// <summary>Main skin, fur or feather colour.</summary>
+    public string Colour { get; init; } = "#857860";
+
+    /// <summary>Darker colour for legs, snout and eyes.</summary>
+    public string Dark { get; init; } = "#4D4233";
+
+    /// <summary>Colour of the signature feature.</summary>
+    public string Accent { get; init; } = "#54853F";
+
+    /// <summary>Size against the body type's usual size (1 = usual).</summary>
+    public float Scale { get; init; } = 1f;
+
+    /// <summary>Body length against its height (1 = usual; a salamander is long, a mole short).</summary>
+    public float Length { get; init; } = 1f;
+
+    /// <summary>The signature feature: one of <see cref="Features"/>.</summary>
+    public string Feature { get; init; } = "none";
+
+    /// <summary>A spirit's look: it glows softly and is a little see-through.</summary>
+    public bool Glow { get; init; }
 }
 
 /// <summary>A range of levels.</summary>

@@ -1,0 +1,86 @@
+// Wisp Hound (Necromancer class, E3b). Starting values.
+{
+  "schemaVersion": 1,
+  "kind": "species",
+  "entries": [
+    {
+      "id": "wisp_hound",
+      "nameKey": "species.wisp_hound.name",
+      "role": "spirit",
+      "bodyType": "quadruped",
+      "group": "pack",
+      "boldness": {
+        "mean": 0,
+        "spread": 25
+      },
+      "loyalty": {
+        "mean": 30,
+        "spread": 25
+      },
+      "curiosity": {
+        "mean": 40,
+        "spread": 25
+      },
+      "temper": {
+        "mean": -10,
+        "spread": 20
+      },
+      "needs": {
+        "hunger": 20,
+        "rest": 30,
+        "safety": 40,
+        "social": 50,
+        "territory": 30
+      },
+      "bodyRadiusCm": 55,
+      "class": "necromancer",
+      "tier": "e",
+      "levels": {
+        "min": 2,
+        "max": 5
+      },
+      "pactThreshold": 650,
+      "perception": {
+        "sightRange": 70,
+        "sightHalfAngle": 110,
+        "hearingRange": 70
+      },
+      "combat": {
+        "health": 55,
+        "stamina": 100,
+        "mana": 60,
+        "power": 95,
+        "guard": 0,
+        "poise": 15,
+        "resist": {
+          "physical": 0,
+          "primal": 0
+        },
+        "moves": [
+          "spirit_bite"
+        ]
+      },
+      "goals": [
+        "Flee",
+        "Fight",
+        "Hunt",
+        "Eat",
+        "Rest",
+        "Socialize",
+        "Explore",
+        "DefendTerritory",
+        "Approach",
+        "Avoid"
+      ],
+      "look": {
+        "colour": "#8FA8C8",
+        "dark": "#3A3F5A",
+        "accent": "#B9F2FF",
+        "scale": 1.0,
+        "length": 1.0,
+        "feature": "ears",
+        "glow": true
+      }
+    }
+  ]
+}

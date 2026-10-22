@@ -1,0 +1,84 @@
+// Cinder Mole (Dwarf class, E3b). Starting values.
+{
+  "schemaVersion": 1,
+  "kind": "species",
+  "entries": [
+    {
+      "id": "cinder_mole",
+      "nameKey": "species.cinder_mole.name",
+      "role": "grazer",
+      "bodyType": "quadruped",
+      "group": "herd",
+      "boldness": {
+        "mean": -20,
+        "spread": 25
+      },
+      "loyalty": {
+        "mean": 40,
+        "spread": 25
+      },
+      "curiosity": {
+        "mean": 30,
+        "spread": 25
+      },
+      "temper": {
+        "mean": -20,
+        "spread": 20
+      },
+      "needs": {
+        "hunger": 60,
+        "rest": 60,
+        "safety": 50,
+        "social": 40,
+        "territory": 40
+      },
+      "bodyRadiusCm": 50,
+      "class": "dwarf",
+      "tier": "f",
+      "levels": {
+        "min": 1,
+        "max": 4
+      },
+      "pactThreshold": 500,
+      "perception": {
+        "sightRange": 30,
+        "sightHalfAngle": 80,
+        "hearingRange": 60
+      },
+      "combat": {
+        "health": 90,
+        "stamina": 90,
+        "mana": 20,
+        "power": 85,
+        "guard": 5,
+        "poise": 35,
+        "resist": {
+          "physical": 0,
+          "primal": 0
+        },
+        "moves": [
+          "claw_dig"
+        ]
+      },
+      "goals": [
+        "Flee",
+        "Fight",
+        "Eat",
+        "Rest",
+        "Socialize",
+        "Explore",
+        "DefendTerritory",
+        "Approach",
+        "Avoid"
+      ],
+      "look": {
+        "colour": "#5A4A42",
+        "dark": "#2A2220",
+        "accent": "#FF8A3D",
+        "scale": 0.8,
+        "length": 0.7,
+        "feature": "claws"
+      }
+    }
+  ]
+}

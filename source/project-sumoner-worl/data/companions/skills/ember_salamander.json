@@ -1,0 +1,164 @@
+// Forge lizard: Kindler keeps the fire, Scorcher spits it, Hearthguard warms its friends. Node order is the saved bit order: append only. Starting values (E3b).
+{
+  "schemaVersion": 1,
+  "kind": "skillTrees",
+  "entries": [
+    {
+      "species": "ember_salamander",
+      "branches": [
+        {
+          "id": "kindler",
+          "traits": [
+            {
+              "trait": "curiosity",
+              "factor": 6
+            }
+          ],
+          "roles": [
+            {
+              "role": "travel",
+              "factor": 5
+            }
+          ]
+        },
+        {
+          "id": "scorcher",
+          "traits": [
+            {
+              "trait": "boldness",
+              "factor": 4
+            },
+            {
+              "trait": "temper",
+              "factor": 2
+            }
+          ],
+          "roles": [
+            {
+              "role": "combat",
+              "factor": 5
+            }
+          ]
+        },
+        {
+          "id": "hearthguard",
+          "traits": [
+            {
+              "trait": "loyalty",
+              "factor": 4
+            },
+            {
+              "trait": "temper",
+              "factor": -4
+            }
+          ],
+          "roles": [
+            {
+              "role": "work",
+              "factor": 4
+            }
+          ]
+        }
+      ],
+      "nodes": [
+        {
+          "id": "warm_blood",
+          "branch": "kindler",
+          "level": 3,
+          "passive": {
+            "stat": "poise",
+            "amount": 10
+          }
+        },
+        {
+          "id": "fire_spit",
+          "branch": "scorcher",
+          "level": 3,
+          "move": "fire_spit"
+        },
+        {
+          "id": "warm_scales",
+          "branch": "hearthguard",
+          "level": 3,
+          "passive": {
+            "stat": "health",
+            "amount": 10
+          }
+        },
+        {
+          "id": "slow_burn",
+          "branch": "kindler",
+          "level": 5,
+          "requires": [
+            "warm_blood"
+          ],
+          "passive": {
+            "stat": "stamina",
+            "amount": 20
+          }
+        },
+        {
+          "id": "ember_coil",
+          "branch": "scorcher",
+          "level": 5,
+          "requires": [
+            "fire_spit"
+          ],
+          "move": "ember_coil"
+        },
+        {
+          "id": "hearth_heart",
+          "branch": "hearthguard",
+          "level": 6,
+          "bondLevel": 2,
+          "requires": [
+            "warm_scales"
+          ],
+          "passive": {
+            "stat": "guard",
+            "amount": 2
+          }
+        },
+        {
+          "id": "living_coal",
+          "branch": "kindler",
+          "level": 9,
+          "requires": [
+            "slow_burn"
+          ],
+          "passive": {
+            "stat": "health",
+            "amount": 15
+          }
+        },
+        {
+          "id": "inferno",
+          "branch": "scorcher",
+          "level": 9,
+          "stage": "grown",
+          "requires": [
+            "ember_coil"
+          ],
+          "passive": {
+            "stat": "power",
+            "amount": 15
+          }
+        },
+        {
+          "id": "forge_scales",
+          "branch": "hearthguard",
+          "level": 10,
+          "bondLevel": 3,
+          "stage": "grown",
+          "requires": [
+            "hearth_heart"
+          ],
+          "passive": {
+            "stat": "guard",
+            "amount": 3
+          }
+        }
+      ]
+    }
+  ]
+}

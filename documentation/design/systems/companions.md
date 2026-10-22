@@ -151,6 +151,22 @@ contract v1.0.0); combat spec v0.4 (D1)
   checks every choice (`LearnSkill` intent, protocol 13). Skills are saved with the creature. Respec (gold) waits for M2-13;
   behaviour skills and "use skill" commands come later.
 
+## 12. Class creatures (E3b, 2026-10-22)
+Every class now has its own creatures (story bible §3). All are in data: species, moves, a skill tree of 9 nodes in 3 branches
+(two of them moves), loot and a look.
+
+| Class | Species | Body | Tier, levels | Fights with |
+|---|---|---|---|---|
+| Elf | mossback, bogfox, hollow owl | quadruped, quadruped, avian | F–E | physical, Primal |
+| Human | **storm hawk** (a highland hunter), **plains hound** (the fort's loyal pack dog) | avian, quadruped | E 2–5, F 1–4 | talons and Storm dives; bites, a pack lunge, a rallying howl that weakens foes |
+| Necromancer | **wisp hound** (a glowing spirit dog), **bone sprite** (a small, curious skeleton) | quadruped, biped | E 2–5, F 1–3 | Umbral bites that drain; rattling bones that slow, a grave chill |
+| Dwarf | **ember salamander** (a long forge lizard with a flaming back), **cinder mole** (a stout ash digger) | quadruped, quadruped | E 2–5, F 1–4 | fire licks and spits that burn; claws, a tunnel burst |
+
+- **Looks (data):** `look` in a species file sets colours, size, body length and a signature feature (crest, ears, horns,
+  wings, bones, flame, claws); spirits glow. The client builds a quadruped, an avian or a biped from it, and Grudge raises the
+  feature (ears flatten, wings spread, arms rise, a crest or flames stand up). `--showcase=species` shows them all.
+- Where they live comes with the bigger world (E4).
+
 ## Changelog
 - **0.2 (2026-10-21):** approved with the stakeholder's answers: three life stages (young, grown, elder) and levels; creatures
   never die of old age; tier caps the level (same scale as player ranks) and is tied to the summoner's rank; creatures bound to

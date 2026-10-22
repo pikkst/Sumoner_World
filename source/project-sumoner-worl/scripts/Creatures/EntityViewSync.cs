@@ -26,7 +26,8 @@ public sealed partial class EntityViewSync : Node3D
     private readonly IEmotePresenter _presenter;
     private readonly List<RemoteState> _states = [];
     private readonly Dictionary<(SnapshotEntityKind, ulong), Node3D> _views = [];
-    private readonly Dictionary<CreatureRole, Stack<CreatureRig>> _creaturePool = [];
+    private readonly Dictionary<int, Stack<CreatureRig>> _creaturePool = [];
+    private readonly Dictionary<CreatureRig, int> _rigSpecies = [];
     private readonly Stack<Node3D> _playerPool = new();
     private readonly HashSet<(SnapshotEntityKind, ulong)> _seen = [];
     private readonly List<(SnapshotEntityKind, ulong)> _gone = [];
@@ -120,15 +121,16 @@ public sealed partial class EntityViewSync : Node3D
         Node3D view;
         if (state.Kind == SnapshotEntityKind.Creature)
         {
-            CreatureRole role = state.Species < _data.Species.Count ? _data.Species[state.Species].Role : CreatureRole.Grazer;
-            role = role == CreatureRole.Predator ? role : CreatureRole.Grazer;
-            if (!_creaturePool.TryGetValue(role, out Stack<CreatureRig>? pool))
+            // One model per species (E3b: each has its own look); unknown species get the grazer look.
+            int species = state.Species < _data.Species.Count ? state.Species : -1;
+            if (!_creaturePool.TryGetValue(species, out Stack<CreatureRig>? pool))
             {
                 pool = new Stack<CreatureRig>();
-                _creaturePool.Add(role, pool);
+                _creaturePool.Add(species, pool);
             }
 
-            CreatureRig rig = pool.Count > 0 ? pool.Pop() : (CreatureRig)AddView(CreatureRig.Build(role));
+            CreatureRig rig = pool.Count > 0 ? pool.Pop() : (CreatureRig)AddView(species >= 0 ? CreatureRig.Build(_data.Species[species]) : CreatureRig.Build(CreatureRole.Grazer));
+            _rigSpecies[rig] = species;
             rig.Clock = state.Id % 97 * 0.31;
             view = rig;
         }
@@ -227,7 +229,7 @@ public sealed partial class EntityViewSync : Node3D
         view.Visible = false;
         if (view is CreatureRig rig)
         {
-            _creaturePool[rig.Role].Push(rig);
+            _creaturePool[_rigSpecies[rig]].Push(rig);
         }
         else
         {

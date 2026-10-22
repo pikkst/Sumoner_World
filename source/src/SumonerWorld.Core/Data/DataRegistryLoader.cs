@@ -953,6 +953,29 @@ public static partial class DataRegistryLoader
         {
             errors.Add($"{where}: goals must be a non-empty list of goal keys without duplicates.");
         }
+
+        ValidateLook(entry.Look, where, errors);
+    }
+
+    private static void ValidateLook(LookDefinition? look, string where, List<string> errors)
+    {
+        if (look is null)
+        {
+            return;
+        }
+
+        foreach ((string name, string colour) in new[] { ("colour", look.Colour), ("dark", look.Dark), ("accent", look.Accent) })
+        {
+            if (colour is not { Length: 7 } || colour[0] != '#' || !colour[1..].All(Uri.IsHexDigit))
+            {
+                errors.Add($"{where}: look.{name} '{colour}' must be a colour like #A0B0C0.");
+            }
+        }
+
+        if (!LookDefinition.Features.Contains(look.Feature) || look.Scale is < 0.2f or > 4f || look.Length is < 0.3f or > 3f)
+        {
+            errors.Add($"{where}: look needs a feature ({string.Join(", ", LookDefinition.Features)}), a scale in 0.2-4 and a length in 0.3-3.");
+        }
     }
 
     private static void CheckTrait(TraitRange? trait, string name, string where, List<string> errors)

@@ -1,0 +1,164 @@
+// Ash digger: Tunneler digs deep, Bulwark takes the blows, Ore-nose finds what shines. Node order is the saved bit order: append only. Starting values (E3b).
+{
+  "schemaVersion": 1,
+  "kind": "skillTrees",
+  "entries": [
+    {
+      "species": "cinder_mole",
+      "branches": [
+        {
+          "id": "tunneler",
+          "traits": [
+            {
+              "trait": "curiosity",
+              "factor": 6
+            }
+          ],
+          "roles": [
+            {
+              "role": "travel",
+              "factor": 5
+            }
+          ]
+        },
+        {
+          "id": "bulwark",
+          "traits": [
+            {
+              "trait": "boldness",
+              "factor": 4
+            },
+            {
+              "trait": "temper",
+              "factor": 2
+            }
+          ],
+          "roles": [
+            {
+              "role": "combat",
+              "factor": 5
+            }
+          ]
+        },
+        {
+          "id": "ore_nose",
+          "traits": [
+            {
+              "trait": "loyalty",
+              "factor": 4
+            },
+            {
+              "trait": "temper",
+              "factor": -4
+            }
+          ],
+          "roles": [
+            {
+              "role": "work",
+              "factor": 4
+            }
+          ]
+        }
+      ],
+      "nodes": [
+        {
+          "id": "strong_claws",
+          "branch": "tunneler",
+          "level": 3,
+          "passive": {
+            "stat": "poise",
+            "amount": 10
+          }
+        },
+        {
+          "id": "tunnel_burst",
+          "branch": "bulwark",
+          "level": 3,
+          "move": "tunnel_burst"
+        },
+        {
+          "id": "thick_hide",
+          "branch": "ore_nose",
+          "level": 3,
+          "passive": {
+            "stat": "health",
+            "amount": 10
+          }
+        },
+        {
+          "id": "deep_digger",
+          "branch": "tunneler",
+          "level": 5,
+          "requires": [
+            "strong_claws"
+          ],
+          "passive": {
+            "stat": "stamina",
+            "amount": 20
+          }
+        },
+        {
+          "id": "cinder_spray",
+          "branch": "bulwark",
+          "level": 5,
+          "requires": [
+            "tunnel_burst"
+          ],
+          "move": "cinder_spray"
+        },
+        {
+          "id": "ore_sense",
+          "branch": "ore_nose",
+          "level": 6,
+          "bondLevel": 2,
+          "requires": [
+            "thick_hide"
+          ],
+          "passive": {
+            "stat": "guard",
+            "amount": 2
+          }
+        },
+        {
+          "id": "stone_lungs",
+          "branch": "tunneler",
+          "level": 9,
+          "requires": [
+            "deep_digger"
+          ],
+          "passive": {
+            "stat": "health",
+            "amount": 15
+          }
+        },
+        {
+          "id": "ash_temper",
+          "branch": "bulwark",
+          "level": 9,
+          "stage": "grown",
+          "requires": [
+            "cinder_spray"
+          ],
+          "passive": {
+            "stat": "power",
+            "amount": 15
+          }
+        },
+        {
+          "id": "mountain_heart",
+          "branch": "ore_nose",
+          "level": 10,
+          "bondLevel": 3,
+          "stage": "grown",
+          "requires": [
+            "ore_sense"
+          ],
+          "passive": {
+            "stat": "guard",
+            "amount": 3
+          }
+        }
+      ]
+    }
+  ]
+}
