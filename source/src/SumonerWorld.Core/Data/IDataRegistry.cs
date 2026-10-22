@@ -65,6 +65,12 @@ public interface IDataRegistry
     /// <summary>The slice region's places, spawners and gathering spots (M2-16), or null.</summary>
     RegionDefinition? Region { get; }
 
+    /// <summary>
+    /// Every person (E5a): the Academy's people first (their indices never change), then the region's. A person's index is what the
+    /// client names them by when it talks.
+    /// </summary>
+    IReadOnlyList<NpcDefinition> People { get; }
+
     /// <summary>Index of the item with this id in <see cref="Items"/>; throws when unknown.</summary>
     int ItemIndex(string id);
 

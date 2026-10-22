@@ -21,7 +21,8 @@ merged under the standing approval. The GDD's "M3" items that this pulls forward
 | **E3c** All classes at the Academy | The ranking answers vote for all four classes; a first creature for each class; a mentor NPC per class | 2d |
 | **E4a** A bigger world: ground and life | 512 m → 2 km region; biomes in data shape the ground (highlands, marsh, ash hills, ruins) and mountains wall it; 14 new places with spawners for every class's creatures and new gathering (ore, glowcaps); navigation baked in tiles (near the spawn first); entity capacity 1024 | 3d |
 | **E4b** A bigger world: looks | Biome ground colours, plant cover and colours, the marsh's water, place looks (town, outposts, ruins, camp) | 2d |
-| **E5** NPCs and towns | NPCs from data (name, role, place, lines, daily walk); a hub town and an outpost per class tradition; **vendors** (buy and sell with gold, server transactions); talking reuses the Academy dialogue | 5d |
+| **E5a** People of the Vale | People from data (name, role, robe, greeting, lines, a walked round); Thornwick's innkeeper, merchant, smith, herbalist, scout, villagers and watchman; a mentor in each class home; talking to anyone (rounds follow the world tick, so server and clients agree) | 2d |
+| **E5b** Trade and rest | **Vendors** sell from their stock and buy what players gather and loot (server transactions with gold); a shop window; rest at the inn | 3d |
 | **E6** Story chapter 1 | The main quest line across the regions, class prologues, story dialogue, a chapter boss | 5d |
 | **E7** World map and travel | World map (M) with places, quest markers and the player; a compass; waystones to travel between visited towns | 3d |
 | **E8** Day and night | The 48-minute day of the GDD: sun, sky and light; creatures and NPCs follow the time of day | 2d |
@@ -31,7 +32,7 @@ Then **M2-18** (slice test and polish) runs on the expanded game: a bot run of t
 to zero critical, the test package.
 
 ## Dependencies
-E1 → E2 → E3a, E3b (in parallel) → E3c → E4a → E4b → E5 → E6 → E7, E8, E9 → M2-18.
+E1 → E2 → E3a, E3b (in parallel) → E3c → E4a → E4b → E5a → E5b → E6 → E7, E8, E9 → M2-18.
 
 ## Status
 | Task | Status |
@@ -43,3 +44,4 @@ E1 → E2 → E3a, E3b (in parallel) → E3c → E4a → E4b → E5 → E6 → E
 | E3c | **Done** 2026-10-22: all four classes open at the Academy; Keepers Tomas, Nyx and Borra beside Lisel; only one's own Keeper brings the first creature (quest target `keeper`); the vote becomes the class's creature (`firstCreatures`); ceremony and Keepers name the student's Keeper (Academy spec §10) |
 | E4a | **Done** 2026-10-22: the Vale of Oaths is 2 km (32 × 32 chunks); six biomes shape the ground and mountains wall it, the Academy's vale unchanged (old saves stand where they stood); 14 new places, 18 new spawners (every class's creatures, levels up to 9), ore and glowcap gathering; navigation in 64 tiles of 256 m, the 4 near the spawn before start (4.7 s), the rest in the background; entity capacity 1024 |
 | E4b | **Done** 2026-10-22: biome ground colours (Terrain3D colour map, fallback vertex colours), plants thinned, grown and tinted by biome, the Mournfen's water, place looks (Thornwick's houses, outposts with class banners, ruins, the Binder camp); fix: navigation tiles now join (the bake area includes the border; the server checks a path across a tile edge at start); `--showcase=vale` |
+| E5a | **Done** 2026-10-22: 12 people of the Vale in the region data (Thornwick: Marta, Pell, Hadda, Juniper, Scout Rook, Old Tam and Fenna on their rounds, Watchman Orrin; mentors Sael, Ilsa Varn, Wren and Dunrik); `IDataRegistry.People` (the Academy's first); talking to anyone, in reach of where they are now; greeting then lines; `PeopleView` |

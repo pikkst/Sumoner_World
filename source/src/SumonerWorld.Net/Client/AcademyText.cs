@@ -167,6 +167,17 @@ public static class AcademyText
         return academy.RankLines.Count == 0 ? $"Rank {(Rank)rank}." : academy.RankLines[Math.Clamp(rank, 0, academy.RankLines.Count - 1)];
     }
 
+    /// <summary>
+    /// What one of the Vale's people says (E5a): their greeting the first time, then their lines in turn
+    /// (<paramref name="talks"/> counts the talks so far, this one included).
+    /// </summary>
+    public static DialoguePage PersonPage(NpcDefinition person, int talks)
+    {
+        ArgumentNullException.ThrowIfNull(person);
+        string words = talks <= 1 || person.Lines.Count == 0 ? person.Greeting : person.Lines[(talks - 2) % person.Lines.Count];
+        return Words(person, words);
+    }
+
     /// <summary>The prompt shown near a person.</summary>
     public static string Prompt(NpcDefinition npc)
     {

@@ -1,4 +1,5 @@
 using SumonerWorld.Core.Data.Definitions;
+using SumonerWorld.Core.World;
 
 namespace SumonerWorld.Core.Data;
 
@@ -32,6 +33,7 @@ internal static class RegionValidation
         }
 
         ValidateBiomes(region, where, errors);
+        ValidatePeople(region, where, errors);
         var groups = new HashSet<int>();
         foreach (SpawnerDefinition spawner in region.Spawners)
         {
@@ -66,6 +68,28 @@ internal static class RegionValidation
                 || biome.HeightScale is < 0 or > 4 || biome.Plants is < 0 or > 3 || !IsColour(biome.Ground) || !IsColour(biome.PlantColour))
             {
                 errors.Add($"{where}: biome '{biome.Id}' needs a unique snake_case id, a radius above 0, heightScale 0-4, plants 0-3 and colours like #A0B0C0.");
+            }
+        }
+    }
+
+    // The Vale's people (E5a): unique ids, a known role, and a round inside the region.
+    private static void ValidatePeople(RegionDefinition region, string where, List<string> errors)
+    {
+        var ids = new HashSet<string>(StringComparer.Ordinal);
+        foreach (NpcDefinition person in region.People)
+        {
+            if (!DataRegistryLoader.IsSnakeCaseId(person.Id) || !ids.Add(person.Id) || !QuestValidation.NpcRoles.Contains(person.Role) || !IsColour(person.Robe))
+            {
+                errors.Add($"{where}: person '{person.Id}' needs a unique snake_case id, a role ({string.Join(", ", QuestValidation.NpcRoles)}) and a robe colour.");
+            }
+
+            foreach (RoutePoint point in person.Route.Append(new RoutePoint { X = person.X, Z = person.Z }))
+            {
+                if (point.X < RegionGround.RimWidth || point.Z < RegionGround.RimWidth || point.X > World.DevRegion.Size - RegionGround.RimWidth || point.Z > World.DevRegion.Size - RegionGround.RimWidth)
+                {
+                    errors.Add($"{where}: person '{person.Id}' stands or walks outside the region's walkable part.");
+                    break;
+                }
             }
         }
     }

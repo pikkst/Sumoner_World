@@ -17,6 +17,9 @@ public sealed record RegionDefinition
 
     /// <summary>Gathering nodes placed at a place at every start.</summary>
     public IReadOnlyList<GatherSpotDefinition> GatherSpots { get; init; } = [];
+
+    /// <summary>The people of the Vale's towns and outposts (E5a), after the Academy's in <c>IDataRegistry.People</c>.</summary>
+    public IReadOnlyList<NpcDefinition> People { get; init; } = [];
 }
 
 /// <summary>
