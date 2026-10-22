@@ -9,8 +9,8 @@ namespace SumonerWorld.Game.Characters;
 /// <summary>
 /// The own character on screen (M2-04, M2-11): the summoner model at the predicted position, facing where it runs (or the
 /// camera's way while it fights, casts or is locked on), animated from its speed and combat action, swelling and flinching when
-/// hit, wearing its status marks, and showing a spell's flight when a cast ends (a thornbolt's streak, entangle's sigil where it
-/// lands).
+/// hit, wearing its status marks, and showing a spell's flight when a cast ends in its school's colour (E3a): a bolt's streak, a
+/// burst's sigil where it lands, a ward's small sigil at the caster's feet.
 /// </summary>
 public sealed partial class OwnAvatar : Node3D
 {
@@ -19,10 +19,9 @@ public sealed partial class OwnAvatar : Node3D
 
     private const float TurnRate = 14f;
     private const float SpeedSmoothing = 8f;
-    private const float BoltLength = 20f;
-    private const float BurstRadius = 3f;
 
     private readonly GameClient _client;
+    private readonly Core.Data.IDataRegistry _data;
     private readonly HumanoidRig _rig;
     private readonly StatusMarksView _marks = new(0.6f);
     private Vector3 _last;
@@ -33,9 +32,10 @@ public sealed partial class OwnAvatar : Node3D
     private double _clock;
 
     /// <summary>Creates the own character for a client.</summary>
-    public OwnAvatar(GameClient client)
+    public OwnAvatar(GameClient client, Core.Data.IDataRegistry data)
     {
         _client = client;
+        _data = data;
         Name = "OwnAvatar";
         _rig = HumanoidRig.Build(EntityViewSync.OwnRobe);
         AddChild(_rig);
@@ -95,13 +95,18 @@ public sealed partial class OwnAvatar : Node3D
         }
 
         var ahead = new Vector3(Mathf.Sin(_yaw), 0, Mathf.Cos(_yaw));
-        if (spell == "thornbolt")
+        if (_data.Moves.FirstOrDefault(move => move.Id == spell) is not Core.Data.Definitions.MoveDefinition definition)
         {
-            AddChild(new BoltStreak(_rig.Position, _yaw, BoltLength));
+            return;
         }
-        else if (spell == "entangle")
+
+        Color colour = Sigil.SchoolColour(definition.School);
+        Node3D flight = definition.Shape.Kind switch
         {
-            AddChild(new SigilFlash(BurstRadius) { Position = _rig.Position + (ahead * distance) });
-        }
+            Core.Data.Definitions.MoveShapeKind.Line => new BoltStreak(_rig.Position, _yaw, definition.Shape.ReachCm / 100f, colour),
+            Core.Data.Definitions.MoveShapeKind.Burst => new SigilFlash(definition.Shape.RadiusCm / 100f, colour) { Position = _rig.Position + (ahead * distance) },
+            _ => new SigilFlash(1f, colour) { Position = _rig.Position },
+        };
+        AddChild(flight);
     }
 }

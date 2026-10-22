@@ -5,14 +5,21 @@ using SumonerWorld.Game.Characters;
 namespace SumonerWorld.Game.Combat;
 
 /// <summary>
-/// The status effects on a body (combat spec §7, §11, M2-11), shaped so they read without colour too (style guide §2.2): roots
-/// are spikes rising around the feet, slowed a low ring of drifting marks, mending a ring of light rising and falling.
+/// The status effects on a body (combat spec §7, §11, M2-11, E3a), shaped so they read without colour too (style guide §2.2):
+/// roots are spikes rising around the feet, slowed a low ring of drifting marks, mending a ring of light rising and falling,
+/// burning flickering flames, quickened a fast ring of sparks at the waist, weakened marks sinking over the head, warded a dim
+/// veil around the body and a shield a glowing ring of plates.
 /// </summary>
 public sealed partial class StatusMarksView : Node3D
 {
     private readonly Node3D _roots;
     private readonly Node3D _slow;
     private readonly Node3D _mend;
+    private readonly Node3D _burn;
+    private readonly Node3D _quick;
+    private readonly Node3D _weak;
+    private readonly MeshInstance3D _veil;
+    private readonly Node3D _shield;
     private double _clock;
 
     /// <summary>Builds the marks for a body of about <paramref name="radius"/> metres.</summary>
@@ -56,6 +63,36 @@ public sealed partial class StatusMarksView : Node3D
             MaterialOverride = primal,
         });
         AddChild(_mend);
+        _burn = Ring("Burning", 6, radius * 0.7f, 0.5f, new CylinderMesh { TopRadius = 0, BottomRadius = 0.1f, Height = 0.4f, RadialSegments = 4 }, Sigil.SchoolColour("ember"));
+        _quick = Ring("Quickened", 8, radius * 1.05f, 0.9f, new BoxMesh { Size = new Vector3(0.06f, 0.06f, 0.18f) }, Sigil.SchoolColour("storm"));
+        _weak = Ring("Weakened", 3, radius * 0.4f, 2.1f, new CylinderMesh { TopRadius = 0.09f, BottomRadius = 0, Height = 0.25f, RadialSegments = 4 }, Sigil.SchoolColour("umbral"));
+        StandardMaterial3D veil = Sigil.Material(new Color(0.3f, 0.2f, 0.45f));
+        veil.AlbedoColor = new Color(0.3f, 0.2f, 0.45f, 0.25f);
+        _veil = new MeshInstance3D { Name = "Warded", Visible = false, Mesh = new SphereMesh { Radius = radius * 1.3f, Height = radius * 2.6f }, MaterialOverride = veil, Position = new Vector3(0, radius, 0) };
+        AddChild(_veil);
+        _shield = Ring("Shielded", 6, radius * 1.2f, 0.8f, new BoxMesh { Size = new Vector3(0.35f, 0.4f, 0.04f) }, Sigil.SchoolColour("ember"));
+    }
+
+    // A ring of count marks around the body at the given height, hidden at first.
+    private Node3D Ring(string name, int count, float radius, float height, Mesh mesh, Color colour)
+    {
+        var ring = new Node3D { Name = name, Visible = false };
+        StandardMaterial3D material = Sigil.Material(colour);
+        for (int i = 0; i < count; i++)
+        {
+            float angle = i * Mathf.Tau / count;
+            ring.AddChild(new MeshInstance3D
+            {
+                Mesh = mesh,
+                MaterialOverride = material,
+                Position = new Vector3(Mathf.Sin(angle) * radius, height, Mathf.Cos(angle) * radius),
+                Rotation = new Vector3(0, angle, 0),
+                CastShadow = GeometryInstance3D.ShadowCastingSetting.Off,
+            });
+        }
+
+        AddChild(ring);
+        return ring;
     }
 
     /// <summary>Shows the effects in <paramref name="marks"/>.</summary>
@@ -64,6 +101,11 @@ public sealed partial class StatusMarksView : Node3D
         _roots.Visible = marks.HasFlag(StatusMarks.Rooted);
         _slow.Visible = marks.HasFlag(StatusMarks.Slowed);
         _mend.Visible = marks.HasFlag(StatusMarks.Mending);
+        _burn.Visible = marks.HasFlag(StatusMarks.Burning);
+        _quick.Visible = marks.HasFlag(StatusMarks.Quickened);
+        _weak.Visible = marks.HasFlag(StatusMarks.Weakened);
+        _veil.Visible = marks.HasFlag(StatusMarks.Warded);
+        _shield.Visible = marks.HasFlag(StatusMarks.Shielded);
     }
 
     /// <inheritdoc />
@@ -73,19 +115,29 @@ public sealed partial class StatusMarksView : Node3D
         float t = (float)_clock;
         _slow.Rotation = new Vector3(0, t * 0.8f, 0);
         _mend.Position = new Vector3(0, 0.2f + (Mathf.PingPong(t, 1f) * 1.4f), 0);
+        _burn.Scale = new Vector3(1, 0.7f + (0.4f * Mathf.Abs(Mathf.Sin(t * 9))), 1);
+        _quick.Rotation = new Vector3(0, t * 5f, 0);
+        _weak.Position = new Vector3(0, -Mathf.PingPong(t * 0.5f, 0.3f), 0);
+        _shield.Rotation = new Vector3(0, -t * 0.6f, 0);
     }
 }
 
-/// <summary>A thornbolt's flight: a thin Primal streak from the caster that fades in a quarter of a second.</summary>
+/// <summary>A bolt's flight: a thin streak in its school's colour from the caster that fades in a quarter of a second.</summary>
 public sealed partial class BoltStreak : Node3D
 {
     private const double Seconds = 0.25;
-    private readonly StandardMaterial3D _material = Sigil.Material();
+    private readonly StandardMaterial3D _material;
+    private readonly Color _colour;
     private double _age;
 
-    /// <summary>A streak <paramref name="length"/> metres long from <paramref name="from"/> along heading <paramref name="yaw"/>.</summary>
-    public BoltStreak(Vector3 from, float yaw, float length)
+    /// <summary>
+    /// A streak <paramref name="length"/> metres long from <paramref name="from"/> along heading <paramref name="yaw"/>, Primal unless
+    /// <paramref name="colour"/> is given.
+    /// </summary>
+    public BoltStreak(Vector3 from, float yaw, float length, Color? colour = null)
     {
+        _colour = colour ?? Sigil.Primal;
+        _material = Sigil.Material(_colour);
         Name = "BoltStreak";
         Position = from + new Vector3(0, 1.2f, 0);
         Rotation = new Vector3(0, yaw, 0);
@@ -108,6 +160,6 @@ public sealed partial class BoltStreak : Node3D
             return;
         }
 
-        _material.AlbedoColor = new Color(Sigil.Primal, 1 - (float)(_age / Seconds));
+        _material.AlbedoColor = new Color(_colour, 1 - (float)(_age / Seconds));
     }
 }

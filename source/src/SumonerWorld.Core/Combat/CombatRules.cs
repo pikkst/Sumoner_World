@@ -182,7 +182,8 @@ public static class CombatRules
     public static int ResistTo(in Combatant target, DamageType type) => type switch
     {
         DamageType.Primal => target.ResistPrimal,
-        _ => target.ResistPhysical,
+        DamageType.Physical => target.ResistPhysical,
+        _ => 0, // Storm, Umbral and Ember: no species resists them yet (E3a)
     };
 
     /// <summary>The stats a combatant's moves come from.</summary>

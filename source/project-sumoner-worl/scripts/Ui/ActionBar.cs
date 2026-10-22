@@ -22,6 +22,7 @@ public sealed partial class ActionBar(
 {
     private readonly UiSlot[] _buttons = new UiSlot[ActionLayout.Size];
     private ActionLayout _layout = ActionLayout.Default;
+    private int _class = -1;
 
     /// <summary>The layout now.</summary>
     public ActionLayout Layout => _layout;
@@ -127,6 +128,16 @@ public sealed partial class ActionBar(
     /// <inheritdoc />
     public override void _Process(double delta)
     {
+        // The class is known with the first snapshot and set at the ranking: the bar's spells follow its school (E3a).
+        if (client.LastSnapshotTick > 0 && client.OwnVitals.Class != _class)
+        {
+            _class = client.OwnVitals.Class;
+            if (ClassSpells.Adapt(data, _layout, (Core.Progression.SummonerClass)_class))
+            {
+                Save();
+            }
+        }
+
         for (int i = 0; i < _buttons.Length; i++)
         {
             _buttons[i].Show(ContentOf(_layout[i]));

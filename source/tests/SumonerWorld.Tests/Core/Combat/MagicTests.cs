@@ -43,7 +43,7 @@ public sealed class MagicTests : IDisposable
         Assert.Equal((12, MoveShapeKind.Line, 2000, 12, DamageType.Primal, "slowed", 10), (thornbolt.WindupTicks, thornbolt.Shape.Kind, thornbolt.Shape.ReachCm, thornbolt.Damage, thornbolt.DamageType, thornbolt.Effect, thornbolt.Mana));
         Assert.Equal((MoveShapeKind.Burst, 300, 0, "rooted", 20), (entangle.Shape.Kind, entangle.Shape.RadiusCm, entangle.Damage, entangle.Effect, entangle.Mana));
         Assert.Equal((MoveShapeKind.Ward, 30, "mending", 15), (mend.Shape.Kind, mend.Heal, mend.Effect, mend.Mana));
-        Assert.Equal(["entangle", "mend", "thornbolt"], _world.Data.Spells.Select(spell => spell.Id));
+        Assert.Equal(["entangle", "mend", "thornbolt"], _world.Data.Spells.Where(spell => _world.Data.Moves[_world.Data.MoveIndex(spell.Id)].School == "primal").Select(spell => spell.Id));
     }
 
     [Fact]

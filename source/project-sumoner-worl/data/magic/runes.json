@@ -1,4 +1,4 @@
-// Runes (combat spec §8, GDD §4): a spell is a form rune and an essence rune. Starting values.
+// Runes (combat spec §8, §8a, GDD §4): a spell is a form rune and an essence rune; essences belong to one school. Starting values.
 {
   "schemaVersion": 1,
   "kind": "runes",
@@ -8,6 +8,15 @@
     { "id": "ward", "slot": "form", "form": "ward", "rangeCm": 1500 },
     { "id": "thorns", "slot": "essence", "damage": 12, "damageType": "primal", "effect": "slowed", "school": "primal" },
     { "id": "roots", "slot": "essence", "damage": 0, "damageType": "primal", "effect": "rooted", "school": "primal" },
-    { "id": "growth", "slot": "essence", "heal": 30, "effect": "mending", "school": "primal" }
+    { "id": "growth", "slot": "essence", "heal": 30, "effect": "mending", "school": "primal" },
+    { "id": "spark", "slot": "essence", "damage": 10, "damageType": "storm", "poise": 40, "school": "storm" },
+    { "id": "thunder", "slot": "essence", "damage": 16, "damageType": "storm", "poise": 60, "school": "storm" },
+    { "id": "tailwind", "slot": "essence", "effect": "quickened", "school": "storm" },
+    { "id": "soul", "slot": "essence", "damage": 12, "damageType": "umbral", "drainPercent": 50, "school": "umbral" },
+    { "id": "shade", "slot": "essence", "damage": 4, "damageType": "umbral", "effect": "weakened", "school": "umbral" },
+    { "id": "veil", "slot": "essence", "effect": "warded", "school": "umbral" },
+    { "id": "flame", "slot": "essence", "damage": 8, "damageType": "ember", "effect": "burning", "school": "ember" },
+    { "id": "cinder", "slot": "essence", "damage": 18, "damageType": "ember", "effect": "burning", "school": "ember" },
+    { "id": "hearth", "slot": "essence", "shield": 40, "effect": "shielded", "school": "ember" }
   ]
 }

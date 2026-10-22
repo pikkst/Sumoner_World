@@ -196,9 +196,16 @@ public sealed class CombatSystem : ISimulationSystem
             CombatRules.Stagger(_ecs, _world.Data, target, now);
         }
 
-        damage = Math.Min(damage, victim.Health);
+        damage = Math.Min(StatusRules.Mitigate(_ecs, _world.Data, attacker, target, damage, now), victim.Health);
         victim.Health -= damage;
         victim.LastHurtTick = now;
+        if (definition.DrainPercent > 0 && damage > 0)
+        {
+            // Umbral drain (E3a): the caster heals a share of what the hit took.
+            ref Combatant caster = ref _combatants.Get(attacker);
+            caster.Health = Math.Min(caster.MaxHealth, caster.Health + Math.Max(1, damage * definition.DrainPercent / Percent));
+        }
+
         victim.LastAttacker = account;
         RememberFighter(target, account);
 
@@ -297,7 +304,7 @@ public sealed class CombatSystem : ISimulationSystem
         move.Hits = 1;
         if (definition.Effect is string effect)
         {
-            StatusRules.Apply(_ecs, _world.Data, target, effect, now, definition.Heal);
+            StatusRules.Apply(_ecs, _world.Data, target, effect, now, definition.Heal, definition.Shield);
         }
 
         if (target != caster && _players.Has(caster) && _ecs.Has<MindRef>(target))
@@ -329,6 +336,7 @@ public sealed class CombatSystem : ISimulationSystem
 public sealed class VitalsSystem : ISimulationSystem
 {
     private const int SparedEventCapacity = 16;
+    private const int Percent = 100;
 
     private readonly CreatureWorld _world;
     private readonly EcsWorld _ecs;
@@ -339,6 +347,7 @@ public sealed class VitalsSystem : ISimulationSystem
     private readonly ComponentStore<Blocking> _blocking;
     private readonly ComponentStore<Staggered> _staggered;
     private readonly ComponentStore<Dodging> _dodging;
+    private readonly ComponentStore<StatusEffects> _status;
     private readonly Entity[] _defeated;
     private readonly int _ticksPerSecond;
 
@@ -360,6 +369,7 @@ public sealed class VitalsSystem : ISimulationSystem
         _blocking = _ecs.Store<Blocking>();
         _staggered = _ecs.Store<Staggered>();
         _dodging = _ecs.Store<Dodging>();
+        _status = _ecs.Store<StatusEffects>();
         _defeated = new Entity[world.Settings.EntityCapacity];
         _ticksPerSecond = world.Clock.TicksPerSecond;
     }
@@ -380,6 +390,7 @@ public sealed class VitalsSystem : ISimulationSystem
         ulong now = tick.Index;
         CombatDefinition rules = _world.Data.Combat;
         int defeated = 0;
+        int quickened = _world.Data.EffectOf("quickened")?.RegenPercent ?? Percent;
         ReadOnlySpan<Entity> entities = _combatants.Entities;
         Span<Combatant> combatants = _combatants.Components;
         for (int i = 0; i < entities.Length; i++)
@@ -399,7 +410,8 @@ public sealed class VitalsSystem : ISimulationSystem
                 continue;
             }
 
-            Regenerate(ref c, rules, now, _blocking.Has(entities[i]));
+            bool quick = _status.Has(entities[i]) && now < _status.Get(entities[i]).QuickenedUntil;
+            Regenerate(ref c, rules, now, _blocking.Has(entities[i]), quick ? quickened : Percent);
         }
 
         Expire(rules, now);
@@ -410,12 +422,13 @@ public sealed class VitalsSystem : ISimulationSystem
         }
     }
 
-    private void Regenerate(ref Combatant c, CombatDefinition rules, ulong now, bool blocking)
+    // Stamina comes back at staminaPercent of the normal rate (Quickened, E3a).
+    private void Regenerate(ref Combatant c, CombatDefinition rules, ulong now, bool blocking, int staminaPercent)
     {
         ulong staminaFrom = c.LastSpendTick + (ulong)rules.StaminaRegenDelayTicks;
         if (c.Stamina < c.MaxStamina && now > staminaFrom && !blocking)
         {
-            c.Stamina = Math.Min(c.MaxStamina, c.Stamina + Gain(rules.StaminaRegenPerSecond, now - staminaFrom, _ticksPerSecond));
+            c.Stamina = Math.Min(c.MaxStamina, c.Stamina + Gain((long)rules.StaminaRegenPerSecond * staminaPercent / Percent, now - staminaFrom, _ticksPerSecond));
         }
 
         if (c.Mana < c.MaxMana)

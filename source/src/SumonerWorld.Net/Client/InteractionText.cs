@@ -103,6 +103,16 @@ public static class InteractionText
     /// <summary>An inventory line: the item's name and how many (M2-13).</summary>
     public static string ItemLine(string item, int count) => $"{SkillName(item)} x{count}";
 
+    /// <summary>A magic school's name, e.g. <c>Storm</c> for <c>storm</c> (E3a).</summary>
+    public static string SchoolName(string school) => school switch
+    {
+        "primal" => "Primal",
+        "storm" => "Storm",
+        "umbral" => "Umbral",
+        "ember" => "Ember",
+        _ => school,
+    };
+
     /// <summary>The line after a command was given (the companions answer with their bodies).</summary>
     public static string CommandSent(CompanionCommand command) => command switch
     {

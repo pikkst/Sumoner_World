@@ -29,7 +29,7 @@ public static class Panels
         var crafting = new Items.CraftingPanel(client, data, controls);
         var character = new CharacterWindow(client, data, controls);
         var bar = new ActionBar(client, data, controls, combat, companions, layoutFile);
-        var book = new AbilityBook(data, controls, bar.Run);
+        var book = new AbilityBook(data, controls, bar.Run, () => (Core.Progression.SummonerClass)client.OwnVitals.Class);
         var quests = new QuestLog(client, data, controls, feet);
         foreach (Node panel in new Node[] { items, crafting, character, bar, book, quests })
         {

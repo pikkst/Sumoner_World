@@ -1,5 +1,5 @@
 # Sumoner World - Combat & Magic v1 (D1)
-Version: **0.4** (M2 D1, M2-01, M2-02a, M2-02c) · Date: 2026-10-21 · Owners: Sr Game Designer (feel, values) + Mechanics Developer (contract, server) ·
+Version: **0.5** (M2 D1, M2-01, M2-02a, M2-02c, E3a) · Date: 2026-10-22 · Owners: Sr Game Designer (feel, values) + Mechanics Developer (contract, server) ·
 Status: **Approved by stakeholder 2026-10-21** (§13 answers recorded)
 Rules: R08, R11, R15, R21, R27, R28, R30–R33, R50 · Related: GDD v0.2 §3 Combat, §4 Magic, §9 Death, §10 Companions;
 AI Bible v0.1 §4 (memory events), §7–8 (decisions, learning), §10 (Bonding); TDD v0.1 §1 (budgets), §2 (tick stages), §3 (net)
@@ -112,6 +112,11 @@ GDD §1 says a player can earn trust by "defeating it without killing it". So cr
 | `Rooted` | cannot move (can still attack and cast), 2 s | Primal *Entangle* |
 | `Slowed` | 50% move speed, 3 s | bogfox *pounce*, thorn hits |
 | `Mending` | heals over time, 4 s | Primal *Mend* |
+| `Burning` | loses health over time (18 over 4 s) | Ember *Firebolt*, *Cinder Burst* |
+| `Hasted` | 140% move speed, 5 s | Storm *Tailwind* |
+| `Weakened` | deals 60% damage, 5 s | Umbral *Shade Grip* |
+| `Warded` | takes 60% damage, 6 s | Umbral *Veil* |
+| `Shielded` | a shield takes the next 40 damage, 8 s | Ember *Ember Shield* |
 
 Effects are data (`data/combat/effects.json`): duration in ticks, stack rule (refresh, never stack in v1), and tags for combos.
 
@@ -132,6 +137,24 @@ A spell is a form plus an essence. The player starts with three, and more combin
 - **Resonance** (GDD §4): a bonded Primal creature nearby lowers Primal spell costs by 10%. It is the first small payoff for
   your party shaping your build; more comes with D2.
 - Creatures cast with the same system: the bogfox's `foxfire` is `Bolt + Thorns` with its own stats.
+
+## 8a. The four schools (expansion E3a, 2026-10-22)
+Every class casts the spells of **its own school** (GDD §11): Elves Primal, Humans Storm, Necromancers Umbral, Dwarves Ember.
+The server refuses a spell of another school. Each school has a bolt, a burst and a ward, so every class has a ranged attack,
+an area spell and something for itself or a companion, but each plays differently:
+
+| School | Feel | Bolt | Burst | Ward |
+|---|---|---|---|---|
+| **Primal** | control and healing | Thornbolt (12, Slowed) | Entangle (Rooted) | Mend (+30 over 4 s) |
+| **Storm** | speed and knock-back | **Spark**: 10 Storm damage, poise 40 (staggers light creatures); 8 mana, 0.27 s | **Thunderclap**: 16 Storm damage in 3 m, poise 60; 22 mana, 0.67 s | **Tailwind**: Hasted 5 s; 12 mana, 0.33 s |
+| **Umbral** | drain and weaken | **Soulbolt**: 12 Umbral damage, the caster heals half of it; 10 mana, 0.4 s | **Shade Grip**: 4 Umbral damage in 3 m, Weakened 5 s; 18 mana, 0.67 s | **Veil**: Warded 6 s; 15 mana, 0.6 s |
+| **Ember** | fire over time and shields | **Firebolt**: 8 Ember damage, Burning; 10 mana, 0.4 s | **Cinder Burst**: 18 Ember damage in 3 m, Burning; 24 mana, 0.87 s | **Ember Shield**: Shielded (40); 15 mana, 0.6 s |
+
+- New essence fields (data): `poise` (a spell can stagger), `drainPercent` (the caster heals that share of the damage dealt),
+  `shield` (absorbs that much damage). Effects gained `damage` (Burning's total) and `damagePercent` (Weakened, Warded).
+- Storm, Umbral and Ember damage are not resisted in v1 (no species resists them yet). Shields take damage before health;
+  Warded and Weakened multiply; Burning cannot be blocked once it is on.
+- Resonance works for every school: a summoned companion of the caster's class lowers the cost by 10%.
 
 ## 9. Fights and the creature mind
 | What happens | Memory event (existing, AI Bible §4.2) | For whom |
@@ -250,6 +273,7 @@ window. Combos are data (`data/combat/combos.json`).
 
 ## Changelog
 - **0.1 (2026-10-21):** First draft (M2 D1), for stakeholder approval.
+- **0.5 (2026-10-22, E3a):** the four schools (§8a): Storm, Umbral and Ember spells, five new effects (§7), one school per class.
 - **0.4 (2026-10-21, M2-02c):** lock-on (§11a) on Normal servers, none on Hardcore; protocol 8.
 - **0.3 (2026-10-21, M2-02a):** defence implemented (§12a); protocol 7.
 - **0.2 (2026-10-21, M2-01):** implementation notes (§12a); mossback guard 4 → 2 (a flat 4 left light hits at 4 damage).

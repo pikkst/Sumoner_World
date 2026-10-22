@@ -6,7 +6,10 @@ namespace SumonerWorld.Core.Data;
 public static partial class DataRegistryLoader
 {
     /// <summary>The status effects the game knows (each has its own rules in code).</summary>
-    public static readonly IReadOnlyList<string> KnownEffects = ["rooted", "slowed", "mending"];
+    public static readonly IReadOnlyList<string> KnownEffects = ["rooted", "slowed", "mending", "burning", "quickened", "weakened", "warded", "shielded"];
+
+    /// <summary>The magic schools, one per class (GDD §4, §11).</summary>
+    public static readonly IReadOnlyList<string> KnownSchools = ["primal", "storm", "umbral", "ember"];
 
     private const int MaxSpellRangeCm = 5000;
     private const int MaxMana = 1000;
@@ -35,6 +38,14 @@ public static partial class DataRegistryLoader
 
         CheckRange(rune.Damage, 0, MaxDamage, "damage", where, errors);
         CheckRange(rune.Heal, 0, MaxStat, "heal", where, errors);
+        CheckRange(rune.Poise, 0, MaxStat, "poise", where, errors);
+        CheckRange(rune.DrainPercent, 0, 100, "drainPercent", where, errors);
+        CheckRange(rune.Shield, 0, MaxStat, "shield", where, errors);
+        if (!KnownSchools.Contains(rune.School))
+        {
+            errors.Add($"{where}: unknown school '{rune.School}' (known: {string.Join(", ", KnownSchools)}).");
+        }
+
         if (rune.Effect is string effect && !KnownEffects.Contains(effect))
         {
             errors.Add($"{where}: unknown effect '{effect}' (known: {string.Join(", ", KnownEffects)}).");
@@ -81,7 +92,10 @@ public static partial class DataRegistryLoader
         }
 
         CheckRange(effect.Ticks, 1, MaxStat, "ticks", where, errors);
-        CheckRange(effect.SpeedPercent, 0, 100, "speedPercent", where, errors);
+        CheckRange(effect.SpeedPercent, 0, 200, "speedPercent", where, errors);
+        CheckRange(effect.Damage, 0, MaxDamage, "damage", where, errors);
+        CheckRange(effect.DamagePercent, 0, 200, "damagePercent", where, errors);
+        CheckRange(effect.RegenPercent, 100, 1000, "regenPercent", where, errors);
     }
 
     // Each spell is a form rune and an essence rune; it becomes a move with the spell's id: the cast time is its wind-up (the
@@ -131,11 +145,13 @@ public static partial class DataRegistryLoader
                 DamageType = essence.DamageType,
                 Stamina = 0,
                 Mana = spell.Mana,
-                Poise = 0,
+                Poise = essence.Poise,
                 Tags = ["spell", essence.School, form.Id, essence.Id],
                 Effect = essence.Effect,
                 Heal = essence.Heal,
                 School = essence.School,
+                DrainPercent = essence.DrainPercent,
+                Shield = essence.Shield,
             }, where));
         }
 
