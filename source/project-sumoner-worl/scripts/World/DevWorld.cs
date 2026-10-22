@@ -17,9 +17,13 @@ public static class DevWorld
     private const int DevPredators = 30;
     private const int DevPredatorPacks = 5;
 
-    private static readonly Lazy<Heightfield> SharedGround = new(() => DevRegion.CreateGround());
+    // The Vale of Oaths' ground, shaped by the region's biomes (E4a): every host loads the same data, so the heights agree.
+    private static readonly Lazy<Heightfield> SharedGround = new(() => DevRegion.CreateGround(DevRegion.Chunks, Data.GameData.Load().Region));
 
-    /// <summary>The 512 m dev region's ground.</summary>
+    /// <summary>The south-west corner where the dev server's roaming herds and packs live (the M1 region, the Academy's vale).</summary>
+    public const float ValeSize = 512f;
+
+    /// <summary>The 2 km dev region's ground.</summary>
     public static Heightfield Ground => SharedGround.Value;
 
     /// <summary>Player movement on the dev ground (server and clients).</summary>
@@ -27,7 +31,7 @@ public static class DevWorld
 
     /// <summary>
     /// Fills a new world: the playtest gets the <see cref="MemoryGrove"/> around the player's start; the dev server 170 seeded
-    /// mossbacks in 10 herds and 30 bogfoxes in 5 packs across the region. Returns a description for the log.
+    /// mossbacks in 10 herds and 30 bogfoxes in 5 packs across the vale. Returns a description for the log.
     /// </summary>
     public static string Populate(GameServer server, bool playtest)
     {
@@ -38,8 +42,9 @@ public static class DevWorld
             return $"Memory Grove with {MemoryGrove.CreatureCount} creatures";
         }
 
-        server.Populate("mossback", DevGrazers, DevGrazerHerds);
-        server.Populate("bogfox", DevPredators, DevPredatorPacks, firstGroup: DevGrazerHerds);
+        // The roaming herds stay in the vale; the rest of the region is kept lived in by its places' spawners (M2-16, E4a).
+        server.Populate("mossback", DevGrazers, DevGrazerHerds, area: ValeSize);
+        server.Populate("bogfox", DevPredators, DevPredatorPacks, firstGroup: DevGrazerHerds, area: ValeSize);
         return $"{DevGrazers + DevPredators} creatures";
     }
 

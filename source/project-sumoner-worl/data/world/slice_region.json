@@ -1,28 +1,78 @@
-// The slice region (M2-16): the path Academy → Memory Grove → Gathering Meadow → Bogfox Den around the spawn point (256, 256).
+// The Vale of Oaths (story bible §5; M2-16, E4a): a 2 km region. The Academy's vale is its south-west corner, the path Academy →
+// Memory Grove → Gathering Meadow → Bogfox Den around the spawn point (256, 256); the Elderwood north of it, the Stormreach
+// highlands in the north-west, the Mournfen marsh in the east, the Ashen Reach in the north-east and the Shattered Ring between.
+// Biomes shape the ground (inner two thirds fully, fading over the outer third) and set its look; mountains wall the edge.
 // Spawners keep each place lived in (also in worlds saved before a place existed); gathering spots are placed at every start.
 {
   "schemaVersion": 1,
   "kind": "region",
   "entries": [
     {
+      "biomes": [
+        { "id": "vale", "name": "The Academy's Vale", "x": 260, "z": 260, "radius": 320, "ground": "#4A7038", "plants": 1, "plantColour": "#3D6B45" },
+        { "id": "elderwood", "name": "Elderwood", "x": 520, "z": 680, "radius": 340, "heightScale": 1.1, "ground": "#3F6431", "plants": 1.8, "plantColour": "#2F5A38" },
+        { "id": "stormreach", "name": "Stormreach", "x": 420, "z": 1480, "radius": 560, "heightOffset": 18, "heightScale": 1.7, "ground": "#6E7A55", "plants": 0.35, "plantColour": "#4C6650" },
+        { "id": "mournfen", "name": "Mournfen", "x": 1480, "z": 520, "radius": 560, "heightOffset": -6, "heightScale": 0.25, "ground": "#4F5A3E", "plants": 0.6, "plantColour": "#3E4A3A", "water": -1.5 },
+        { "id": "ashen_reach", "name": "Ashen Reach", "x": 1560, "z": 1520, "radius": 560, "heightOffset": 8, "heightScale": 1.35, "ground": "#6B5A50", "plants": 0.15, "plantColour": "#5A3A2A" },
+        { "id": "shattered_ring", "name": "The Shattered Ring", "x": 960, "z": 920, "radius": 220, "heightScale": 0.5, "ground": "#7A7A6A", "plants": 0.3, "plantColour": "#566B4E" }
+      ],
       "places": [
         { "id": "academy", "name": "Summoner Academy", "x": 256, "z": 234, "radius": 14, "line": "No fighting inside the walls, except in the arena." },
         { "id": "memory_grove", "name": "Memory Grove", "x": 256, "z": 296, "radius": 20, "line": "The creatures here remember how you treat them." },
         { "id": "gathering_meadow", "name": "Gathering Meadow", "x": 306, "z": 300, "radius": 18, "line": "Berries, roots and branches: press H to gather." },
-        { "id": "bogfox_den", "name": "Bogfox Den", "x": 338, "z": 352, "radius": 12, "line": "Careful: the pack defends its den.", "look": "den" }
+        { "id": "bogfox_den", "name": "Bogfox Den", "x": 338, "z": 352, "radius": 12, "line": "Careful: the pack defends its den.", "look": "den" },
+        { "id": "thornwick", "name": "Thornwick", "x": 190, "z": 300, "radius": 28, "line": "The town by the Academy. Rest, trade and hear the news.", "look": "town" },
+        { "id": "silverleaf_glade", "name": "Silverleaf Glade", "x": 430, "z": 560, "radius": 24, "line": "The Elves' home in the Elderwood.", "look": "outpost" },
+        { "id": "elderwood_deep", "name": "Deep Elderwood", "x": 640, "z": 780, "radius": 70, "line": "Old trees, old creatures. Walk softly." },
+        { "id": "fort_calder", "name": "Fort Calder", "x": 330, "z": 1150, "radius": 26, "line": "The Humans' fort on the Stormreach.", "look": "outpost" },
+        { "id": "windy_ridges", "name": "The Windy Ridges", "x": 300, "z": 1480, "radius": 90, "line": "Hounds hunt here; hawks ride the wind above." },
+        { "id": "hawk_cliffs", "name": "Hawk Cliffs", "x": 560, "z": 1720, "radius": 45, "line": "The storm hawks nest high on these rocks." },
+        { "id": "binder_camp", "name": "Binder Camp", "x": 760, "z": 1380, "radius": 22, "line": "Grey tents and iron collars. Who are these people?", "look": "camp" },
+        { "id": "lantern_hollow", "name": "Lantern Hollow", "x": 1150, "z": 380, "radius": 26, "line": "The Necromancers keep their lanterns lit here.", "look": "outpost" },
+        { "id": "fen_heart", "name": "Heart of the Fen", "x": 1500, "z": 500, "radius": 110, "line": "Soft ground, cold mist, and lights that are not lanterns." },
+        { "id": "old_barrows", "name": "The Old Barrows", "x": 1700, "z": 760, "radius": 45, "line": "Here lie the summoners of long ago.", "look": "ruins" },
+        { "id": "emberdeep_gate", "name": "Emberdeep Gate", "x": 1260, "z": 1260, "radius": 26, "line": "The Dwarves' hall goes deep into the mountain.", "look": "outpost" },
+        { "id": "ash_fields", "name": "The Ash Fields", "x": 1560, "z": 1480, "radius": 110, "line": "Warm ground underfoot. Salamanders bask on the rocks." },
+        { "id": "cold_forge", "name": "The Cold Forge", "x": 1760, "z": 1760, "radius": 35, "line": "No fire has burned here for three hundred years.", "look": "ruins" },
+        { "id": "shattered_ring", "name": "The Shattered Ring", "x": 960, "z": 920, "radius": 40, "line": "Where the Oathstone stood before the Breaking.", "look": "ruins" }
       ],
       "spawners": [
         { "place": "memory_grove", "species": "mossback", "count": 6, "minLevel": 1, "maxLevel": 3, "respawnSeconds": 240, "group": 9001 },
         { "place": "memory_grove", "species": "hollow_owl", "count": 1, "minLevel": 2, "maxLevel": 3, "respawnSeconds": 300, "group": 9002 },
         { "place": "gathering_meadow", "species": "hollow_owl", "count": 2, "minLevel": 1, "maxLevel": 2, "respawnSeconds": 300, "group": 9003 },
         { "place": "bogfox_den", "species": "bogfox", "count": 4, "minLevel": 2, "maxLevel": 4, "respawnSeconds": 180, "group": 9004 },
-        { "place": "bogfox_den", "species": "bogfox", "count": 1, "minLevel": 6, "maxLevel": 6, "respawnSeconds": 600, "group": 9005 }
+        { "place": "bogfox_den", "species": "bogfox", "count": 1, "minLevel": 6, "maxLevel": 6, "respawnSeconds": 600, "group": 9005 },
+        { "place": "silverleaf_glade", "species": "mossback", "count": 4, "minLevel": 2, "maxLevel": 5, "respawnSeconds": 300, "group": 9010 },
+        { "place": "elderwood_deep", "species": "mossback", "count": 8, "minLevel": 4, "maxLevel": 8, "respawnSeconds": 300, "group": 9011 },
+        { "place": "elderwood_deep", "species": "bogfox", "count": 5, "minLevel": 4, "maxLevel": 8, "respawnSeconds": 240, "group": 9012 },
+        { "place": "elderwood_deep", "species": "hollow_owl", "count": 3, "minLevel": 4, "maxLevel": 8, "respawnSeconds": 300, "group": 9013 },
+        { "place": "fort_calder", "species": "plains_hound", "count": 3, "minLevel": 1, "maxLevel": 3, "respawnSeconds": 240, "group": 9020 },
+        { "place": "windy_ridges", "species": "plains_hound", "count": 6, "minLevel": 2, "maxLevel": 6, "respawnSeconds": 240, "group": 9021 },
+        { "place": "windy_ridges", "species": "storm_hawk", "count": 3, "minLevel": 3, "maxLevel": 6, "respawnSeconds": 300, "group": 9022 },
+        { "place": "hawk_cliffs", "species": "storm_hawk", "count": 5, "minLevel": 5, "maxLevel": 9, "respawnSeconds": 300, "group": 9023 },
+        { "place": "lantern_hollow", "species": "bone_sprite", "count": 3, "minLevel": 1, "maxLevel": 3, "respawnSeconds": 240, "group": 9030 },
+        { "place": "fen_heart", "species": "wisp_hound", "count": 6, "minLevel": 2, "maxLevel": 6, "respawnSeconds": 240, "group": 9031 },
+        { "place": "fen_heart", "species": "bogfox", "count": 4, "minLevel": 3, "maxLevel": 6, "respawnSeconds": 240, "group": 9032 },
+        { "place": "old_barrows", "species": "bone_sprite", "count": 6, "minLevel": 3, "maxLevel": 7, "respawnSeconds": 300, "group": 9033 },
+        { "place": "emberdeep_gate", "species": "cinder_mole", "count": 3, "minLevel": 1, "maxLevel": 3, "respawnSeconds": 240, "group": 9040 },
+        { "place": "ash_fields", "species": "ember_salamander", "count": 5, "minLevel": 2, "maxLevel": 6, "respawnSeconds": 240, "group": 9041 },
+        { "place": "ash_fields", "species": "cinder_mole", "count": 5, "minLevel": 2, "maxLevel": 6, "respawnSeconds": 240, "group": 9042 },
+        { "place": "cold_forge", "species": "ember_salamander", "count": 4, "minLevel": 5, "maxLevel": 9, "respawnSeconds": 300, "group": 9043 },
+        { "place": "shattered_ring", "species": "wisp_hound", "count": 2, "minLevel": 4, "maxLevel": 8, "respawnSeconds": 300, "group": 9050 },
+        { "place": "shattered_ring", "species": "storm_hawk", "count": 2, "minLevel": 4, "maxLevel": 8, "respawnSeconds": 300, "group": 9051 }
       ],
       "gatherSpots": [
         { "place": "gathering_meadow", "node": "berry_bush", "count": 4 },
         { "place": "gathering_meadow", "node": "sweetroot_patch", "count": 3 },
         { "place": "gathering_meadow", "node": "fallen_branches", "count": 4 },
-        { "place": "memory_grove", "node": "berry_bush", "count": 2 }
+        { "place": "memory_grove", "node": "berry_bush", "count": 2 },
+        { "place": "elderwood_deep", "node": "berry_bush", "count": 5 },
+        { "place": "elderwood_deep", "node": "fallen_branches", "count": 5 },
+        { "place": "windy_ridges", "node": "sweetroot_patch", "count": 4 },
+        { "place": "fen_heart", "node": "glowcap_cluster", "count": 6 },
+        { "place": "old_barrows", "node": "glowcap_cluster", "count": 3 },
+        { "place": "ash_fields", "node": "ore_vein", "count": 6 },
+        { "place": "cold_forge", "node": "ore_vein", "count": 4 }
       ]
     }
   ]

@@ -37,8 +37,8 @@ public sealed class CreatureWorldSettings
     /// <summary>Walking speed in metres per tick at 100% (behaviour trees scale it).</summary>
     public float WalkSpeed { get; init; } = 0.1f;
 
-    /// <summary>Most entities (creatures + avatars) at once.</summary>
-    public int EntityCapacity { get; init; } = 256;
+    /// <summary>Most entities (creatures + avatars) at once (1024 since the 2 km region, E4a: its spawners keep about 90 more).</summary>
+    public int EntityCapacity { get; init; } = 1024;
 
     /// <summary>Background job threads (0 = inline); results do not depend on it.</summary>
     public int JobWorkers { get; init; }

@@ -7,6 +7,7 @@ internal static class RegionValidation
 {
     private const int MaxCount = 30;
     private const int MaxRespawnSeconds = 86_400;
+    private static readonly string[] Looks = ["none", "den", "town", "outpost", "ruins", "camp"];
 
     internal static void Validate(
         RegionDefinition region, string where, List<SpeciesDefinition> species, List<(GatherNodeDefinition Entry, string Where)> nodes, List<string> errors)
@@ -14,12 +15,18 @@ internal static class RegionValidation
         var places = new HashSet<string>(StringComparer.Ordinal);
         foreach (PlaceDefinition place in region.Places)
         {
-            if (!DataRegistryLoader.IsSnakeCaseId(place.Id) || !places.Add(place.Id) || place.Radius <= 0 || place.Look is not ("none" or "den"))
+            if (!DataRegistryLoader.IsSnakeCaseId(place.Id) || !places.Add(place.Id) || place.Radius <= 0 || !Looks.Contains(place.Look))
             {
-                errors.Add($"{where}: place '{place.Id}' needs a unique snake_case id, a radius above 0 and a look (none, den).");
+                errors.Add($"{where}: place '{place.Id}' needs a unique snake_case id, a radius above 0 and a look ({string.Join(", ", Looks)}).");
+            }
+
+            if (place.X < 0 || place.Z < 0 || place.X > World.DevRegion.Size || place.Z > World.DevRegion.Size)
+            {
+                errors.Add($"{where}: place '{place.Id}' lies outside the region (0-{World.DevRegion.Size} m).");
             }
         }
 
+        ValidateBiomes(region, where, errors);
         var groups = new HashSet<int>();
         foreach (SpawnerDefinition spawner in region.Spawners)
         {
@@ -44,4 +51,19 @@ internal static class RegionValidation
             DataRegistryLoader.CheckRange(spot.Count, 1, MaxCount, "gatherSpots.count", where, errors);
         }
     }
+
+    private static void ValidateBiomes(RegionDefinition region, string where, List<string> errors)
+    {
+        var ids = new HashSet<string>(StringComparer.Ordinal);
+        foreach (BiomeDefinition biome in region.Biomes)
+        {
+            if (!DataRegistryLoader.IsSnakeCaseId(biome.Id) || !ids.Add(biome.Id) || biome.Radius <= 0
+                || biome.HeightScale is < 0 or > 4 || biome.Plants is < 0 or > 3 || !IsColour(biome.Ground) || !IsColour(biome.PlantColour))
+            {
+                errors.Add($"{where}: biome '{biome.Id}' needs a unique snake_case id, a radius above 0, heightScale 0-4, plants 0-3 and colours like #A0B0C0.");
+            }
+        }
+    }
+
+    private static bool IsColour(string colour) => colour is { Length: 7 } && colour[0] == '#' && colour[1..].All(Uri.IsHexDigit);
 }

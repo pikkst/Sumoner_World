@@ -95,6 +95,9 @@ public sealed class Heightfield
         return new Heightfield(heights, n, settings.Spacing);
     }
 
+    /// <summary>The heights, to shape a generated field (row by row along x; <see cref="RegionGround"/>).</summary>
+    internal Span<float> MutableHeights => _heights;
+
     /// <summary>Height at a world position (bilinear between samples; clamped at the edges).</summary>
     public float HeightAt(float x, float z)
     {
@@ -139,10 +142,24 @@ public static class DevRegion
     /// <summary>World seed (the dev server's).</summary>
     public const ulong Seed = 0x53570001;
 
-    /// <summary>Chunks per side (8 × 64 m = 512 m).</summary>
-    public const int Chunks = 8;
+    /// <summary>Chunks per side (32 × 64 m = 2 km since E4a; the M1 region was 8 × 8 = 512 m, now its south-west corner).</summary>
+    public const int Chunks = 32;
 
-    /// <summary>The ground of a region <paramref name="chunks"/> chunks across.</summary>
-    public static Heightfield CreateGround(int chunks = Chunks) =>
-        Heightfield.Generate(Seed, new HeightfieldSettings { Samples = (chunks * (int)ChunkCoord.Size) + 1 });
+    /// <summary>Metres per side.</summary>
+    public const float Size = Chunks * ChunkCoord.Size;
+
+    /// <summary>
+    /// The ground of a region <paramref name="chunks"/> chunks across, shaped by <paramref name="region"/>'s biomes and walled by
+    /// mountains at its edge when given (<see cref="RegionGround"/>).
+    /// </summary>
+    public static Heightfield CreateGround(int chunks = Chunks, Data.Definitions.RegionDefinition? region = null)
+    {
+        Heightfield field = Heightfield.Generate(Seed, new HeightfieldSettings { Samples = (chunks * (int)ChunkCoord.Size) + 1 });
+        if (region is not null)
+        {
+            RegionGround.Shape(field, region);
+        }
+
+        return field;
+    }
 }

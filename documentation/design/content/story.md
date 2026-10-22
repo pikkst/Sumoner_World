@@ -63,15 +63,18 @@ summoner of its own tradition (GDD §1, §11). The class is for life.
   a collared **Thornback**, an old apex creature.
 
 ## 5. The Vale of Oaths (the 2 km region, E4)
+The Academy guards the Vale's south-western gate, where the old roads meet; the Vale opens north and east from it, and
+mountains ring it all round. (Coordinates in metres, x east, z north; the data is `data/world/slice_region.json`.)
+
 | Area | Where | Biome | What is there |
 |---|---|---|---|
-| **Summoner Academy** | centre | meadow | campus, Grand Arena, the four Keepers; safe zone |
-| **Thornwick** | beside the Academy | meadow, farms | the hub town: inn **The Kept Promise**, general goods, smith, herbalist, the town waystone, the notice board |
-| **Elderwood** | north | forest | **Silverleaf Glade** (Elves), the **Memory Grove**, the **Gathering Meadow**, the **Bogfox Den** |
-| **Stormreach** | north-west | highlands | **Fort Calder** (Humans), windy ridges, the **Hawk Cliffs**, a Binder camp |
-| **Mournfen** | south-west | marsh | **Lantern Hollow** (Necromancers), the **Old Barrows**, will-o'-wisps at night |
-| **Ashen Reach** | east | ash hills | **Emberdeep Gate** (Dwarves), the **Cold Forge**, warm springs |
-| **The Shattered Ring** | south | ruins | where the Oathstone stood: a ring of broken white stone, the chapter's end |
+| **Summoner Academy** | south-west (256, 234) | the Academy's vale, meadow | campus, Grand Arena, the four Keepers; safe zone |
+| **Thornwick** | beside the Academy (190, 300) | meadow, farms | the hub town: inn **The Kept Promise**, general goods, smith, herbalist, the town waystone, the notice board |
+| **Elderwood** | north of the Academy (520, 680) | forest | the **Memory Grove**, the **Gathering Meadow**, the **Bogfox Den** at its edge; **Silverleaf Glade** (Elves); the Deep Elderwood |
+| **Stormreach** | north (420, 1480) | highlands | **Fort Calder** (Humans), the Windy Ridges, the **Hawk Cliffs**, a **Binder camp** |
+| **Mournfen** | east (1480, 520) | marsh | **Lantern Hollow** (Necromancers), the Heart of the Fen, the **Old Barrows**, will-o'-wisps at night |
+| **Ashen Reach** | north-east (1560, 1520) | ash hills | **Emberdeep Gate** (Dwarves), the Ash Fields, the **Cold Forge** |
+| **The Shattered Ring** | the middle of the Vale (960, 920) | ruins | where the Oathstone stood: a ring of broken white stone, the chapter's end |
 
 ## 6. Main cast
 | Name | Who | Where | Role |
