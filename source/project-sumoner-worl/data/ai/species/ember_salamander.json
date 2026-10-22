@@ -1,0 +1,85 @@
+// Ember Salamander (Dwarf class, E3b). Starting values.
+{
+  "schemaVersion": 1,
+  "kind": "species",
+  "entries": [
+    {
+      "id": "ember_salamander",
+      "nameKey": "species.ember_salamander.name",
+      "role": "predator",
+      "bodyType": "quadruped",
+      "group": "solitary",
+      "boldness": {
+        "mean": 30,
+        "spread": 25
+      },
+      "loyalty": {
+        "mean": 10,
+        "spread": 25
+      },
+      "curiosity": {
+        "mean": 20,
+        "spread": 25
+      },
+      "temper": {
+        "mean": 30,
+        "spread": 20
+      },
+      "needs": {
+        "hunger": 50,
+        "rest": 50,
+        "safety": 30,
+        "social": 10,
+        "territory": 60
+      },
+      "bodyRadiusCm": 55,
+      "class": "dwarf",
+      "tier": "e",
+      "levels": {
+        "min": 2,
+        "max": 5
+      },
+      "pactThreshold": 650,
+      "perception": {
+        "sightRange": 50,
+        "sightHalfAngle": 80,
+        "hearingRange": 40
+      },
+      "combat": {
+        "health": 65,
+        "stamina": 100,
+        "mana": 50,
+        "power": 100,
+        "guard": 3,
+        "poise": 20,
+        "resist": {
+          "physical": 0,
+          "primal": 0
+        },
+        "moves": [
+          "flame_lick"
+        ]
+      },
+      "goals": [
+        "Flee",
+        "Fight",
+        "Hunt",
+        "Eat",
+        "Rest",
+        "Socialize",
+        "Explore",
+        "DefendTerritory",
+        "Approach",
+        "Avoid"
+      ],
+      "look": {
+        "colour": "#C2541E",
+        "dark": "#4A1E10",
+        "accent": "#FFC14D",
+        "scale": 0.9,
+        "length": 1.6,
+        "feature": "flame"
+      }
+    }
+  ]
+}

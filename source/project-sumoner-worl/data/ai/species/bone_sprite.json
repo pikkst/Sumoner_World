@@ -1,0 +1,84 @@
+// Bone Sprite (Necromancer class, E3b). Starting values.
+{
+  "schemaVersion": 1,
+  "kind": "species",
+  "entries": [
+    {
+      "id": "bone_sprite",
+      "nameKey": "species.bone_sprite.name",
+      "role": "scavenger",
+      "bodyType": "biped",
+      "group": "pack",
+      "boldness": {
+        "mean": -10,
+        "spread": 25
+      },
+      "loyalty": {
+        "mean": 20,
+        "spread": 25
+      },
+      "curiosity": {
+        "mean": 50,
+        "spread": 25
+      },
+      "temper": {
+        "mean": -20,
+        "spread": 20
+      },
+      "needs": {
+        "hunger": 10,
+        "rest": 20,
+        "safety": 40,
+        "social": 60,
+        "territory": 20
+      },
+      "bodyRadiusCm": 35,
+      "class": "necromancer",
+      "tier": "f",
+      "levels": {
+        "min": 1,
+        "max": 3
+      },
+      "pactThreshold": 450,
+      "perception": {
+        "sightRange": 50,
+        "sightHalfAngle": 90,
+        "hearingRange": 40
+      },
+      "combat": {
+        "health": 40,
+        "stamina": 90,
+        "mana": 40,
+        "power": 80,
+        "guard": 1,
+        "poise": 10,
+        "resist": {
+          "physical": 0,
+          "primal": 0
+        },
+        "moves": [
+          "bone_rattle"
+        ]
+      },
+      "goals": [
+        "Flee",
+        "Fight",
+        "Eat",
+        "Rest",
+        "Socialize",
+        "Explore",
+        "DefendTerritory",
+        "Approach",
+        "Avoid"
+      ],
+      "look": {
+        "colour": "#E8E0CC",
+        "dark": "#4A4458",
+        "accent": "#9C7CFF",
+        "scale": 0.7,
+        "length": 1.0,
+        "feature": "bones"
+      }
+    }
+  ]
+}

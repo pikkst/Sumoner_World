@@ -42,6 +42,10 @@ public sealed partial class RegionHost : Node
             {
                 AddChild(new StageShowcase(_region.Field!, _region.Camera!, _options.ShowcaseDistance));
             }
+            else if (_options.Showcase == "species")
+            {
+                AddChild(new SpeciesShowcase(Data.GameData.Load(), _region.Field!, _region.Camera!, _options.ShowcaseDistance));
+            }
             else if (_options.Showcase == "player")
             {
                 AddChild(new HumanoidShowcase(_region.Field!, _region.Camera!, _options.ShowcaseDistance));

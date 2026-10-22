@@ -1,0 +1,82 @@
+// Storm Hawk (Human class, E3b). Starting values.
+{
+  "schemaVersion": 1,
+  "kind": "species",
+  "entries": [
+    {
+      "id": "storm_hawk",
+      "nameKey": "species.storm_hawk.name",
+      "role": "predator",
+      "bodyType": "avian",
+      "group": "flock",
+      "boldness": {
+        "mean": 30,
+        "spread": 25
+      },
+      "loyalty": {
+        "mean": 20,
+        "spread": 25
+      },
+      "curiosity": {
+        "mean": 20,
+        "spread": 25
+      },
+      "temper": {
+        "mean": 10,
+        "spread": 20
+      },
+      "needs": {
+        "hunger": 40,
+        "rest": 50,
+        "safety": 30,
+        "social": 30,
+        "territory": 50
+      },
+      "bodyRadiusCm": 45,
+      "class": "human",
+      "tier": "e",
+      "levels": {
+        "min": 2,
+        "max": 5
+      },
+      "pactThreshold": 650,
+      "perception": {
+        "sightRange": 90,
+        "sightHalfAngle": 100,
+        "hearingRange": 50
+      },
+      "combat": {
+        "health": 45,
+        "stamina": 110,
+        "mana": 40,
+        "power": 95,
+        "guard": 0,
+        "poise": 8,
+        "resist": {
+          "physical": 0,
+          "primal": 0
+        },
+        "moves": [
+          "talon_strike"
+        ]
+      },
+      "goals": [
+        "Flee",
+        "Eat",
+        "Rest",
+        "Explore",
+        "DefendTerritory",
+        "Approach",
+        "Avoid"
+      ],
+      "look": {
+        "colour": "#6E7F96",
+        "dark": "#2E3440",
+        "accent": "#E8E3C8",
+        "scale": 1.0,
+        "length": 1.0,
+        "feature": "wings"
+      }
+    }
+  ]
+}

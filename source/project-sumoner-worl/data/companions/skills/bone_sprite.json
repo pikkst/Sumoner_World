@@ -1,0 +1,164 @@
+// Barrow helper: Collector finds old things, Rattler scares the living, Mender holds the dead together. Node order is the saved bit order: append only. Starting values (E3b).
+{
+  "schemaVersion": 1,
+  "kind": "skillTrees",
+  "entries": [
+    {
+      "species": "bone_sprite",
+      "branches": [
+        {
+          "id": "collector",
+          "traits": [
+            {
+              "trait": "curiosity",
+              "factor": 6
+            }
+          ],
+          "roles": [
+            {
+              "role": "travel",
+              "factor": 5
+            }
+          ]
+        },
+        {
+          "id": "rattler",
+          "traits": [
+            {
+              "trait": "boldness",
+              "factor": 4
+            },
+            {
+              "trait": "temper",
+              "factor": 2
+            }
+          ],
+          "roles": [
+            {
+              "role": "combat",
+              "factor": 5
+            }
+          ]
+        },
+        {
+          "id": "mender",
+          "traits": [
+            {
+              "trait": "loyalty",
+              "factor": 4
+            },
+            {
+              "trait": "temper",
+              "factor": -4
+            }
+          ],
+          "roles": [
+            {
+              "role": "work",
+              "factor": 4
+            }
+          ]
+        }
+      ],
+      "nodes": [
+        {
+          "id": "sharp_sockets",
+          "branch": "collector",
+          "level": 3,
+          "passive": {
+            "stat": "poise",
+            "amount": 10
+          }
+        },
+        {
+          "id": "bone_toss",
+          "branch": "rattler",
+          "level": 3,
+          "move": "bone_toss"
+        },
+        {
+          "id": "knit_bones",
+          "branch": "mender",
+          "level": 3,
+          "passive": {
+            "stat": "health",
+            "amount": 10
+          }
+        },
+        {
+          "id": "light_bones",
+          "branch": "collector",
+          "level": 5,
+          "requires": [
+            "sharp_sockets"
+          ],
+          "passive": {
+            "stat": "stamina",
+            "amount": 20
+          }
+        },
+        {
+          "id": "grave_chill",
+          "branch": "rattler",
+          "level": 5,
+          "requires": [
+            "bone_toss"
+          ],
+          "move": "grave_chill"
+        },
+        {
+          "id": "hollow_ribs",
+          "branch": "mender",
+          "level": 6,
+          "bondLevel": 2,
+          "requires": [
+            "knit_bones"
+          ],
+          "passive": {
+            "stat": "guard",
+            "amount": 2
+          }
+        },
+        {
+          "id": "treasure_sense",
+          "branch": "collector",
+          "level": 9,
+          "requires": [
+            "light_bones"
+          ],
+          "passive": {
+            "stat": "health",
+            "amount": 15
+          }
+        },
+        {
+          "id": "restless",
+          "branch": "rattler",
+          "level": 9,
+          "stage": "grown",
+          "requires": [
+            "grave_chill"
+          ],
+          "passive": {
+            "stat": "power",
+            "amount": 15
+          }
+        },
+        {
+          "id": "ancient_frame",
+          "branch": "mender",
+          "level": 10,
+          "bondLevel": 3,
+          "stage": "grown",
+          "requires": [
+            "hollow_ribs"
+          ],
+          "passive": {
+            "stat": "guard",
+            "amount": 3
+          }
+        }
+      ]
+    }
+  ]
+}

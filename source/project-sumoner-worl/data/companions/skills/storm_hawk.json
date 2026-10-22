@@ -1,0 +1,164 @@
+// Highland hunter: Skyborne rides the wind, Tempest strikes with lightning, Sentinel guards its summoner. Node order is the saved bit order: append only. Starting values (E3b).
+{
+  "schemaVersion": 1,
+  "kind": "skillTrees",
+  "entries": [
+    {
+      "species": "storm_hawk",
+      "branches": [
+        {
+          "id": "skyborne",
+          "traits": [
+            {
+              "trait": "curiosity",
+              "factor": 6
+            }
+          ],
+          "roles": [
+            {
+              "role": "travel",
+              "factor": 5
+            }
+          ]
+        },
+        {
+          "id": "tempest",
+          "traits": [
+            {
+              "trait": "boldness",
+              "factor": 4
+            },
+            {
+              "trait": "temper",
+              "factor": 2
+            }
+          ],
+          "roles": [
+            {
+              "role": "combat",
+              "factor": 5
+            }
+          ]
+        },
+        {
+          "id": "sentinel",
+          "traits": [
+            {
+              "trait": "loyalty",
+              "factor": 4
+            },
+            {
+              "trait": "temper",
+              "factor": -4
+            }
+          ],
+          "roles": [
+            {
+              "role": "work",
+              "factor": 4
+            }
+          ]
+        }
+      ],
+      "nodes": [
+        {
+          "id": "keen_eyes",
+          "branch": "skyborne",
+          "level": 3,
+          "passive": {
+            "stat": "poise",
+            "amount": 10
+          }
+        },
+        {
+          "id": "storm_dive",
+          "branch": "tempest",
+          "level": 3,
+          "move": "storm_dive"
+        },
+        {
+          "id": "steady_perch",
+          "branch": "sentinel",
+          "level": 3,
+          "passive": {
+            "stat": "health",
+            "amount": 10
+          }
+        },
+        {
+          "id": "updraft",
+          "branch": "skyborne",
+          "level": 5,
+          "requires": [
+            "keen_eyes"
+          ],
+          "passive": {
+            "stat": "stamina",
+            "amount": 20
+          }
+        },
+        {
+          "id": "gale_wings",
+          "branch": "tempest",
+          "level": 5,
+          "requires": [
+            "storm_dive"
+          ],
+          "move": "gale_wings"
+        },
+        {
+          "id": "iron_feathers",
+          "branch": "sentinel",
+          "level": 6,
+          "bondLevel": 2,
+          "requires": [
+            "steady_perch"
+          ],
+          "passive": {
+            "stat": "guard",
+            "amount": 2
+          }
+        },
+        {
+          "id": "cloud_rider",
+          "branch": "skyborne",
+          "level": 9,
+          "requires": [
+            "updraft"
+          ],
+          "passive": {
+            "stat": "health",
+            "amount": 15
+          }
+        },
+        {
+          "id": "thunder_heart",
+          "branch": "tempest",
+          "level": 9,
+          "stage": "grown",
+          "requires": [
+            "gale_wings"
+          ],
+          "passive": {
+            "stat": "power",
+            "amount": 15
+          }
+        },
+        {
+          "id": "high_sentinel",
+          "branch": "sentinel",
+          "level": 10,
+          "bondLevel": 3,
+          "stage": "grown",
+          "requires": [
+            "iron_feathers"
+          ],
+          "passive": {
+            "stat": "guard",
+            "amount": 3
+          }
+        }
+      ]
+    }
+  ]
+}

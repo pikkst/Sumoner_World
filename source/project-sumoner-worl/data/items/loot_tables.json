@@ -10,6 +10,19 @@
       { "item": "fox_fur", "chancePerMille": 500 },
       { "item": "bright_tooth", "chancePerMille": 100 } ] },
     { "species": "hollow_owl", "goldMin": 2, "goldMax": 5, "entries": [
-      { "item": "owl_feather", "chancePerMille": 600, "min": 1, "max": 2 } ] }
-  ]
+      { "item": "owl_feather", "chancePerMille": 600, "min": 1, "max": 2 } ] },
+    { "species": "storm_hawk", "goldMin": 3, "goldMax": 7, "entries": [
+      {"item": "storm_feather", "chancePerMille": 600, "min": 1, "max": 2} ] },
+    { "species": "plains_hound", "goldMin": 3, "goldMax": 7, "entries": [
+      {"item": "hound_fang", "chancePerMille": 500, "min": 1, "max": 1} ] },
+    { "species": "wisp_hound", "goldMin": 3, "goldMax": 8, "entries": [
+      {"item": "wisp_essence", "chancePerMille": 500, "min": 1, "max": 1} ] },
+    { "species": "bone_sprite", "goldMin": 2, "goldMax": 5, "entries": [
+      {"item": "old_bone", "chancePerMille": 600, "min": 1, "max": 3} ] },
+    { "species": "ember_salamander", "goldMin": 3, "goldMax": 8, "entries": [
+      {"item": "salamander_scale", "chancePerMille": 500, "min": 1, "max": 2} ] },
+    { "species": "cinder_mole", "goldMin": 2, "goldMax": 6, "entries": [
+      {"item": "cinder_claw", "chancePerMille": 400, "min": 1, "max": 1},
+      {"item": "raw_ore", "chancePerMille": 500, "min": 1, "max": 2} ] }
+]
 }

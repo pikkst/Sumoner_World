@@ -1,0 +1,164 @@
+// Fen spirit: Lantern lights the way, Phantom bites from the dark, Keeper remembers for you. Node order is the saved bit order: append only. Starting values (E3b).
+{
+  "schemaVersion": 1,
+  "kind": "skillTrees",
+  "entries": [
+    {
+      "species": "wisp_hound",
+      "branches": [
+        {
+          "id": "lantern",
+          "traits": [
+            {
+              "trait": "curiosity",
+              "factor": 6
+            }
+          ],
+          "roles": [
+            {
+              "role": "travel",
+              "factor": 5
+            }
+          ]
+        },
+        {
+          "id": "phantom",
+          "traits": [
+            {
+              "trait": "boldness",
+              "factor": 4
+            },
+            {
+              "trait": "temper",
+              "factor": 2
+            }
+          ],
+          "roles": [
+            {
+              "role": "combat",
+              "factor": 5
+            }
+          ]
+        },
+        {
+          "id": "keeper",
+          "traits": [
+            {
+              "trait": "loyalty",
+              "factor": 4
+            },
+            {
+              "trait": "temper",
+              "factor": -4
+            }
+          ],
+          "roles": [
+            {
+              "role": "work",
+              "factor": 4
+            }
+          ]
+        }
+      ],
+      "nodes": [
+        {
+          "id": "soft_glow",
+          "branch": "lantern",
+          "level": 3,
+          "passive": {
+            "stat": "poise",
+            "amount": 10
+          }
+        },
+        {
+          "id": "phase_lunge",
+          "branch": "phantom",
+          "level": 3,
+          "move": "phase_lunge"
+        },
+        {
+          "id": "old_memory",
+          "branch": "keeper",
+          "level": 3,
+          "passive": {
+            "stat": "health",
+            "amount": 10
+          }
+        },
+        {
+          "id": "pale_light",
+          "branch": "lantern",
+          "level": 5,
+          "requires": [
+            "soft_glow"
+          ],
+          "passive": {
+            "stat": "stamina",
+            "amount": 20
+          }
+        },
+        {
+          "id": "soul_howl",
+          "branch": "phantom",
+          "level": 5,
+          "requires": [
+            "phase_lunge"
+          ],
+          "move": "soul_howl"
+        },
+        {
+          "id": "faithful_shade",
+          "branch": "keeper",
+          "level": 6,
+          "bondLevel": 2,
+          "requires": [
+            "old_memory"
+          ],
+          "passive": {
+            "stat": "guard",
+            "amount": 2
+          }
+        },
+        {
+          "id": "beacon",
+          "branch": "lantern",
+          "level": 9,
+          "requires": [
+            "pale_light"
+          ],
+          "passive": {
+            "stat": "health",
+            "amount": 15
+          }
+        },
+        {
+          "id": "grave_hunger",
+          "branch": "phantom",
+          "level": 9,
+          "stage": "grown",
+          "requires": [
+            "soul_howl"
+          ],
+          "passive": {
+            "stat": "power",
+            "amount": 15
+          }
+        },
+        {
+          "id": "memory_keeper",
+          "branch": "keeper",
+          "level": 10,
+          "bondLevel": 3,
+          "stage": "grown",
+          "requires": [
+            "faithful_shade"
+          ],
+          "passive": {
+            "stat": "guard",
+            "amount": 3
+          }
+        }
+      ]
+    }
+  ]
+}

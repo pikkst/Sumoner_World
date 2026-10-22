@@ -57,6 +57,7 @@
           "pounce"
         ]
       },
+      "look": {"colour": "#B8662E", "dark": "#402B1F", "accent": "#E6D1B3", "scale": 1.0, "length": 1.0, "feature": "ears"},
       "goals": [
         "Flee",
         "Fight",

@@ -64,13 +64,17 @@ public sealed class QuadrupedEmotePresenter : IEmotePresenter
         float wag = pose.TailWag * Mathf.Sin(t * Mathf.Tau * pose.WagRate);
         rig.Tail.Rotation = new Vector3(pose.TailPitch, wag, 0);
 
-        // Signature: the grazer's crest stands up and grows; the predator's ears lay flat back.
-        rig.Signature.Scale = rig.Role == Core.Data.Definitions.CreatureRole.Predator
-            ? Vector3.One
-            : new Vector3(1 + (pose.SignatureRaise * 0.5f), 1 + (pose.SignatureRaise * 2.5f), 1);
-        rig.Signature.Rotation = rig.Role == Core.Data.Definitions.CreatureRole.Predator
-            ? new Vector3(pose.SignatureRaise * 0.9f, 0, 0)
-            : Vector3.Zero;
+        // Signature (E3b: by the look's feature): ears lay flat back, wings spread, a biped's arms rise, horns dip to point
+        // forward; a crest, flames or claws stand up and grow.
+        float raise = pose.SignatureRaise;
+        (rig.Signature.Scale, rig.Signature.Rotation) = rig.Feature switch
+        {
+            "ears" => (Vector3.One, new Vector3(raise * 0.9f, 0, 0)),
+            "wings" => (new Vector3(1 + (raise * 0.8f), 1, 1), Vector3.Zero),
+            "bones" or "none" when rig.Legs.Length == 2 => (Vector3.One, new Vector3(-raise * 1.2f, 0, 0)),
+            "horns" => (Vector3.One, new Vector3(-raise * 0.5f, 0, 0)),
+            _ => (new Vector3(1 + (raise * 0.5f), 1 + (raise * 2.5f), 1), Vector3.Zero),
+        };
 
         // Legs: a trot whose stride follows ground speed; diagonal pairs move together.
         float moving = Mathf.Clamp((speed - WalkThreshold) / 2f, 0, 1);
