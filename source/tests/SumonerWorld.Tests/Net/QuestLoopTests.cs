@@ -1,4 +1,5 @@
 using SumonerWorld.Core.Academy;
+using SumonerWorld.Core.Data;
 using SumonerWorld.Core.Diagnostics;
 using SumonerWorld.Core.Movement;
 using SumonerWorld.Core.Randomness;
@@ -46,10 +47,34 @@ public sealed class QuestLoopTests : IDisposable
         Assert.Equal(1, alice.Quests.Single(entry => entry.Quest == ranking).Step);
     }
 
-    private GameClient Join(ulong account)
+    [Fact]
+    public void A_client_with_other_game_data_is_refused_and_one_with_the_same_data_is_welcomed()
+    {
+        GameClient old = Join(1001, fingerprint: _world.Data.Fingerprint ^ 1);
+        GameClient current = Join(1002, fingerprint: _world.Data.Fingerprint);
+        Run(30);
+
+        Assert.NotEqual(0UL, _world.Data.Fingerprint);
+        Assert.Equal((SumonerWorld.Net.Sessions.ClientSessionState.Rejected, RejectReason.DataMismatch), (old.Session.State, old.Session.RejectReason));
+        Assert.Equal(SumonerWorld.Net.Sessions.ClientSessionState.InSession, current.Session.State);
+    }
+
+    [Fact]
+    public void The_data_fingerprint_ignores_line_endings_and_file_order_but_not_content()
+    {
+        DataFile a = new("a.json", "{\n \"x\": 1\n}");
+        DataFile b = new("dir/b.json", "{ }");
+        ulong fingerprint = DataRegistryLoader.Fingerprint([a, b]);
+
+        Assert.Equal(fingerprint, DataRegistryLoader.Fingerprint([b, a with { Content = a.Content.Replace("\n", "\r\n", StringComparison.Ordinal) }]));
+        Assert.Equal(fingerprint, DataRegistryLoader.Fingerprint([a, b with { Path = "dir\\b.json" }]));
+        Assert.NotEqual(fingerprint, DataRegistryLoader.Fingerprint([a with { Content = "{ \"x\": 2 }" }, b]));
+    }
+
+    private GameClient Join(ulong account, ulong fingerprint = 0)
     {
         LoopbackTransport transport = _network.CreateEndpoint(1024);
-        var client = new GameClient(transport, NullLog.Instance, new Hello(0, DevTokenAuthenticator.Ticket(account, Secret)), new GameServerSettings().Movement);
+        var client = new GameClient(transport, NullLog.Instance, new Hello(0, DevTokenAuthenticator.Ticket(account, Secret), fingerprint), new GameServerSettings().Movement);
         transport.Connect(_serverTransport);
         _clients.Add(client);
         return client;

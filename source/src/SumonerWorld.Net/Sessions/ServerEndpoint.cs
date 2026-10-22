@@ -33,6 +33,9 @@ public sealed class ServerEndpoint : ITransportHandler
     private readonly RejectedCodec _rejected = new();
     private ulong _lastSessionId;
 
+    /// <summary>The server's data fingerprint (M2-15); a client with other data is refused. 0 = not checked.</summary>
+    public ulong DataFingerprint { get; init; }
+
     /// <summary>Creates the endpoint.</summary>
     public ServerEndpoint(
         ITransport transport, IAuthenticator authenticator, ILog log, int maxPlayers, IServerSessionHandler? sessions = null, ulong lastSessionId = 0)
@@ -149,6 +152,12 @@ public sealed class ServerEndpoint : ITransportHandler
         if (!_authenticator.TryAuthenticate(hello.AuthTicket, out ulong account, out RejectReason reason))
         {
             Reject(connection, reason, "Authentication failed.");
+            return;
+        }
+
+        if (hello.DataFingerprint != 0 && DataFingerprint != 0 && hello.DataFingerprint != DataFingerprint)
+        {
+            Reject(connection, RejectReason.DataMismatch, "Your game data differs from the server's. Get the new package.");
             return;
         }
 

@@ -84,8 +84,9 @@ public static partial class DataRegistryLoader
     {
         ArgumentNullException.ThrowIfNull(files);
 
+        List<DataFile> all = [.. files];
         var collected = new Collected();
-        foreach (DataFile file in files)
+        foreach (DataFile file in all)
         {
             string? kind = ReadKind(file, collected.Errors);
             if (kind is not null)
@@ -94,7 +95,31 @@ public static partial class DataRegistryLoader
             }
         }
 
-        return collected.Build();
+        DataRegistry registry = collected.Build();
+        registry.Fingerprint = Fingerprint(all);
+        return registry;
+    }
+
+    /// <summary>
+    /// A 64-bit fingerprint of the data files (FNV-1a over each path and content in path order, line endings ignored): client and
+    /// server must load the same data (M2-15), else quest, item and species indices would mean different things.
+    /// </summary>
+    public static ulong Fingerprint(IEnumerable<DataFile> files)
+    {
+        ArgumentNullException.ThrowIfNull(files);
+        ulong hash = 14_695_981_039_346_656_037;
+        foreach (DataFile file in files.OrderBy(file => file.Path.Replace('\\', '/'), StringComparer.Ordinal))
+        {
+            foreach (char c in file.Path.Replace('\\', '/') + "\n" + file.Content)
+            {
+                if (c != '\r')
+                {
+                    hash = (hash ^ c) * 1_099_511_628_211;
+                }
+            }
+        }
+
+        return hash == 0 ? 1 : hash;
     }
 
     // Everything read so far, per kind; Build runs the cross-file checks and creates the registry.
