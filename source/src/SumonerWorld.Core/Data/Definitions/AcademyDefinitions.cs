@@ -106,7 +106,10 @@ public sealed record AcademyDefinition
     }
 }
 
-/// <summary>One of the Academy's people (Academy spec §1): they stand, talk and give quests.</summary>
+/// <summary>
+/// A person (Academy spec §1, E5a): one of the Academy's people or of the Vale's towns and outposts. They stand or walk their
+/// round, talk and give quests; the Vale's people also say their lines.
+/// </summary>
 public sealed record NpcDefinition
 {
     /// <summary>Stable id in snake_case.</summary>
@@ -133,8 +136,17 @@ public sealed record NpcDefinition
     /// <summary>What they say when there is nothing else to say.</summary>
     public string Greeting { get; init; } = string.Empty;
 
-    /// <summary>A Keeper's class id (E3c): the young creatures of that class wait with them; empty for others.</summary>
+    /// <summary>A Keeper's or mentor's class id (E3c): the young creatures of that class wait with them; empty for others.</summary>
     public string Class { get; init; } = string.Empty;
+
+    /// <summary>What they say when talked to again, in turn (E5a; the greeting comes first).</summary>
+    public IReadOnlyList<string> Lines { get; init; } = [];
+
+    /// <summary>
+    /// Their round (E5a): the points they walk between, back to the first and round again, resting a while at each; empty = they
+    /// stand at <see cref="X"/>, <see cref="Z"/>.
+    /// </summary>
+    public IReadOnlyList<RoutePoint> Route { get; init; } = [];
 }
 
 /// <summary>One ranking question (Academy spec §3.1).</summary>
@@ -161,4 +173,14 @@ public sealed record RankingAnswerDefinition
 
     /// <summary>The species this answer votes for as the first creature (M2-22); empty for none.</summary>
     public string Creature { get; init; } = string.Empty;
+}
+
+/// <summary>A point of a person's round, in metres.</summary>
+public sealed record RoutePoint
+{
+    /// <summary>X.</summary>
+    public float X { get; init; }
+
+    /// <summary>Z.</summary>
+    public float Z { get; init; }
 }

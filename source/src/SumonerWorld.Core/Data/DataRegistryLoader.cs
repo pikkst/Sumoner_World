@@ -365,8 +365,9 @@ public static partial class DataRegistryLoader
             ValidateCombos(_combos, _effects, _spells, Errors);
             ValidateEconomy(_items, _lootTables, _gatherNodes, _recipes, _species, Errors);
             AcademyDefinition? academy = _academies.Count == 1 ? _academies[0].Entry : null;
-            QuestValidation.ValidateQuests(_quests, _species, _items, academy, Errors);
             RegionDefinition? region = _regions.Count == 1 ? _regions[0].Entry : null;
+            QuestValidation.ValidateQuests(_quests, _species, _items, academy, region, Errors);
+
             if (_regions.Count > 1)
             {
                 Errors.Add($"Expected at most one region entry, found {_regions.Count}.");

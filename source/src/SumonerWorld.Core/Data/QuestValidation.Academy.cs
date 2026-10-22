@@ -5,7 +5,8 @@ namespace SumonerWorld.Core.Data;
 /// <summary>The Summoner Academy (Academy spec, M2-21).</summary>
 internal static partial class QuestValidation
 {
-    private static readonly string[] NpcRoles = ["headmaster", "arena_master", "keeper", "vendor"];
+    /// <summary>The roles a person can have (E5a: the Vale's people too).</summary>
+    internal static readonly string[] NpcRoles = ["headmaster", "arena_master", "keeper", "vendor", "innkeeper", "mentor", "story", "villager", "guard"];
 
     internal static void ValidateAcademy(
         AcademyDefinition academy, string where, List<QuestDefinition> quests, List<SpeciesDefinition> species, List<string> errors)

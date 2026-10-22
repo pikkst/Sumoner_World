@@ -41,12 +41,17 @@ public static class Panels
             parent.AddChild(new RegionView(region, World.DevWorld.Ground.HeightAt, feet));
         }
 
-        AcademyDialogue? dialogue = null;
         if (data.Academy is Core.Data.Definitions.AcademyDefinition academy)
         {
-            var view = new AcademyView(academy, World.DevWorld.Ground.HeightAt);
-            dialogue = new AcademyDialogue(client, data, controls, view, feet, creature);
-            parent.AddChild(view);
+            parent.AddChild(new AcademyView(academy, World.DevWorld.Ground.HeightAt));
+        }
+
+        AcademyDialogue? dialogue = null;
+        if (data.People.Count > 0)
+        {
+            var people = new PeopleView(data, World.DevWorld.Ground.HeightAt, () => client.LastSnapshotTick);
+            dialogue = new AcademyDialogue(client, data, controls, people, feet, creature);
+            parent.AddChild(people);
             parent.AddChild(dialogue);
         }
 

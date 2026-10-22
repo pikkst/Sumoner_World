@@ -5,6 +5,8 @@ namespace SumonerWorld.Core.Data;
 /// <summary>Immutable <see cref="IDataRegistry"/>. Create it with <see cref="DataRegistryLoader.Load"/>.</summary>
 public sealed class DataRegistry : IDataRegistry
 {
+    private IReadOnlyList<NpcDefinition>? _people;
+
     private readonly Dictionary<ushort, MemoryEventTypeDefinition> _memoryEventTypesById;
     private readonly Dictionary<string, SpeciesDefinition> _speciesById;
     private readonly Dictionary<string, int> _moveIndexById;
@@ -120,6 +122,9 @@ public sealed class DataRegistry : IDataRegistry
 
     /// <inheritdoc />
     public RegionDefinition? Region { get; }
+
+    /// <inheritdoc />
+    public IReadOnlyList<NpcDefinition> People => _people ??= [.. Academy?.Npcs ?? [], .. Region?.People ?? []];
 
     /// <inheritdoc />
     public int ItemIndex(string id)

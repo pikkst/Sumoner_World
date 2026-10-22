@@ -13,7 +13,12 @@ internal static partial class QuestValidation
 
     // Ids, steps, objectives, rewards and the quests required before each (known, and earlier in file order so there are no loops).
     internal static void ValidateQuests(
-        List<(QuestDefinition Entry, string Where)> quests, List<SpeciesDefinition> species, List<ItemDefinition> items, AcademyDefinition? academy, List<string> errors)
+        List<(QuestDefinition Entry, string Where)> quests,
+        List<SpeciesDefinition> species,
+        List<ItemDefinition> items,
+        AcademyDefinition? academy,
+        RegionDefinition? region,
+        List<string> errors)
     {
         if (quests.Count > MaxQuests)
         {
@@ -23,7 +28,12 @@ internal static partial class QuestValidation
         var ids = new HashSet<string>(StringComparer.Ordinal);
         var itemIds = items.Select(item => item.Id).ToHashSet(StringComparer.Ordinal);
         var speciesIds = species.Select(definition => definition.Id).ToHashSet(StringComparer.Ordinal);
-        var npcIds = (academy?.Npcs ?? []).Select(npc => npc.Id).ToHashSet(StringComparer.Ordinal);
+        var npcIds = (academy?.Npcs ?? []).Concat(region?.People ?? []).Select(npc => npc.Id).ToHashSet(StringComparer.Ordinal);
+        foreach (string shared in (academy?.Npcs ?? []).Select(npc => npc.Id).Intersect((region?.People ?? []).Select(npc => npc.Id), StringComparer.Ordinal))
+        {
+            errors.Add($"Person '{shared}' is both one of the Academy's people and one of the region's.");
+        }
+
         foreach ((QuestDefinition quest, string where) in quests)
         {
             foreach (string required in quest.Requires.Where(required => !ids.Contains(required)))

@@ -109,7 +109,7 @@ public sealed class QuestSystem : ISimulationSystem
             string id = happened.Type switch
             {
                 ObjectiveType.Gather or ObjectiveType.Craft => _world.Data.Items[happened.Key].Id,
-                ObjectiveType.Talk => happened.Key < 0 ? AcademyDefinition.OwnKeeper : _world.Data.Academy!.Npcs[happened.Key].Id,
+                ObjectiveType.Talk => happened.Key < 0 ? AcademyDefinition.OwnKeeper : _world.Data.People[happened.Key].Id,
                 ObjectiveType.Answer or ObjectiveType.Read => string.Empty,
                 _ => _world.Data.Species[happened.Key].Id,
             };

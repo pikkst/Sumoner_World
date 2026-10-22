@@ -10,13 +10,14 @@ using IntentKind = SumonerWorld.Net.Messages.IntentKind;
 namespace SumonerWorld.Game.Ui;
 
 /// <summary>
-/// Talking to the Academy's people (Academy spec §1, §3, §6, M2-21). Near one, a prompt says "[E] talk to …"; E talks (it
-/// counts for the ranking quest) and opens the dialogue box: the person's words, and for the Headmaster the ranking questions
-/// one by one (click an answer or press 1–4) and, once all are answered, the ceremony. "Read again" shows the words again; Esc
+/// Talking to people (Academy spec §1, §3, §6, M2-21; the Vale's people since E5a). Near one, a prompt says "[E] talk to …"; E
+/// talks (it counts for talk objectives) and opens the dialogue box: the person's words (the Vale's people greet first and then
+/// say their lines in turn), and for the Headmaster the ranking questions one by one (click an answer or press 1–4) and, once
+/// all are answered, the ceremony. "Read again" shows the words again; Esc
 /// closes. The server checks every answer and decides the class and the rank.
 /// </summary>
 public sealed partial class AcademyDialogue(
-    GameClient client, IDataRegistry data, InteractionControls controls, AcademyView view, Func<Godot.Vector3> player, Func<ulong> creature)
+    GameClient client, IDataRegistry data, InteractionControls controls, PeopleView view, Func<Godot.Vector3> player, Func<ulong> creature)
     : CanvasLayer
 {
     private PanelContainer? _window;
@@ -28,6 +29,7 @@ public sealed partial class AcademyDialogue(
     private DialoguePage? _shown;
     private uint _ceremony;
     private string? _override;
+    private readonly Dictionary<int, int> _talks = [];
 
     /// <summary>True while the dialogue box is shown.</summary>
     public bool IsOpen => _window?.Visible ?? false;
@@ -41,12 +43,13 @@ public sealed partial class AcademyDialogue(
     /// <summary>Talks to person <paramref name="npc"/> (the self-test picks one of two people standing side by side).</summary>
     public bool Talk(int npc)
     {
-        if (npc < 0 || data.Academy is not AcademyDefinition academy || npc >= academy.Npcs.Count)
+        if (npc < 0 || npc >= data.People.Count)
         {
             return false;
         }
 
-        controls.Send(IntentKind.Talk, (ulong)npc, academy.Npcs[npc].Name);
+        controls.Send(IntentKind.Talk, (ulong)npc, data.People[npc].Name);
+        _talks[npc] = _talks.GetValueOrDefault(npc) + 1;
         _npc = npc;
         _override = null;
         _shown = null;
@@ -155,16 +158,12 @@ public sealed partial class AcademyDialogue(
     /// <inheritdoc />
     public override void _Process(double delta)
     {
-        if (data.Academy is not AcademyDefinition academy)
-        {
-            return;
-        }
-
         int near = view.PersonNear(player());
         Godot.Vector3 at = player();
+        AcademyDefinition? academy = data.Academy;
         _prompt!.Text = IsOpen ? string.Empty
-            : near >= 0 ? AcademyText.Prompt(academy.Npcs[near])
-            : academy.IsSafe(at.X, at.Z) ? "Academy grounds: no fighting here. The arena is just inside the gate."
+            : near >= 0 ? AcademyText.Prompt(data.People[near])
+            : academy is not null && academy.IsSafe(at.X, at.Z) ? "Academy grounds: no fighting here. The arena is just inside the gate."
             : string.Empty;
         if (!IsOpen)
         {
@@ -174,6 +173,13 @@ public sealed partial class AcademyDialogue(
         if (near < 0)
         {
             Close();
+            return;
+        }
+
+        if (academy is null || _npc >= academy.Npcs.Count)
+        {
+            // One of the Vale's people (E5a).
+            Show(AcademyText.PersonPage(data.People[_npc], _talks.GetValueOrDefault(_npc)), onlyIfChanged: true);
             return;
         }
 
@@ -194,14 +200,17 @@ public sealed partial class AcademyDialogue(
             page = new DialoguePage(academy.Npcs[_npc].Name, words, DialogueKind.Words, 0, []);
         }
 
-        if (page != _shown && (_shown is null || page.Text != _shown.Text || page.Kind != _shown.Kind))
-        {
-            Show(page);
-        }
+        Show(page, onlyIfChanged: true);
     }
 
-    private void Show(DialoguePage page)
+    // Shows a page; with onlyIfChanged, nothing happens while the same words are up (the options keep their state).
+    private void Show(DialoguePage page, bool onlyIfChanged)
     {
+        if (onlyIfChanged && _shown is not null && page.Text == _shown.Text && page.Kind == _shown.Kind)
+        {
+            return;
+        }
+
         _shown = page;
         _speaker!.Text = page.Speaker;
         _text!.Text = page.Text;

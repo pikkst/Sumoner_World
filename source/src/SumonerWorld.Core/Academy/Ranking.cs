@@ -209,20 +209,10 @@ public static class RankingRules
         return academy.OpenClasses.Contains(id) ? leaning : (SummonerClass)AcademyDefinition.ClassIds.ToList().IndexOf(academy.OpenClasses[0]);
     }
 
-    /// <summary>The index of an Academy person, or −1.</summary>
+    /// <summary>The index of a person (the Academy's or the Vale's, E5a), or −1.</summary>
     public static int NpcIndex(IDataRegistry data, string id)
     {
-        ArgumentNullException.ThrowIfNull(data);
-        IReadOnlyList<NpcDefinition> npcs = data.Academy?.Npcs ?? [];
-        for (int i = 0; i < npcs.Count; i++)
-        {
-            if (npcs[i].Id == id)
-            {
-                return i;
-            }
-        }
-
-        return -1;
+        return World.People.IndexOf(data, id);
     }
 
     /// <summary>The ranking quest's index, or −1.</summary>
@@ -282,25 +272,31 @@ public record struct TalkTransaction(CreatureWorld Creatures, Entity Avatar, int
             return IntentResult.Reject(IntentRejectReason.InvalidTarget);
         }
 
-        if (Creatures.Data.Academy is not AcademyDefinition academy || (uint)Npc >= (uint)academy.Npcs.Count)
+        if ((uint)Npc >= (uint)Creatures.Data.People.Count)
         {
             return IntentResult.Reject(IntentRejectReason.InvalidArguments);
         }
 
+        // Where they are now: someone walking their round has moved on (E5a).
         Vector3 at = Creatures.World.GetComponent<Position>(Avatar).Value;
-        NpcDefinition npc = academy.Npcs[Npc];
-        return new Vector2(at.X - npc.X, at.Z - npc.Z).Length() > Range ? IntentResult.Reject(IntentRejectReason.OutOfRange) : IntentResult.Applied();
+        (float x, float z, float _) = World.People.At(Creatures.Data.People[Npc], now);
+        return new Vector2(at.X - x, at.Z - z).Length() > Range ? IntentResult.Reject(IntentRejectReason.OutOfRange) : IntentResult.Applied();
     }
 
     /// <inheritdoc />
     public readonly IntentResult Commit(ulong now)
     {
-        AcademyDefinition academy = Creatures.Data.Academy!;
         ulong account = Creatures.World.GetComponent<PlayerAvatar>(Avatar).AccountId;
         Creatures.Events.Publish(new QuestEvent(account, ObjectiveType.Talk, Npc, 1));
+        NpcDefinition person = Creatures.Data.People[Npc];
+        if (Creatures.Data.Academy is not AcademyDefinition academy)
+        {
+            return IntentResult.Applied();
+        }
+
         AcademyStanding standing = Creatures.Economy.Academy.Of(account);
         var summonerClass = (SummonerClass)Creatures.World.GetComponent<PlayerProgress>(Avatar).Class;
-        bool ownKeeper = academy.Npcs[Npc].Role == "keeper" && academy.KeeperOf(summonerClass) == academy.Npcs[Npc];
+        bool ownKeeper = person.Role == "keeper" && academy.KeeperOf(summonerClass) == person;
         if (ownKeeper)
         {
             // Only the Keeper of the student's own class counts as "your Keeper" (E3c).
@@ -309,11 +305,11 @@ public record struct TalkTransaction(CreatureWorld Creatures, Entity Avatar, int
 
         if (ownKeeper && standing.Ranked && FirstCreatureRules.Waiting(Creatures, account))
         {
-            FirstCreatureRules.Bring(Creatures, Avatar, academy.Npcs[Npc]);
+            FirstCreatureRules.Bring(Creatures, Avatar, person);
             return IntentResult.Applied(TalkResult.Brought);
         }
 
-        if (academy.Npcs[Npc].Role != "headmaster" || standing.Ranked || standing.Answered < AcademyDefinition.QuestionCount)
+        if (person.Role != "headmaster" || standing.Ranked || standing.Answered < AcademyDefinition.QuestionCount)
         {
             return IntentResult.Applied();
         }
@@ -353,7 +349,7 @@ public record struct AnswerTransaction(CreatureWorld Creatures, Entity Avatar, i
         AcademyDefinition academy = Creatures.Data.Academy!;
         ulong account = Creatures.World.GetComponent<PlayerAvatar>(Avatar).AccountId;
         AcademyStanding standing = Creatures.Economy.Academy.Of(account);
-        if (academy.Npcs[Npc].Role != "headmaster" || (uint)Answer >= AcademyDefinition.AnswerCount || Question != standing.Answered
+        if (Creatures.Data.People[Npc].Role != "headmaster" || (uint)Answer >= AcademyDefinition.AnswerCount || Question != standing.Answered
             || standing.Ranked || Question >= AcademyDefinition.QuestionCount)
         {
             return IntentResult.Reject(IntentRejectReason.InvalidArguments);
