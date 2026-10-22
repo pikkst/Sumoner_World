@@ -35,6 +35,9 @@ public enum ObjectiveType
 
     /// <summary>Offering a Pact, whatever the answer (target = species or any; the Pact rehearsal, M2-21b).</summary>
     Offer,
+
+    /// <summary>Creatures beaten until they yield and then left to go free (target = species or any; E6).</summary>
+    Spare,
 }
 
 /// <summary>A quest (quests spec §1), from <c>data/quests/*.json</c>.</summary>
@@ -57,6 +60,9 @@ public sealed record QuestDefinition
 
     /// <summary>Taken for every player as soon as they are offered it (the ranking quest, M2-21).</summary>
     public bool AutoStart { get; init; }
+
+    /// <summary>The class id the quest is for (a class prologue, E6); empty = every class.</summary>
+    public string Class { get; init; } = string.Empty;
 
     /// <summary>Steps, in order.</summary>
     public IReadOnlyList<QuestStepDefinition> Steps { get; init; } = [];

@@ -417,6 +417,7 @@ public static class InteractionText
             Core.Quests.QuestRefusal.LevelTooLow => "You need a higher level for that quest.",
             Core.Quests.QuestRefusal.NeedsEarlierQuest => "Finish the quest before it first.",
             Core.Quests.QuestRefusal.TooMany => "You have too many quests. Finish or leave one first.",
+            Core.Quests.QuestRefusal.OtherClass => "That quest is for summoners of another tradition.",
             _ => "Nothing happens.",
         };
     }
@@ -434,16 +435,21 @@ public static class InteractionText
             Core.Data.Definitions.ObjectiveType.Pact => $"Make a Pact with {target}",
             Core.Data.Definitions.ObjectiveType.Feed => $"Feed {target}",
             Core.Data.Definitions.ObjectiveType.Help => $"Free {target} from a snare",
-            Core.Data.Definitions.ObjectiveType.Talk => $"Talk to the {DisplayName(objective.Target)}",
+            Core.Data.Definitions.ObjectiveType.Talk => objective.Target == Core.Data.Definitions.AcademyDefinition.OwnKeeper ? "Talk to your Keeper" : $"Talk to {TitleCase(objective.Target)}",
             Core.Data.Definitions.ObjectiveType.Answer => "Answer the questions",
             Core.Data.Definitions.ObjectiveType.Read => "Tell how a creature feels",
             Core.Data.Definitions.ObjectiveType.Offer => $"Offer a Pact to {target}",
-            _ => $"Go to {objective.Place}",
+            Core.Data.Definitions.ObjectiveType.Spare => $"Beat {target} until it yields, then let it go",
+            _ => $"Go to {TitleCase(objective.Place)}",
         };
         return objective.Type == Core.Data.Definitions.ObjectiveType.Reach
             ? what + (count > 0 ? " (done)" : string.Empty)
             : $"{what} {Math.Min(count, objective.Count)}/{objective.Count}";
     }
+
+    // An id as a name: scout_rook → Scout Rook.
+    private static string TitleCase(string id) =>
+        string.Join(' ', id.Split('_', StringSplitOptions.RemoveEmptyEntries).Select(word => char.ToUpperInvariant(word[0]) + word[1..]));
 
     /// <summary>A quest's rewards in a few words, e.g. <c>40 XP, 10 gold, Berry meal x2</c> (M2-19).</summary>
     public static string RewardsLine(Core.Data.Definitions.QuestRewardsDefinition rewards)

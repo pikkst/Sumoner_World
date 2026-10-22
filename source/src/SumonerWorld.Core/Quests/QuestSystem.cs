@@ -27,8 +27,8 @@ public record struct AcceptQuestTransaction(CreatureWorld Creatures, Entity Avat
         }
 
         ulong account = Creatures.World.GetComponent<PlayerAvatar>(Avatar).AccountId;
-        int level = Creatures.World.GetComponent<PlayerProgress>(Avatar).Level;
-        QuestRefusal refusal = QuestBook.CanAccept(Creatures.Data, Creatures.Economy.Quests.Of(account), Quest, level);
+        PlayerProgress progress = Creatures.World.GetComponent<PlayerProgress>(Avatar);
+        QuestRefusal refusal = QuestBook.CanAccept(Creatures.Data, Creatures.Economy.Quests.Of(account), Quest, progress.Level, progress.Class);
         return refusal == QuestRefusal.None
             ? IntentResult.Applied()
             : new IntentResult(IntentStatus.Rejected, refusal == QuestRefusal.Unknown ? IntentRejectReason.InvalidArguments : IntentRejectReason.WrongState, (byte)refusal);
@@ -130,6 +130,18 @@ public sealed class QuestSystem : ISimulationSystem
             }
         }
 
+        // A creature beaten until it yielded and then left alone (E6).
+        if (_world.Events.IsRegistered<CreatureSpared>())
+        {
+            foreach (CreatureSpared spared in _world.Events.Read<CreatureSpared>())
+            {
+                if (spared.Account != 0 && _world.World.IsAlive(spared.Creature) && _world.World.Has<SpeciesRef>(spared.Creature))
+                {
+                    book.Record(_world.Data, spared.Account, ObjectiveType.Spare, _world.Data.Species[_world.World.GetComponent<SpeciesRef>(spared.Creature).Index].Id, 1);
+                }
+            }
+        }
+
         foreach (CombatantDefeated defeat in _world.Events.Read<CombatantDefeated>())
         {
             for (int i = 0; i < 4; i++)
@@ -188,7 +200,8 @@ public sealed class QuestSystem : ISimulationSystem
     {
         foreach (int quest in _autoStart)
         {
-            if (QuestBook.CanAccept(_world.Data, quests, quest, _world.World.GetComponent<PlayerProgress>(avatar).Level) == QuestRefusal.None)
+            PlayerProgress progress = _world.World.GetComponent<PlayerProgress>(avatar);
+            if (QuestBook.CanAccept(_world.Data, quests, quest, progress.Level, progress.Class) == QuestRefusal.None)
             {
                 quests.Take(quest);
             }

@@ -1,0 +1,500 @@
+// Chapter 1, "Shards of the Oath" (story bible §7-8, E6): the main path after the Academy, with a prologue for each class. Starting values.
+{
+  "schemaVersion": 1,
+  "kind": "quests",
+  "entries": [
+    {
+      "id": "a_student_no_longer",
+      "title": "A Student No Longer",
+      "autoStart": true,
+      "requires": [
+        "a_first_friend"
+      ],
+      "summary": "The Headmaster has news: creatures are going missing in the Vale. Scout Rook in Thornwick needs help.",
+      "steps": [
+        {
+          "text": "Go to Thornwick, the town west of the Memory Grove.",
+          "objectives": [
+            {
+              "type": "reach",
+              "place": "thornwick"
+            }
+          ]
+        },
+        {
+          "text": "Find Scout Rook by the inn and talk to him.",
+          "objectives": [
+            {
+              "type": "talk",
+              "target": "scout_rook"
+            }
+          ]
+        }
+      ],
+      "rewards": {
+        "xp": 30,
+        "gold": 10
+      }
+    },
+    {
+      "id": "empty_eyes",
+      "title": "Empty Eyes",
+      "requires": [
+        "a_student_no_longer"
+      ],
+      "summary": "Rook found a mossback near the Memory Grove that does not know its own herd. Go and see for yourself.",
+      "steps": [
+        {
+          "text": "Go to the Memory Grove and watch the mossbacks. Lock on (T) and tell how one feels.",
+          "objectives": [
+            {
+              "type": "reach",
+              "place": "memory_grove"
+            },
+            {
+              "type": "read"
+            }
+          ]
+        },
+        {
+          "text": "The herd is afraid: someone took their young. Tell Scout Rook in Thornwick.",
+          "objectives": [
+            {
+              "type": "talk",
+              "target": "scout_rook"
+            }
+          ]
+        }
+      ],
+      "rewards": {
+        "xp": 40,
+        "gold": 10
+      }
+    },
+    {
+      "id": "the_silent_herd",
+      "title": "The Silent Herd",
+      "class": "elf",
+      "requires": [
+        "empty_eyes"
+      ],
+      "summary": "Warden Sael's herd lost two calves to the Binders. Help the herd that is left.",
+      "steps": [
+        {
+          "text": "Talk to Warden Sael in Silverleaf Glade, north of the Bogfox Den.",
+          "objectives": [
+            {
+              "type": "talk",
+              "target": "warden_sael"
+            }
+          ]
+        },
+        {
+          "text": "Go into the Deep Elderwood and feed the frightened mossbacks.",
+          "objectives": [
+            {
+              "type": "reach",
+              "place": "elderwood_deep"
+            },
+            {
+              "type": "feed",
+              "target": "mossback",
+              "count": 3
+            }
+          ]
+        },
+        {
+          "text": "Tell Warden Sael what you saw.",
+          "objectives": [
+            {
+              "type": "talk",
+              "target": "warden_sael"
+            }
+          ]
+        }
+      ],
+      "rewards": {
+        "xp": 80,
+        "gold": 25,
+        "items": [
+          {
+            "item": "silverleaf_charm"
+          }
+        ]
+      }
+    },
+    {
+      "id": "old_colours",
+      "title": "Old Colours",
+      "class": "human",
+      "requires": [
+        "empty_eyes"
+      ],
+      "summary": "Captain Ilsa Varn has orders for the Hawk Cliffs, and news she does not want to believe.",
+      "steps": [
+        {
+          "text": "Talk to Captain Ilsa Varn at Fort Calder, far north on the Stormreach.",
+          "objectives": [
+            {
+              "type": "talk",
+              "target": "captain_ilsa_varn"
+            }
+          ]
+        },
+        {
+          "text": "Cross the Windy Ridges and make friends with the hounds there.",
+          "objectives": [
+            {
+              "type": "reach",
+              "place": "windy_ridges"
+            },
+            {
+              "type": "feed",
+              "target": "plains_hound",
+              "count": 2
+            }
+          ]
+        },
+        {
+          "text": "Climb to the Hawk Cliffs and look over the nests.",
+          "objectives": [
+            {
+              "type": "reach",
+              "place": "hawk_cliffs"
+            }
+          ]
+        },
+        {
+          "text": "Report to Captain Ilsa Varn.",
+          "objectives": [
+            {
+              "type": "talk",
+              "target": "captain_ilsa_varn"
+            }
+          ]
+        }
+      ],
+      "rewards": {
+        "xp": 80,
+        "gold": 25,
+        "items": [
+          {
+            "item": "hound_tag"
+          }
+        ]
+      }
+    },
+    {
+      "id": "the_lantern",
+      "title": "The Lantern That Would Not Go Out",
+      "class": "necromancer",
+      "requires": [
+        "empty_eyes"
+      ],
+      "summary": "One of Mother Wren's lanterns holds a spirit that forgot its own name. The Old Barrows may remember it.",
+      "steps": [
+        {
+          "text": "Talk to Mother Wren in Lantern Hollow, east in the Mournfen.",
+          "objectives": [
+            {
+              "type": "talk",
+              "target": "mother_wren"
+            }
+          ]
+        },
+        {
+          "text": "Go to the Old Barrows. Pick glowcaps for the lantern and read how the restless sprites feel.",
+          "objectives": [
+            {
+              "type": "reach",
+              "place": "old_barrows"
+            },
+            {
+              "type": "gather",
+              "target": "glowcap",
+              "count": 3
+            },
+            {
+              "type": "read"
+            }
+          ]
+        },
+        {
+          "text": "Bring what you learned to Mother Wren.",
+          "objectives": [
+            {
+              "type": "talk",
+              "target": "mother_wren"
+            }
+          ]
+        }
+      ],
+      "rewards": {
+        "xp": 80,
+        "gold": 25,
+        "items": [
+          {
+            "item": "lantern_charm"
+          }
+        ]
+      }
+    },
+    {
+      "id": "iron_and_shame",
+      "title": "Iron and Shame",
+      "class": "dwarf",
+      "requires": [
+        "empty_eyes"
+      ],
+      "summary": "Forgemaster Dunrik has something to confess, and something to make: a tool that breaks iron collars.",
+      "steps": [
+        {
+          "text": "Talk to Forgemaster Dunrik at Emberdeep Gate, north-east.",
+          "objectives": [
+            {
+              "type": "talk",
+              "target": "forgemaster_dunrik"
+            }
+          ]
+        },
+        {
+          "text": "In the Ash Fields, chip off ore and win a salamander scale.",
+          "objectives": [
+            {
+              "type": "reach",
+              "place": "ash_fields"
+            },
+            {
+              "type": "gather",
+              "target": "raw_ore",
+              "count": 3
+            },
+            {
+              "type": "defeat",
+              "target": "ember_salamander"
+            }
+          ]
+        },
+        {
+          "text": "Make a collar-breaker (B: crafting).",
+          "objectives": [
+            {
+              "type": "craft",
+              "target": "collar_breaker"
+            }
+          ]
+        },
+        {
+          "text": "Show it to Forgemaster Dunrik.",
+          "objectives": [
+            {
+              "type": "talk",
+              "target": "forgemaster_dunrik"
+            }
+          ]
+        }
+      ],
+      "rewards": {
+        "xp": 80,
+        "gold": 25,
+        "items": [
+          {
+            "item": "ember_rune"
+          }
+        ]
+      }
+    },
+    {
+      "id": "the_first_shard",
+      "title": "The First Shard",
+      "requires": [
+        "empty_eyes"
+      ],
+      "minLevel": 3,
+      "summary": "Grey tents on the Stormreach: a Binder camp. Its creatures wear iron collars. Set them free and find out what the Binders dig for.",
+      "steps": [
+        {
+          "text": "Find the Binder camp east of the Windy Ridges.",
+          "objectives": [
+            {
+              "type": "reach",
+              "place": "binder_camp"
+            }
+          ]
+        },
+        {
+          "text": "Beat the collared guards until their collars break, and let them go.",
+          "objectives": [
+            {
+              "type": "spare",
+              "count": 3
+            }
+          ]
+        },
+        {
+          "text": "Bring what you found to Scout Rook.",
+          "objectives": [
+            {
+              "type": "talk",
+              "target": "scout_rook"
+            }
+          ]
+        }
+      ],
+      "rewards": {
+        "xp": 120,
+        "gold": 30,
+        "items": [
+          {
+            "item": "oathstone_shard"
+          }
+        ]
+      }
+    },
+    {
+      "id": "what_the_fen_remembers",
+      "title": "What the Fen Remembers",
+      "requires": [
+        "the_first_shard"
+      ],
+      "minLevel": 4,
+      "summary": "The shard is a piece of the Oathstone. Mother Wren says the spirits of the Barrows saw the night of the Breaking.",
+      "steps": [
+        {
+          "text": "Talk to Mother Wren in Lantern Hollow.",
+          "objectives": [
+            {
+              "type": "talk",
+              "target": "mother_wren"
+            }
+          ]
+        },
+        {
+          "text": "Go to the Old Barrows and read how its spirits feel.",
+          "objectives": [
+            {
+              "type": "reach",
+              "place": "old_barrows"
+            },
+            {
+              "type": "read"
+            }
+          ]
+        },
+        {
+          "text": "Tell Mother Wren what the spirits showed you.",
+          "objectives": [
+            {
+              "type": "talk",
+              "target": "mother_wren"
+            }
+          ]
+        }
+      ],
+      "rewards": {
+        "xp": 120,
+        "gold": 30
+      }
+    },
+    {
+      "id": "the_cold_forge",
+      "title": "The Cold Forge",
+      "requires": [
+        "what_the_fen_remembers"
+      ],
+      "minLevel": 5,
+      "summary": "The collars were made in the Cold Forge. The Binders have been there; their orders may still lie in the ashes.",
+      "steps": [
+        {
+          "text": "Go to the Cold Forge, far north-east in the Ashen Reach.",
+          "objectives": [
+            {
+              "type": "reach",
+              "place": "cold_forge"
+            }
+          ]
+        },
+        {
+          "text": "Drive off the angry salamanders and search the ashes for ore.",
+          "objectives": [
+            {
+              "type": "defeat",
+              "target": "ember_salamander",
+              "count": 2
+            },
+            {
+              "type": "gather",
+              "target": "raw_ore",
+              "count": 2
+            }
+          ]
+        },
+        {
+          "text": "Bring the orders to Forgemaster Dunrik.",
+          "objectives": [
+            {
+              "type": "talk",
+              "target": "forgemaster_dunrik"
+            }
+          ]
+        }
+      ],
+      "rewards": {
+        "xp": 150,
+        "gold": 40,
+        "items": [
+          {
+            "item": "oathstone_shard"
+          }
+        ]
+      }
+    },
+    {
+      "id": "the_shattered_ring",
+      "title": "The Shattered Ring",
+      "requires": [
+        "the_cold_forge"
+      ],
+      "minLevel": 6,
+      "summary": "Iron Warden Kask waits where the Oathstone stood, with an old Thornback in an iron collar. Free it.",
+      "steps": [
+        {
+          "text": "Go to the Shattered Ring in the middle of the Vale. Bring your companions.",
+          "objectives": [
+            {
+              "type": "reach",
+              "place": "shattered_ring"
+            }
+          ]
+        },
+        {
+          "text": "Beat the chained Thornback until its collar breaks, then let it go.",
+          "objectives": [
+            {
+              "type": "spare",
+              "target": "chained_thornback"
+            }
+          ]
+        },
+        {
+          "text": "Kask is gone, but he dropped a letter signed \"M.\". Take it to Headmaster Oriel.",
+          "objectives": [
+            {
+              "type": "talk",
+              "target": "headmaster"
+            }
+          ]
+        }
+      ],
+      "rewards": {
+        "xp": 300,
+        "gold": 80,
+        "items": [
+          {
+            "item": "oathstone_shard"
+          }
+        ]
+      }
+    }
+  ]
+}

@@ -149,11 +149,22 @@ public sealed class QuestBook
         return quests;
     }
 
+    /// <summary>True when <paramref name="quest"/> is for every class or for <paramref name="summonerClass"/> (E6).</summary>
+    public static bool IsFor(QuestDefinition quest, int summonerClass)
+    {
+        ArgumentNullException.ThrowIfNull(quest);
+        return quest.Class.Length == 0
+            || ((uint)summonerClass < (uint)AcademyDefinition.ClassIds.Count && AcademyDefinition.ClassIds[summonerClass] == quest.Class);
+    }
+
     /// <summary>The account's quests if it has any, without creating them.</summary>
     public PlayerQuests? Find(ulong account) => _byAccount.GetValueOrDefault(account);
 
-    /// <summary>Why a quest cannot be taken now (<see cref="QuestRefusal.None"/> when it can).</summary>
-    public static QuestRefusal CanAccept(IDataRegistry data, PlayerQuests quests, int quest, int level)
+    /// <summary>
+    /// Why a quest cannot be taken now (<see cref="QuestRefusal.None"/> when it can); <paramref name="summonerClass"/> is the
+    /// player's class (a class's prologue is only for it, E6).
+    /// </summary>
+    public static QuestRefusal CanAccept(IDataRegistry data, PlayerQuests quests, int quest, int level, int summonerClass)
     {
         ArgumentNullException.ThrowIfNull(data);
         ArgumentNullException.ThrowIfNull(quests);
@@ -171,6 +182,11 @@ public sealed class QuestBook
         if (level < definition.MinLevel)
         {
             return QuestRefusal.LevelTooLow;
+        }
+
+        if (!IsFor(definition, summonerClass))
+        {
+            return QuestRefusal.OtherClass;
         }
 
         foreach (string required in definition.Requires)
@@ -360,4 +376,7 @@ public enum QuestRefusal : byte
 
     /// <summary>Too many quests at once.</summary>
     TooMany = 5,
+
+    /// <summary>The quest is another class's (a prologue, E6).</summary>
+    OtherClass = 6,
 }
