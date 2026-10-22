@@ -26,6 +26,7 @@
     {"id": "old_bone", "category": "material", "stack": 30, "weightGrams": 100, "goldValue": 2, "tags": ["bone", "bone_sprite"]},
     {"id": "salamander_scale", "category": "material", "stack": 20, "weightGrams": 60, "goldValue": 5, "tags": ["scale", "ember_salamander"]},
     {"id": "cinder_claw", "category": "material", "stack": 20, "weightGrams": 80, "goldValue": 5, "tags": ["claw", "cinder_mole"]},
+    { "id": "glowcap", "category": "food", "stack": 30, "weightGrams": 40, "goldValue": 2, "tags": ["plant", "food", "fen"], "restore": { "health": 10, "stamina": 10 } },
     {"id": "raw_ore", "category": "material", "stack": 30, "weightGrams": 500, "goldValue": 3, "tags": ["ore"]}
 ]
 }

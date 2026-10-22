@@ -1,8 +1,14 @@
 namespace SumonerWorld.Core.Data.Definitions;
 
-/// <summary>The slice region's places and what lives and grows there (M2-16), from <c>data/world/slice_region.json</c>.</summary>
+/// <summary>
+/// The region's places and what lives and grows there (M2-16), from <c>data/world/slice_region.json</c>; since E4a also its biomes,
+/// which shape the ground and how it looks (the Vale of Oaths, 2 km).
+/// </summary>
 public sealed record RegionDefinition
 {
+    /// <summary>Areas with their own ground, plants and creatures (E4a).</summary>
+    public IReadOnlyList<BiomeDefinition> Biomes { get; init; } = [];
+
     /// <summary>Named places along the slice path.</summary>
     public IReadOnlyList<PlaceDefinition> Places { get; init; } = [];
 
@@ -11,6 +17,46 @@ public sealed record RegionDefinition
 
     /// <summary>Gathering nodes placed at a place at every start.</summary>
     public IReadOnlyList<GatherSpotDefinition> GatherSpots { get; init; } = [];
+}
+
+/// <summary>
+/// A biome (E4a): a circle whose ground is raised, lowered, flattened or roughened (fading out over its outer third), with its own
+/// ground colour, plant cover and, for a marsh, standing water.
+/// </summary>
+public sealed record BiomeDefinition
+{
+    /// <summary>Stable id in snake_case.</summary>
+    public required string Id { get; init; }
+
+    /// <summary>Name shown on the map.</summary>
+    public required string Name { get; init; }
+
+    /// <summary>Centre, x in metres.</summary>
+    public float X { get; init; }
+
+    /// <summary>Centre, z in metres.</summary>
+    public float Z { get; init; }
+
+    /// <summary>Radius in metres.</summary>
+    public float Radius { get; init; } = 300;
+
+    /// <summary>Metres added to the ground.</summary>
+    public float HeightOffset { get; init; }
+
+    /// <summary>Factor on the ground's hills (below 1 flatter, above 1 rougher).</summary>
+    public float HeightScale { get; init; } = 1;
+
+    /// <summary>Ground colour (<c>#RRGGBB</c>).</summary>
+    public string Ground { get; init; } = "#47693A";
+
+    /// <summary>Plant cover against the usual (0 = bare, 1 = usual, 2 = dense).</summary>
+    public float Plants { get; init; } = 1;
+
+    /// <summary>Colour of its trees and bushes (<c>#RRGGBB</c>).</summary>
+    public string PlantColour { get; init; } = "#3D6B45";
+
+    /// <summary>Height of standing water, in metres (null = none).</summary>
+    public float? Water { get; init; }
 }
 
 /// <summary>A named place (a circle on the ground).</summary>
@@ -34,7 +80,7 @@ public sealed record PlaceDefinition
     /// <summary>A line shown under the name.</summary>
     public string Line { get; init; } = string.Empty;
 
-    /// <summary>What the client draws there: <c>none</c> or <c>den</c> (a ring of rocks).</summary>
+    /// <summary>What the client draws there: <c>none</c>, <c>den</c> (a ring of rocks), <c>town</c>, <c>outpost</c>, <c>ruins</c> or <c>camp</c>.</summary>
     public string Look { get; init; } = "none";
 }
 

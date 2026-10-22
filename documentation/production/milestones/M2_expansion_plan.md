@@ -19,7 +19,8 @@ merged under the standing approval. The GDD's "M3" items that this pulls forward
 | **E3a** Magic schools | Storm, Umbral and Ember runes and three spells each, in data; a player casts the spells of their class's school; the action bar and ability book show them | 3d |
 | **E3b** Class creatures | Two or more species per new class (Human, Necromancer, Dwarf) with looks, behaviour, skill trees, loot and growth, in data | 5d |
 | **E3c** All classes at the Academy | The ranking answers vote for all four classes; a first creature for each class; a mentor NPC per class | 2d |
-| **E4** A bigger world | 512 m → 2 km region with biomes (Academy vale and forest, highlands, marsh barrows, ash hills), each with its places, spawners and gathering; streaming and server budgets checked | 5d |
+| **E4a** A bigger world: ground and life | 512 m → 2 km region; biomes in data shape the ground (highlands, marsh, ash hills, ruins) and mountains wall it; 14 new places with spawners for every class's creatures and new gathering (ore, glowcaps); navigation baked in tiles (near the spawn first); entity capacity 1024 | 3d |
+| **E4b** A bigger world: looks | Biome ground colours, plant cover and colours, the marsh's water, place looks (town, outposts, ruins, camp) | 2d |
 | **E5** NPCs and towns | NPCs from data (name, role, place, lines, daily walk); a hub town and an outpost per class tradition; **vendors** (buy and sell with gold, server transactions); talking reuses the Academy dialogue | 5d |
 | **E6** Story chapter 1 | The main quest line across the regions, class prologues, story dialogue, a chapter boss | 5d |
 | **E7** World map and travel | World map (M) with places, quest markers and the player; a compass; waystones to travel between visited towns | 3d |
@@ -30,7 +31,7 @@ Then **M2-18** (slice test and polish) runs on the expanded game: a bot run of t
 to zero critical, the test package.
 
 ## Dependencies
-E1 → E2 → E3a, E3b (in parallel) → E3c → E4 → E5 → E6 → E7, E8, E9 → M2-18.
+E1 → E2 → E3a, E3b (in parallel) → E3c → E4a → E4b → E5 → E6 → E7, E8, E9 → M2-18.
 
 ## Status
 | Task | Status |
@@ -40,3 +41,4 @@ E1 → E2 → E3a, E3b (in parallel) → E3c → E4 → E5 → E6 → E7, E8, E9
 | E3a | **Done** 2026-10-22: Storm (spark, thunderclap, tailwind), Umbral (soulbolt, shade grip, veil) and Ember (firebolt, cinder burst, ember shield) in data; effects burning, quickened, weakened, warded, shielded; spell poise, drain and shields; a class casts only its school (server); the bar and ability book follow the class; school colours (combat spec 0.5 §8a) |
 | E3b | **Done** 2026-10-22: six class creatures in data (storm hawk, plains hound; wisp hound, bone sprite; ember salamander, cinder mole) with 18 moves, skill trees, loot and items; data-driven looks (quadruped, avian, biped; colours, features, glow) for every species; `--showcase=species` (companions spec §12) |
 | E3c | **Done** 2026-10-22: all four classes open at the Academy; Keepers Tomas, Nyx and Borra beside Lisel; only one's own Keeper brings the first creature (quest target `keeper`); the vote becomes the class's creature (`firstCreatures`); ceremony and Keepers name the student's Keeper (Academy spec §10) |
+| E4a | **Done** 2026-10-22: the Vale of Oaths is 2 km (32 × 32 chunks); six biomes shape the ground and mountains wall it, the Academy's vale unchanged (old saves stand where they stood); 14 new places, 18 new spawners (every class's creatures, levels up to 9), ore and glowcap gathering; navigation in 64 tiles of 256 m, the 4 near the spawn before start (4.7 s), the rest in the background; entity capacity 1024 |

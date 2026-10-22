@@ -97,6 +97,8 @@ public static class InteractionText
     {
         "berry_bush" => "[H] pick berries",
         "sweetroot_patch" => "[H] dig up sweetroot",
+        "glowcap_cluster" => "[H] pick glowcaps",
+        "ore_vein" => "[H] chip off ore",
         _ => "[H] gather branches",
     };
 

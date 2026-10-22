@@ -225,12 +225,13 @@ public sealed class GameServer : IServerSessionHandler
 
     /// <summary>
     /// Adds <paramref name="count"/> wild creatures of a species at seeded random spots, in groups <paramref name="firstGroup"/> …
-    /// <paramref name="firstGroup"/> + <paramref name="herds"/> − 1 (dev servers before the M2 ecosystem).
+    /// <paramref name="firstGroup"/> + <paramref name="herds"/> − 1 (dev servers before the M2 ecosystem), within <paramref name="area"/>
+    /// metres of the region's south-west corner.
     /// </summary>
-    public void Populate(string speciesId, int count, int herds, int firstGroup = 0)
+    public void Populate(string speciesId, int count, int herds, int firstGroup = 0, float area = float.MaxValue)
     {
         ushort species = _world.SpeciesIndex(speciesId);
-        Vector3 size = _world.BoundsMax - _world.BoundsMin;
+        Vector3 size = Vector3.Min(_world.BoundsMax - _world.BoundsMin, new Vector3(area));
         for (int i = 0; i < count; i++)
         {
             var position = _world.BoundsMin + new Vector3(

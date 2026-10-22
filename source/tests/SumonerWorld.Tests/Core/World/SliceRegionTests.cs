@@ -31,7 +31,7 @@ public sealed class SliceRegionTests : IDisposable
     public void The_slice_path_has_its_four_places_in_order_around_the_spawn()
     {
         RegionDefinition region = _world.Data.Region!;
-        Assert.Equal(["academy", "memory_grove", "gathering_meadow", "bogfox_den"], region.Places.Select(place => place.Id));
+        Assert.Equal(["academy", "memory_grove", "gathering_meadow", "bogfox_den"], region.Places.Take(4).Select(place => place.Id));
         Assert.Equal("den", SpawnerSystem.PlaceOf(_world.Data, "bogfox_den")!.Look);
     }
 
@@ -71,8 +71,9 @@ public sealed class SliceRegionTests : IDisposable
         var economy = new Economy();
         GatherSpots.Place(economy, _world.Data, null);
 
+        RegionDefinition region = _world.Data.Region!;
         PlaceDefinition meadow = SpawnerSystem.PlaceOf(_world.Data, "gathering_meadow")!;
-        Assert.Equal(13, economy.Nodes.Count);
+        Assert.Equal(region.GatherSpots.Sum(spot => spot.Count), economy.Nodes.Count);
         Assert.Equal(11, economy.Nodes.Count(node => Vector2.Distance(new Vector2(node.Position.X, node.Position.Z), new Vector2(meadow.X, meadow.Z)) <= meadow.Radius));
     }
 

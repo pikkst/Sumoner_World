@@ -215,8 +215,11 @@ public sealed partial class ServerHost : Node
         AddChild(root);
         GodotPhysicsQueries.AddTerrainCollision(root, DevWorld.Ground);
         _physics = new GodotPhysicsQueries(root);
-        _navigation = GodotNavigation.Bake(DevWorld.Ground);
-        _log.Write(LogLevel.Info, "world.ground", $"{DevWorld.Ground.Size} m terrain: collision added, navigation mesh baked ({_navigation.Polygons} polygons) in {System.Diagnostics.Stopwatch.GetElapsedTime(start).TotalSeconds:F1} s");
+        _navigation = GodotNavigation.Bake(DevWorld.Ground, new GameServerSettings().SpawnPoint);
+        _log.Write(
+            LogLevel.Info,
+            "world.ground",
+            $"{DevWorld.Ground.Size} m terrain: collision added, navigation baked near the spawn ({_navigation.TilesBaked} of {_navigation.TileCount} tiles, {_navigation.Polygons} polygons) in {System.Diagnostics.Stopwatch.GetElapsedTime(start).TotalSeconds:F1} s; the rest follows in the background");
         return _navigation;
     }
 
