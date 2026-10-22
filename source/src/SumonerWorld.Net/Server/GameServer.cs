@@ -117,6 +117,7 @@ public sealed class GameServer : IServerSessionHandler
         _endpoint = new ServerEndpoint(transport, authenticator, log, settings.MaxPlayers, this, settings.LastSessionId)
         {
             Rules = settings.Hardcore ? ServerRules.None : ServerRules.LockOn,
+            DataFingerprint = world.Data.Fingerprint,
         };
         Movement = new MovementModel(settings.Movement);
         Transactions = new TransactionProcessor(_dedupe);

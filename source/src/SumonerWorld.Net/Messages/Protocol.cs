@@ -62,6 +62,9 @@ public enum RejectReason : byte
 
     /// <summary>The account is banned.</summary>
     Banned = 4,
+
+    /// <summary>The client's game data differs from the server's (since protocol 24): it needs the new package.</summary>
+    DataMismatch = 5,
 }
 
 /// <summary>
@@ -70,7 +73,7 @@ public enum RejectReason : byte
 public static class Protocol
 {
     /// <summary>Current protocol version; bump on any wire-format change.</summary>
-    public const ushort Version = 23;
+    public const ushort Version = 24;
 
     /// <summary>Largest message, in bytes (fits one UDP datagram on common networks).</summary>
     public const int MaxMessageSize = 1200;

@@ -58,6 +58,7 @@ public sealed partial class ClientHost : Node
     private double _nextAttempt;
     private long _ticks;
     private TestRegion? _region;
+    private bool _rejectionShown;
     private EntityViewSync? _views;
     private OwnAvatar? _avatar;
     private InteractionControls? _interactions;
@@ -89,7 +90,7 @@ public sealed partial class ClientHost : Node
         string ticket = DevTokenAuthenticator.Ticket(_options.Account, _options.DevSecret);
         _data = GameData.Load();
         Core.Data.Definitions.CombatDefinition combat = _data.Combat;
-        _client = new GameClient(_transport, _log, new Hello(0, ticket), DevWorld.Movement(), new DodgePrediction(combat.DodgeTicks, combat.DodgeSpeedPercent));
+        _client = new GameClient(_transport, _log, new Hello(0, ticket, _data!.Fingerprint), DevWorld.Movement(), new DodgePrediction(combat.DodgeTicks, combat.DodgeSpeedPercent));
         _accumulator = new FixedStepAccumulator(SimulationSettings.Default);
         _log.Write(LogLevel.Info, "client.connecting", $"{_options.Address}:{_options.Port} as account {_options.Account}");
         if (!_options.ExitOnWelcome && DisplayServer.GetName() != "headless")
@@ -121,8 +122,12 @@ public sealed partial class ClientHost : Node
         else
         {
             KeepConnected(delta);
+            ShowRejection();
         }
     }
+
+    // The server refused the session: say why on screen (once), e.g. an old package after a data change (M2-15).
+    private void ShowRejection() => _rejectionShown = _rejectionShown || Ui.RejectionNotice.Show(this, _client!.Session);
 
     /// <inheritdoc />
     public override void _ExitTree() => _transport?.Dispose();

@@ -3,7 +3,8 @@ namespace SumonerWorld.Net.Messages;
 /// <summary>Client → server: join (resume token 0) or resume a session within the reconnect window (TDD §3.5).</summary>
 /// <param name="ResumeToken">Session token from an earlier <see cref="Welcome"/>, or 0.</param>
 /// <param name="AuthTicket">Steam session ticket, or the dev token on the Docker dev server (TDD §3.3).</param>
-public readonly record struct Hello(ulong ResumeToken, string AuthTicket)
+/// <param name="DataFingerprint">The client's game data fingerprint (since protocol 24); 0 = not checked (bots, tests).</param>
+public readonly record struct Hello(ulong ResumeToken, string AuthTicket, ulong DataFingerprint = 0)
 {
     /// <summary>Longest auth ticket, in UTF-8 bytes.</summary>
     public const int MaxTicketBytes = 512;
@@ -63,12 +64,13 @@ public sealed class HelloCodec : IMessageCodec<Hello>
         Protocol.WriteHeader(ref writer, Type);
         writer.WriteUInt64(message.ResumeToken);
         writer.WriteString(message.AuthTicket, Hello.MaxTicketBytes);
+        writer.WriteUInt64(message.DataFingerprint);
     }
 
     /// <inheritdoc />
     public Hello Read(ref MessageReader reader)
     {
-        var message = new Hello(reader.ReadUInt64(), reader.ReadString(Hello.MaxTicketBytes));
+        var message = new Hello(reader.ReadUInt64(), reader.ReadString(Hello.MaxTicketBytes), reader.ReadUInt64());
         reader.EnsureEnd();
         return message;
     }

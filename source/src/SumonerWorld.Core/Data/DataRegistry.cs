@@ -110,6 +110,9 @@ public sealed class DataRegistry : IDataRegistry
     /// <inheritdoc />
     public IReadOnlyList<QuestDefinition> Quests { get; }
 
+    /// <summary>The data files' fingerprint (<see cref="DataRegistryLoader.Fingerprint"/>; 0 when not loaded from files).</summary>
+    public ulong Fingerprint { get; internal set; }
+
     /// <inheritdoc />
     public AcademyDefinition? Academy { get; }
 
