@@ -26,11 +26,11 @@
     {
       "id": "a_first_friend",
       "title": "A First Friend",
-      "summary": "Keeper Lisel has brought a young creature who would like to meet you. It already likes you a little.",
+      "summary": "The Keeper of your tradition has brought a young creature who would like to meet you. It already likes you a little.",
       "autoStart": true,
       "requires": ["the_ranking"],
       "steps": [
-        { "text": "Talk to Keeper Lisel in the east of the Academy.", "objectives": [ { "type": "talk", "target": "elf_keeper" } ] },
+        { "text": "Talk to the Keeper of your tradition: Lisel (Elves, east), Tomas (Humans, west), Nyx (Necromancers, south-west) or Borra (Dwarves, south-east).", "objectives": [ { "type": "talk", "target": "keeper" } ] },
         { "text": "Spend a moment with your new friend: feed it (E).", "objectives": [ { "type": "feed" } ] },
         { "text": "Offer it a Pact (P). Choose what you promise.", "objectives": [ { "type": "pact" } ] }
       ],

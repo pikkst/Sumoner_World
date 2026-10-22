@@ -63,7 +63,7 @@ internal static partial class QuestValidation
             {
                 ObjectiveType.Gather or ObjectiveType.Craft => objective.Target.Length == 0 || known.Items.Contains(objective.Target),
                 ObjectiveType.Reach or ObjectiveType.Answer or ObjectiveType.Read => objective.Target.Length == 0,
-                ObjectiveType.Talk => known.Npcs.Contains(objective.Target),
+                ObjectiveType.Talk => known.Npcs.Contains(objective.Target) || objective.Target == AcademyDefinition.OwnKeeper,
                 _ => objective.Target.Length == 0 || known.Species.Contains(objective.Target),
             };
             if (!found)

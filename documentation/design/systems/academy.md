@@ -41,8 +41,8 @@ Stakeholder (2026-10-21): **the class and rank come from the student's choices i
 
 ### 3.2 Class
 - **Class** = the class with the most points; a tie is broken by the server's seeded random roll (R11).
-- In M2 only the **Elf** class is open: the questions still score all classes, and a student whose answers point elsewhere is
-  told "the Elves' grove calls to you for now" *(filled)*. The other classes open in M3.
+- Since the expansion (E3c, 2026-10-22) **all four classes are open**: the class the answers point to is the class the student
+  joins. (A class can still be closed in data; a student leaning to a closed class is told which class calls to them instead.)
 - **The class is for life**: it cannot be changed later (stakeholder).
 
 ### 3.3 Rank, with randomness
@@ -105,6 +105,21 @@ Stakeholder (2026-10-21): **the class and rank come from the student's choices i
   still a real bond: PactOffered, PactSealed and a new core memory **FirstBond** (+80, salience 900, never fades; AI Bible
   §5 table 23) are written, and from then on all the normal rules apply. It can be summoned (Z) at once.
 - Saved: the creature with the world, the link to it with the student's standing.
+
+## 10. Implementation notes (E3c)
+- **Four Keepers** in the campus quarters: Lisel (Elves, east), Tomas (Humans, west), Nyx (Necromancers, south-west) and Borra
+  (Dwarves, south-east). Only the Keeper of the student's own class brings the first creature; another Keeper sends the
+  student to theirs. The first-friend quest's talk objective targets `keeper`: the student's own Keeper.
+- **First creatures by class** (`firstCreatures` in `academy.json`): the answers still vote caring and steady, bold or
+  curious; each class turns the vote into its own creature:
+
+  | Vote | Elf | Human | Necromancer | Dwarf |
+  |---|---|---|---|---|
+  | steady (mossback) | mossback | plains hound | wisp hound | cinder mole |
+  | bold (bogfox) | bogfox | storm hawk | wisp hound | ember salamander |
+  | curious (hollow owl) | hollow owl | storm hawk | bone sprite | cinder mole |
+- The Headmaster's ceremony names the student's Keeper. Spells follow the class (E3a): the action bar moves to the class's
+  school as soon as the class is known.
 
 ## Changelog
 - **0.2 (2026-10-21):** approved with the stakeholder's answers: the ranking quest now decides class and rank from **answers to

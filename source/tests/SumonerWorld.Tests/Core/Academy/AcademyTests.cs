@@ -42,7 +42,9 @@ public sealed class AcademyTests : IDisposable
     [Fact]
     public void The_shipped_academy_has_its_people_and_eight_questions_of_four_answers()
     {
-        Assert.Equal(["headmaster", "arena_master", "elf_keeper"], Academy.Npcs.Select(npc => npc.Id));
+        Assert.Equal(["headmaster", "arena_master", "elf_keeper", "human_keeper", "necromancer_keeper", "dwarf_keeper"], Academy.Npcs.Select(npc => npc.Id));
+        Assert.Equal(4, Academy.OpenClasses.Count);
+        Assert.All(Enum.GetValues<SummonerClass>(), summonerClass => Assert.NotNull(Academy.KeeperOf(summonerClass)));
         Assert.Equal(8, Academy.Questions.Count);
         Assert.All(Academy.Questions, question => Assert.Equal(4, question.Answers.Count));
     }
@@ -134,7 +136,8 @@ public sealed class AcademyTests : IDisposable
         var standing = new AcademyStanding();
         Array.Fill(standing.Answers, (byte)2); // the second answer every time: human leaning
         Assert.Equal(SummonerClass.Human, RankingRules.Leaning(Academy, standing, 0));
-        Assert.Equal(SummonerClass.Elf, RankingRules.Joined(Academy, SummonerClass.Human));
+        Assert.Equal(SummonerClass.Human, RankingRules.Joined(Academy, SummonerClass.Human));
+        Assert.Equal(SummonerClass.Elf, RankingRules.Joined(Academy with { OpenClasses = ["elf"] }, SummonerClass.Human));
         Assert.Equal(SummonerClass.Elf, RankingRules.Leaning(Academy, new AcademyStanding(), 0));
         Assert.Equal(SummonerClass.Human, RankingRules.Leaning(Academy, new AcademyStanding(), 1));
 
