@@ -58,7 +58,7 @@ public class DataRegistryLoaderTests
           "healthRegenDelayTicks": 300, "yieldBelowPerMille": 200, "yieldMaxBoldness": 50, "spareAfterTicks": 150, "playerDownTicks": 150,
           "blockDamagePerMille": 300, "blockArcDeg": 120, "parryWindowTicks": 6, "dodgeTicks": 9, "dodgeStamina": 25,
           "dodgeCooldownTicks": 15, "dodgeSpeedPercent": 250, "staggerTicks": 12,
-          "summonManaCost": 20, "summonCastTicks": 30, "bondCapacity": 2 } ] }
+          "summonManaCost": 20, "summonCastTicks": 30, "bondCapacityByRank": [1, 1, 2, 2] } ] }
         """;
 
     private const string ValidBondLevels = """

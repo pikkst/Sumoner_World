@@ -67,8 +67,21 @@ public sealed class SummoningTests : IDisposable
     }
 
     [Fact]
+    public void A_rank_F_summoner_calls_one_companion_at_a_time_and_higher_ranks_more()
+    {
+        StableId first = Pacted("bogfox", Player + new Vector3(7, 0, 0), Alice);
+        StableId second = Pacted("mossback", Player + new Vector3(8, 0, 0), Alice);
+
+        Assert.True(Summon(first).IsApplied);
+        Run(_world.Data.Combat.SummonCastTicks + 1);
+        Assert.Equal((IntentRejectReason.WrongState, SummonRefusal.CapacityReached), Refusal(Summon(second)));
+        Assert.Equal([1, 1, 2, 2, 3, 3, 4, 4, 5, 5], Enumerable.Range(0, 10).Select(_world.Data.Combat.BondCapacityOf));
+    }
+
+    [Fact]
     public void Summons_are_refused_for_wild_or_foreign_creatures_without_mana_beyond_bond_capacity_or_while_busy()
     {
+        _world.World.GetComponent<SumonerWorld.Core.Progression.PlayerProgress>(_alice).Rank = (int)SumonerWorld.Core.Progression.Rank.D; // capacity 2
         StableId wild = Spawn("bogfox", Player + new Vector3(5, 0, 0));
         StableId bobs = Pacted("bogfox", Player + new Vector3(6, 0, 0), Bob);
         StableId first = Pacted("bogfox", Player + new Vector3(7, 0, 0), Alice);
@@ -85,7 +98,7 @@ public sealed class SummoningTests : IDisposable
 
         Assert.True(Summon(second).IsApplied);
         Run(_world.Data.Combat.SummonCastTicks + 1);
-        Assert.Equal(_world.Data.Combat.BondCapacity, Companions.Summoned(_world, Alice));
+        Assert.Equal(_world.Data.Combat.BondCapacityOf(_world.World.GetComponent<SumonerWorld.Core.Progression.PlayerProgress>(_alice).Rank), Companions.Summoned(_world, Alice));
         Assert.Equal((IntentRejectReason.WrongState, SummonRefusal.CapacityReached), Refusal(Summon(third)));
 
         Assert.True(Dismiss(first).IsApplied);

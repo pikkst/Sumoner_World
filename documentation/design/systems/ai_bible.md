@@ -369,7 +369,7 @@ Bond level can **go down**. It is recalculated once per in-game day and immediat
 - **Bond level:** highest level in `data/ai/bond_levels.json` whose Trust, Affection, core-memories-about-owner and days-bonded requirements are met; recalculated by `DailyUpdate`, after a broken term, and on demand. It goes down when care stops.
 - **Summoning:** owner only, `Pacted` only (not Sanctum residents), active summons < Bond Capacity (1–5). In play (M2-06): the
   `Summon` intent costs `summonManaCost` mana and holds the player in a sigil for `summonCastTicks` (`data/combat/combat.json`),
-  then the creature arrives at the player's side from wherever it is; Bond Capacity is `bondCapacity` (2) until the rank sets it
+  then the creature arrives at the player's side from wherever it is; Bond Capacity is set by the rank (`bondCapacityByRank`, M2-20: F 1, E 1, D 2, C 2, …, up to 5); before M2-20 it was `bondCapacity` (2)
   (M2-20); a summoned creature is always AI LOD T0; `Dismiss` returns it to its own life where it stands.
 - **Companion behaviour (M2-07, `CompanionSystem`):** while summoned, a companion follows (within 4 m, keeping 1.5 m personal
   space, running when more than 10 m behind, drawn back beyond 60 m), defends its summoner unprompted and helps in the

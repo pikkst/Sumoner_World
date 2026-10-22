@@ -43,6 +43,9 @@ public enum MessageType : byte
 
     /// <summary>Server → client, reliable: the player's quests, sent when they change (since protocol 20).</summary>
     QuestList = 14,
+
+    /// <summary>Server → client, reliable: every player's public profile, sent when it changes (since protocol 21).</summary>
+    PlayerRoster = 15,
 }
 
 /// <summary>Why the server refused a session.</summary>
@@ -67,7 +70,7 @@ public enum RejectReason : byte
 public static class Protocol
 {
     /// <summary>Current protocol version; bump on any wire-format change.</summary>
-    public const ushort Version = 20;
+    public const ushort Version = 21;
 
     /// <summary>Largest message, in bytes (fits one UDP datagram on common networks).</summary>
     public const int MaxMessageSize = 1200;

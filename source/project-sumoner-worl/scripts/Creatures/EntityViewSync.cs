@@ -16,7 +16,7 @@ namespace SumonerWorld.Game.Creatures;
 /// pooled view per remote entity at its interpolated position and heading, and lets the <see cref="IEmotePresenter"/> pose creatures
 /// from their emote and ground speed. Views never own state: an entity that leaves the snapshots returns its view to the pool.
 /// Creatures get the model of their species' role; other players the <see cref="HumanoidRig"/>, animated from their ground speed
-/// and combat action (M2-04). Combat (M2-02b): each view tilts with its combat action, swells briefly (players also flinch) when
+/// and combat action (M2-04), with a nameplate (name, class, rank, level; M2-20). Combat (M2-02b): each view tilts with its combat action, swells briefly (players also flinch) when
 /// its health drops, and shows a health bar while hurt.
 /// </summary>
 public sealed partial class EntityViewSync : Node3D
@@ -91,6 +91,7 @@ public sealed partial class EntityViewSync : Node3D
             else if (view is HumanoidRig humanoid)
             {
                 HumanoidAnimator.Animate(humanoid, (CombatAction)state.Action, state.Speed, delta);
+                ShowNameplate(humanoid, state.Id);
             }
 
             ShowHealth(view, state.Health, delta);
@@ -150,6 +151,27 @@ public sealed partial class EntityViewSync : Node3D
 
         _health[view] = (shown.Bar, state.Health);
         return view;
+    }
+
+    // Another player's name, class, rank and level above their head (M2-20), from the server's roster.
+    private void ShowNameplate(Node3D view, ulong account)
+    {
+        if (view.GetNodeOrNull<Label3D>("Nameplate") is not Label3D plate)
+        {
+            plate = new Label3D
+            {
+                Name = "Nameplate",
+                Position = new Vector3(0, PlayerBarHeight + 0.45f, 0),
+                Billboard = BaseMaterial3D.BillboardModeEnum.Enabled,
+                FontSize = 40,
+                PixelSize = 0.006f,
+                OutlineSize = 10,
+                NoDepthTest = false,
+            };
+            view.AddChild(plate);
+        }
+
+        plate.Text = _client.ProfileOf(account) is RosterEntry profile ? InteractionText.Nameplate(profile) : InteractionText.PlayerName(account);
     }
 
     private const float CreatureBarHeight = 2.6f;

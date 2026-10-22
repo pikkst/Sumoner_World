@@ -44,6 +44,7 @@ public sealed partial class CharacterWindow(GameClient client, IDataRegistry dat
     private int _choice;
     private (ulong Id, string Kind, int Slots) _built = (ulong.MaxValue, string.Empty, -1);
     private string _tabsFor = string.Empty;
+    private readonly Core.Progression.GrowthRules _growth = new(data.Combat.Growth);
 
     /// <summary>True while the window is shown.</summary>
     public bool IsOpen => _window?.Visible ?? false;
@@ -292,7 +293,9 @@ public sealed partial class CharacterWindow(GameClient client, IDataRegistry dat
             _creatureBag[i].Show(entry is InventoryEntry shown ? ItemLook.Of(data, shown.Item, shown.Count) : null);
         }
 
-        _who!.Text = companion is CompanionEntry chosen ? $"Your {SpeciesName(chosen)}, level {chosen.Level}" : "You";
+        _who!.Text = companion is CompanionEntry chosen ? $"Your {SpeciesName(chosen)}, level {chosen.Level}"
+            : client.OwnProfile is RosterEntry profile ? InteractionText.ProfileLines(profile, _growth, data.Combat)
+            : "You";
         _gold!.Text = string.Create(CultureInfo.InvariantCulture, $"Bag   {inventory.Gold} gold");
         _weight!.Text = string.Create(CultureInfo.InvariantCulture, $"{grams / (float)KilogramsGrams:F1} / {Inventory.MaxWeightGrams / KilogramsGrams} kg");
     }
