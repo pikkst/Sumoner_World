@@ -5,7 +5,7 @@ namespace SumonerWorld.Net.Client;
 
 /// <summary>
 /// A player's settings (M2-17): sound volume, mouse speed, text size and whether the key hints show. Kept per account on the
-/// player's computer as <c>key=value</c> lines, so children sharing a computer each keep their own; anything unknown or out of
+/// player's computer as <c>key=value</c> lines, so players sharing a computer each keep their own; anything unknown or out of
 /// range falls back to the default or the nearest allowed value.
 /// </summary>
 public sealed record PlayerSettings

@@ -1,7 +1,7 @@
 namespace SumonerWorld.Net.Client;
 
 /// <summary>
-/// Words for the HUD (M2-17), kept short and plain so children can read them: the key list (F1), the hint lines under the bars and
+/// Words for the HUD (M2-17), kept short and plain so they read at a glance: the key list (F1), the hint lines under the bars and
 /// the companions, warnings for low vitals and the companion cards.
 /// </summary>
 public static class HudText

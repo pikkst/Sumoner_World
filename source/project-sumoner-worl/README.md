@@ -17,7 +17,7 @@ See `documentation/technical/architecture/ADR-001-engine-language-architecture.m
 5. Test region: `Godot --path project-sumoner-worl -- --region` (right mouse to look, WASD/Q/E to fly, Shift = faster; `--region-chunks=64` for 4 km)
 6. Emote showcase: `-- --showcase=grazer` or `--showcase=predator` (add `--showcase-distance=12` for a close look)
 7. Play against the dev server: start it (Docker, see `docker-compose.dev.yml`), then `Godot --path project-sumoner-worl -- --connect=127.0.0.1:7777` (WASD moves, right mouse turns the camera)
-8. Family test package (DEC-003): `GODOT=<Godot console exe> bash scripts/package-family.sh` → `builds/SumonerWorld-family-<commit>.zip` (needs the 4.7.2 .NET export templates; launchers and README in `packaging/family/`)
+8. Test package (DEC-003, E1): `GODOT=<Godot console exe> bash scripts/package-game.sh` → `builds/SumonerWorld-<commit>.zip` (needs the 4.7.2 .NET export templates; launchers and README in `packaging/game/`)
 
 ## Development rules
 Every change must pass the Definition of Done in `documentation/production/development_rules_enforcement.md`.
