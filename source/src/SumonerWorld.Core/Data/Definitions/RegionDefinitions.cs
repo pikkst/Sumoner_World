@@ -82,6 +82,9 @@ public sealed record PlaceDefinition
 
     /// <summary>What the client draws there: <c>none</c>, <c>den</c> (a ring of rocks), <c>town</c>, <c>outpost</c>, <c>ruins</c> or <c>camp</c>.</summary>
     public string Look { get; init; } = "none";
+
+    /// <summary>An outpost's banner colour (<c>#RRGGBB</c>, E4b); empty for the look's own.</summary>
+    public string Colour { get; init; } = string.Empty;
 }
 
 /// <summary>Creatures of one species the world keeps at a place: missing ones come back after a while.</summary>

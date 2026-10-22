@@ -14,13 +14,15 @@ public sealed partial class TestRegion : Node3D
 
     private readonly int _chunks;
     private readonly ILog _log;
+    private readonly Core.Data.Definitions.RegionDefinition? _look;
 
-    /// <summary>Creates the region.</summary>
+    /// <summary>Creates the region; the game's own size gets the biomes' colours, plants and water (E4b).</summary>
     public TestRegion(int chunks, ILog log)
     {
         ArgumentOutOfRangeException.ThrowIfNegativeOrZero(chunks);
         _chunks = chunks;
         _log = log;
+        _look = chunks == DevRegion.Chunks ? DevWorld.Region : null;
         Name = "TestRegion";
     }
 
@@ -46,10 +48,39 @@ public sealed partial class TestRegion : Node3D
         AddChild(Camera);
         float centre = Field.Size / 2;
         Camera.Position = new Vector3(centre, Field.HeightAt(centre, centre) + 2, centre);
-        TerrainBuilder.Build(this, Field, Camera, _log);
-        Streamer = new ChunkStreamer(new StreamingSettings { RegionChunks = _chunks }, Field, DevRegion.Seed) { Viewer = Camera };
+        TerrainBuilder.Build(this, Field, Camera, _log, _look);
+        Streamer = new ChunkStreamer(new StreamingSettings { RegionChunks = _chunks }, Field, DevRegion.Seed, _look) { Viewer = Camera };
+        if (_look is not null)
+        {
+            AddWater(_look);
+        }
         AddChild(Streamer);
         _log.Write(LogLevel.Info, "region.ready", $"{_chunks}×{_chunks} chunks in {System.Diagnostics.Stopwatch.GetElapsedTime(start).TotalSeconds:F1} s");
+    }
+
+    // Standing water in the biomes that have it (the marsh): a dark, slightly see-through sheet over the low ground.
+    private void AddWater(Core.Data.Definitions.RegionDefinition region)
+    {
+        var water = new StandardMaterial3D
+        {
+            AlbedoColor = new Color(0.16f, 0.24f, 0.26f, 0.78f),
+            Transparency = BaseMaterial3D.TransparencyEnum.Alpha,
+            Roughness = 0.08f,
+            Metallic = 0.2f,
+        };
+        foreach (Core.Data.Definitions.BiomeDefinition biome in region.Biomes)
+        {
+            if (biome.Water is float level)
+            {
+                AddChild(new MeshInstance3D
+                {
+                    Name = $"Water-{biome.Id}",
+                    Mesh = new CylinderMesh { TopRadius = biome.Radius * 0.85f, BottomRadius = biome.Radius * 0.85f, Height = 0.05f, RadialSegments = 48, Material = water },
+                    Position = new Vector3(biome.X, level, biome.Z),
+                    CastShadow = GeometryInstance3D.ShadowCastingSetting.Off,
+                });
+            }
+        }
     }
 
     private void AddEnvironment()

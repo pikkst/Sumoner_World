@@ -18,7 +18,11 @@ public static class DevWorld
     private const int DevPredatorPacks = 5;
 
     // The Vale of Oaths' ground, shaped by the region's biomes (E4a): every host loads the same data, so the heights agree.
-    private static readonly Lazy<Heightfield> SharedGround = new(() => DevRegion.CreateGround(DevRegion.Chunks, Data.GameData.Load().Region));
+    private static readonly Lazy<Core.Data.Definitions.RegionDefinition?> SharedRegion = new(() => Data.GameData.Load().Region);
+    private static readonly Lazy<Heightfield> SharedGround = new(() => DevRegion.CreateGround(DevRegion.Chunks, SharedRegion.Value));
+
+    /// <summary>The region's biomes and places (null without a region file).</summary>
+    public static Core.Data.Definitions.RegionDefinition? Region => SharedRegion.Value;
 
     /// <summary>The south-west corner where the dev server's roaming herds and packs live (the M1 region, the Academy's vale).</summary>
     public const float ValeSize = 512f;

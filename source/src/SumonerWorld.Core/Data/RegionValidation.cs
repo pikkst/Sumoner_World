@@ -20,6 +20,11 @@ internal static class RegionValidation
                 errors.Add($"{where}: place '{place.Id}' needs a unique snake_case id, a radius above 0 and a look ({string.Join(", ", Looks)}).");
             }
 
+            if (place.Colour.Length > 0 && !IsColour(place.Colour))
+            {
+                errors.Add($"{where}: place '{place.Id}' colour '{place.Colour}' must be like #A0B0C0.");
+            }
+
             if (place.X < 0 || place.Z < 0 || place.X > World.DevRegion.Size || place.Z > World.DevRegion.Size)
             {
                 errors.Add($"{where}: place '{place.Id}' lies outside the region (0-{World.DevRegion.Size} m).");
