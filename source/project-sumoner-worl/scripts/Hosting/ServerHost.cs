@@ -233,8 +233,13 @@ public sealed partial class ServerHost : Node
 
         _physicsChecked = true;
         (int misses, float worst) = _physics.CompareWith(DevWorld.Ground);
-        bool ok = misses == 0 && worst < 0.05f && _navigation!.IsReady;
-        _log.Write(ok ? LogLevel.Info : LogLevel.Error, "world.physics_check", $"64 rays: {misses} missed, largest difference to the heightfield {worst * 100:F1} cm; navigation ready {_navigation!.IsReady}");
+
+        string across = _navigation!.AcrossTileEdge(DevWorld.Ground);
+        bool ok = misses == 0 && worst < 0.05f && _navigation.IsReady && across == "Found";
+        _log.Write(
+            ok ? LogLevel.Info : LogLevel.Error,
+            "world.physics_check",
+            $"64 rays: {misses} missed, largest difference to the heightfield {worst * 100:F1} cm; navigation ready {_navigation.IsReady}, across a tile edge: {across}");
     }
 
     private ServerBenchmark? CreateBenchmark(MeteredTransport metered)

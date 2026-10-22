@@ -42,6 +42,17 @@ public sealed partial class RegionHost : Node
             {
                 AddChild(new StageShowcase(_region.Field!, _region.Camera!, _options.ShowcaseDistance));
             }
+            else if (_options.Showcase == "vale")
+            {
+                // The Vale of Oaths from high above the Academy, looking north-east over the biomes, without the fog (E4b).
+                _region.Camera!.Position = new Vector3(_options.ShowcaseDistance * 10, 180, _options.ShowcaseDistance * 6);
+                _region.Camera.LookAt(new Vector3(1150, 0, 1150), Vector3.Up);
+                _region.Camera.Far = 4000;
+                foreach (WorldEnvironment world in _region.GetChildren().OfType<WorldEnvironment>())
+                {
+                    world.Environment.FogEnabled = false;
+                }
+            }
             else if (_options.Showcase == "species")
             {
                 AddChild(new SpeciesShowcase(Data.GameData.Load(), _region.Field!, _region.Camera!, _options.ShowcaseDistance));

@@ -10,7 +10,9 @@ namespace SumonerWorld.Game.World;
 /// entering the full or medium ring gets its props (<see cref="ChunkScatter"/>, put on the <see cref="Heightfield"/>) built on a
 /// worker thread as ready-to-upload MultiMesh buffers; the main thread applies at most <see cref="ApplyPerFrame"/> finished chunks
 /// per frame from pooled views, so loading never blocks a frame (R20). Full shows detailed trees and rocks plus bushes, medium
-/// shows low-poly trees and rocks; far and none show nothing beyond the terrain (impostors come with real art).
+/// shows low-poly trees and rocks; far and none show nothing beyond the terrain (impostors come with real art). With a region
+/// (E4b) each prop takes the look of the biome it stands in: trees and bushes are thinned out where plants are sparse (the
+/// highlands, the ash), grow bigger where they are dense (the Elderwood) and take the biome's plant colour.
 /// </summary>
 public sealed partial class ChunkStreamer : Node3D
 {
@@ -18,10 +20,13 @@ public sealed partial class ChunkStreamer : Node3D
     public const int ApplyPerFrame = 2;
 
     private const int FloatsPerTransform = 12;
+    private const int FloatsPerInstance = FloatsPerTransform + 4;
+    private static readonly Color Stone = new(0.45f, 0.44f, 0.42f);
 
     private readonly StreamingPlanner _planner;
     private readonly Heightfield _field;
     private readonly ulong _seed;
+    private readonly Core.Data.Definitions.RegionDefinition? _region;
     private readonly List<ChunkChange> _changes = new(64);
     private readonly Dictionary<ChunkCoord, ChunkView> _views = [];
     private readonly Dictionary<ChunkCoord, int> _generation = [];
@@ -30,12 +35,13 @@ public sealed partial class ChunkStreamer : Node3D
     private readonly PropMeshes _meshes = PropMeshes.Create();
     private int _building;
 
-    /// <summary>Creates the streamer for a region.</summary>
-    public ChunkStreamer(StreamingSettings settings, Heightfield field, ulong seed)
+    /// <summary>Creates the streamer for a region (<paramref name="region"/>: its biomes, or null for the plain M1 look).</summary>
+    public ChunkStreamer(StreamingSettings settings, Heightfield field, ulong seed, Core.Data.Definitions.RegionDefinition? region = null)
     {
         _planner = new StreamingPlanner(settings);
         _field = field;
         _seed = seed;
+        _region = region;
         Name = "ChunkStreamer";
     }
 
@@ -124,37 +130,92 @@ public sealed partial class ChunkStreamer : Node3D
         var props = new ScatteredProp[ChunkScatter.Count];
         ChunkScatter.Generate(_seed, chunk, props);
         int count = ring == StreamRing.Full ? ChunkScatter.Count : ChunkScatter.MediumCount;
+        float originX = chunk.X * ChunkCoord.Size;
+        float originZ = chunk.Z * ChunkCoord.Size;
+        var kept = new List<(ScatteredProp Prop, float Scale, Color Colour)>(count);
+        for (int i = 0; i < count; i++)
+        {
+            ScatteredProp prop = props[i];
+            (float plants, Color colour) = PlantsAt(originX + prop.X, originZ + prop.Z);
+            if (prop.Kind == PropKind.Rock)
+            {
+                kept.Add((prop, prop.Scale, Stone));
+            }
+            else if (Keep(chunk, i) < plants)
+            {
+                // Dense biomes grow bigger plants (the scatter has a fixed count per chunk).
+                Color shade = prop.Kind == PropKind.Bush ? colour.Lightened(0.15f) : colour;
+                kept.Add((prop, prop.Scale * (1 + (MathF.Max(0, plants - 1) * 0.5f)), shade));
+            }
+        }
+
         var buffers = new float[3][];
         var counts = new int[3];
-        foreach (ScatteredProp prop in props.AsSpan(0, count))
+        foreach ((ScatteredProp prop, float _, Color _) in kept)
         {
             counts[(int)prop.Kind]++;
         }
 
         for (int kind = 0; kind < 3; kind++)
         {
-            buffers[kind] = new float[counts[kind] * FloatsPerTransform];
+            buffers[kind] = new float[counts[kind] * FloatsPerInstance];
             counts[kind] = 0;
         }
 
-        float originX = chunk.X * ChunkCoord.Size;
-        float originZ = chunk.Z * ChunkCoord.Size;
-        foreach (ScatteredProp prop in props.AsSpan(0, count))
+        foreach ((ScatteredProp prop, float scale, Color colour) in kept)
         {
             float x = originX + prop.X;
             float z = originZ + prop.Z;
-            var basis = new Basis(Vector3.Up, prop.Yaw).Scaled(Vector3.One * prop.Scale);
+            var basis = new Basis(Vector3.Up, prop.Yaw).Scaled(Vector3.One * scale);
             var origin = new Vector3(x, _field.HeightAt(x, z), z);
-            Write(buffers[(int)prop.Kind], counts[(int)prop.Kind]++, new Transform3D(basis, origin));
+            Write(buffers[(int)prop.Kind], counts[(int)prop.Kind]++, new Transform3D(basis, origin), colour);
         }
 
         return new BuiltChunk(chunk, ring, generation, buffers);
     }
 
-    private static void Write(float[] buffer, int index, Transform3D t)
+    // The plant cover and plant colour where a prop stands: the biomes' weighted look, the plain M1 look outside them.
+    private (float Plants, Color Colour) PlantsAt(float x, float z)
     {
-        // MultiMesh buffer layout: a 3×4 row-major matrix per instance.
-        int o = index * FloatsPerTransform;
+        var plain = new Color(0.16f, 0.32f, 0.18f);
+        if (_region is null)
+        {
+            return (1, plain);
+        }
+
+        float total = 0;
+        float plants = 0;
+        Vector3 colour = Vector3.Zero;
+        foreach (Core.Data.Definitions.BiomeDefinition biome in _region.Biomes)
+        {
+            float weight = RegionGround.Weight(biome, x, z);
+            Color tint = Color.FromHtml(biome.PlantColour);
+            total += weight;
+            plants += weight * biome.Plants;
+            colour += weight * new Vector3(tint.R, tint.G, tint.B);
+        }
+
+        float rest = MathF.Max(0, 1 - total);
+        float sum = total + rest;
+        colour = (colour + (rest * new Vector3(plain.R, plain.G, plain.B))) / sum;
+        return ((plants + rest) / sum, new Color(colour.X, colour.Y, colour.Z));
+    }
+
+    // A stable 0–1 value per prop, so the same props stay when a chunk is built again.
+    private float Keep(ChunkCoord chunk, int index)
+    {
+        ulong hash = (_seed ^ ((ulong)(uint)chunk.X * 0x9E3779B97F4A7C15UL) ^ ((ulong)(uint)chunk.Z * 0xC2B2AE3D27D4EB4FUL)) + ((ulong)index * 0x165667B19E3779F9UL);
+        hash ^= hash >> 29;
+        hash *= 0xBF58476D1CE4E5B9UL;
+        hash ^= hash >> 32;
+        return (hash & 0xFFFFFF) / (float)0x1000000;
+    }
+
+    private static void Write(float[] buffer, int index, Transform3D t, Color colour)
+    {
+        // MultiMesh buffer layout: a 3×4 row-major matrix per instance, then its colour.
+        int o = index * FloatsPerInstance;
+        (buffer[o + 12], buffer[o + 13], buffer[o + 14], buffer[o + 15]) = (colour.R, colour.G, colour.B, 1);
         (buffer[o], buffer[o + 1], buffer[o + 2], buffer[o + 3]) = (t.Basis.X.X, t.Basis.Y.X, t.Basis.Z.X, t.Origin.X);
         (buffer[o + 4], buffer[o + 5], buffer[o + 6], buffer[o + 7]) = (t.Basis.X.Y, t.Basis.Y.Y, t.Basis.Z.Y, t.Origin.Y);
         (buffer[o + 8], buffer[o + 9], buffer[o + 10], buffer[o + 11]) = (t.Basis.X.Z, t.Basis.Y.Z, t.Basis.Z.Z, t.Origin.Z);
@@ -200,7 +261,7 @@ public sealed partial class ChunkStreamer : Node3D
             var instances = new MultiMeshInstance3D[3];
             for (int i = 0; i < instances.Length; i++)
             {
-                instances[i] = new MultiMeshInstance3D { Multimesh = new MultiMesh { TransformFormat = MultiMesh.TransformFormatEnum.Transform3D } };
+                instances[i] = new MultiMeshInstance3D { Multimesh = new MultiMesh { TransformFormat = MultiMesh.TransformFormatEnum.Transform3D, UseColors = true } };
                 parent.AddChild(instances[i]);
             }
 
@@ -213,7 +274,7 @@ public sealed partial class ChunkStreamer : Node3D
             MultiMesh multimesh = instance.Multimesh;
             multimesh.InstanceCount = 0;
             multimesh.Mesh = mesh;
-            multimesh.InstanceCount = buffer.Length / FloatsPerTransform;
+            multimesh.InstanceCount = buffer.Length / FloatsPerInstance;
             if (buffer.Length > 0)
             {
                 multimesh.Buffer = buffer;
@@ -237,9 +298,11 @@ public sealed partial class ChunkStreamer : Node3D
     {
         public static PropMeshes Create()
         {
-            var leaves = new StandardMaterial3D { AlbedoColor = new Color(0.16f, 0.32f, 0.18f) };
-            var stone = new StandardMaterial3D { AlbedoColor = new Color(0.45f, 0.44f, 0.42f) };
-            var bush = new StandardMaterial3D { AlbedoColor = new Color(0.24f, 0.38f, 0.17f) };
+            // White albedo: each instance's colour (the biome's plants, grey stone) is the colour.
+            // The colours are written in sRGB, like every other colour in the game.
+            var leaves = new StandardMaterial3D { VertexColorUseAsAlbedo = true, VertexColorIsSrgb = true };
+            var stone = new StandardMaterial3D { VertexColorUseAsAlbedo = true, VertexColorIsSrgb = true };
+            var bush = new StandardMaterial3D { VertexColorUseAsAlbedo = true, VertexColorIsSrgb = true };
             return new PropMeshes(
                 Cone(16, 8, leaves),
                 Cone(5, 1, leaves),

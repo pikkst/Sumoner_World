@@ -5,13 +5,12 @@ using SumonerWorld.Net.Client;
 namespace SumonerWorld.Game.Ui;
 
 /// <summary>
-/// The slice region on screen (M2-16): a ring of rocks around the Bogfox Den, and the place's name and line in big letters for a
-/// few seconds whenever the player walks into one of the path's places.
+/// The region's places on screen (M2-16, E4b): their buildings (<see cref="PlaceLooks"/>), and the place's name and line in big
+/// letters for a few seconds whenever the player walks into one.
 /// </summary>
 public sealed partial class RegionView(RegionDefinition region, Func<float, float, float> heightAt, Func<Vector3> player) : Node3D
 {
     private const double BannerSeconds = 4;
-    private static readonly Color Rock = new(0.42f, 0.4f, 0.36f);
 
     private Label? _banner;
     private string _inside = string.Empty;
@@ -24,19 +23,9 @@ public sealed partial class RegionView(RegionDefinition region, Func<float, floa
     public override void _Ready()
     {
         Name = "Region";
-        var rock = new StandardMaterial3D { AlbedoColor = Rock };
-        foreach (PlaceDefinition place in region.Places.Where(place => place.Look == "den"))
+        foreach (PlaceDefinition place in region.Places)
         {
-            for (int i = 0; i < 14; i++)
-            {
-                float angle = i * Mathf.Tau / 14;
-                float x = place.X + (place.Radius * Mathf.Sin(angle));
-                float z = place.Z + (place.Radius * Mathf.Cos(angle));
-                float size = 0.8f + (0.5f * ((i * 7) % 3));
-                var boulder = new MeshInstance3D { Mesh = new SphereMesh { Radius = size, Height = size * 1.4f, Material = rock } };
-                boulder.Position = new Vector3(x, heightAt(x, z) + (size * 0.3f), z);
-                AddChild(boulder);
-            }
+            PlaceLooks.Build(this, place, heightAt);
         }
 
         var layer = new CanvasLayer { Layer = 4 };

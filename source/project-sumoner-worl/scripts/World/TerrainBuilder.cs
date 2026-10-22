@@ -8,7 +8,8 @@ namespace SumonerWorld.Game.World;
 /// Puts a <see cref="Heightfield"/> on screen (TDD §5.1). With the Terrain3D extension installed (<c>scripts/fetch-terrain3d.sh</c>)
 /// it creates a <c>Terrain3D</c> node: GPU clipmap LODs, its own collision near the camera, one grass-coloured texture. Without it, the
 /// in-house fallback builds one mesh per 64 m chunk at 2 m spacing (no LODs), so the region still runs, for example in CI. Terrain3D
-/// is a GDExtension without C# bindings, so it is driven through <c>GodotObject.Call</c> and <c>GodotObject.Set</c>.
+/// is a GDExtension without C# bindings, so it is driven through <c>GodotObject.Call</c> and <c>GodotObject.Set</c>. The ground's
+/// colour comes from the region's biomes (E4b): a colour map for Terrain3D over a pale texture, vertex colours for the fallback.
 /// </summary>
 public static class TerrainBuilder
 {
@@ -19,22 +20,46 @@ public static class TerrainBuilder
     private const int FallbackStep = 2;
     private const int TextureSize = 256;
     private const string DataDirectory = "user://terrain3d";
+    private static readonly Color PlainGround = new(0.28f, 0.42f, 0.19f);
 
     /// <summary>True when the Terrain3D extension is loaded.</summary>
     public static bool HasTerrain3D => ClassDB.ClassExists(Terrain3DClass);
 
     /// <summary>Adds the terrain under <paramref name="parent"/> and returns it.</summary>
-    public static Node3D Build(Node parent, Heightfield field, Camera3D camera, ILog log)
+    public static Node3D Build(Node parent, Heightfield field, Camera3D camera, ILog log, Core.Data.Definitions.RegionDefinition? region = null)
     {
         ArgumentNullException.ThrowIfNull(parent);
         ArgumentNullException.ThrowIfNull(field);
         ArgumentNullException.ThrowIfNull(log);
-        Node3D terrain = HasTerrain3D ? BuildTerrain3D(parent, field, camera) : BuildFallback(parent, field);
+        Node3D terrain = HasTerrain3D ? BuildTerrain3D(parent, field, camera, region) : BuildFallback(parent, field, region);
         log.Write(LogLevel.Info, "terrain.built", $"{(HasTerrain3D ? "Terrain3D" : "in-house fallback (Terrain3D not installed)")}: {field.Size} m, {field.Samples}² samples");
         return terrain;
     }
 
-    private static Node3D BuildTerrain3D(Node parent, Heightfield field, Camera3D camera)
+    /// <summary>The ground colour at a point: the biomes' colours by weight, the plain M1 green outside them.</summary>
+    public static Color GroundAt(Core.Data.Definitions.RegionDefinition? region, float x, float z)
+    {
+        if (region is null)
+        {
+            return PlainGround;
+        }
+
+        float total = 0;
+        Vector3 colour = Vector3.Zero;
+        foreach (Core.Data.Definitions.BiomeDefinition biome in region.Biomes)
+        {
+            float weight = RegionGround.Weight(biome, x, z);
+            Color tint = Color.FromHtml(biome.Ground);
+            total += weight;
+            colour += weight * new Vector3(tint.R, tint.G, tint.B);
+        }
+
+        float rest = MathF.Max(0, 1 - total);
+        colour = (colour + (rest * new Vector3(PlainGround.R, PlainGround.G, PlainGround.B))) / (total + rest);
+        return new Color(colour.X, colour.Y, colour.Z);
+    }
+
+    private static Node3D BuildTerrain3D(Node parent, Heightfield field, Camera3D camera, Core.Data.Definitions.RegionDefinition? region)
     {
         var terrain = ClassDB.Instantiate(Terrain3DClass).As<Node3D>();
         terrain.Name = "Terrain3D";
@@ -53,7 +78,7 @@ public static class TerrainBuilder
 
         // n samples span n − 1 metres; the last row and column would start another Terrain3D region.
         height.Crop(field.Samples - 1, field.Samples - 1);
-        var images = new Godot.Collections.Array<Image> { height, null!, null! };
+        var images = new Godot.Collections.Array<Image> { height, null!, ColourMap(field, region) };
         GodotObject data = terrain.Get("data").AsGodotObject();
         data.Call("import_images", images, Vector3.Zero, 0f, 1f);
         return terrain;
@@ -68,7 +93,9 @@ public static class TerrainBuilder
             for (int x = 0; x < TextureSize; x++)
             {
                 float n = (noise.GetNoise2D(x, y) + 1) * 0.5f;
-                image.SetPixel(x, y, new Color(0.22f + (0.12f * n), 0.36f + (0.14f * n), 0.16f + (0.06f * n), 0.5f));
+                // Pale and grey: the colour map gives the ground its colour.
+                float pale = 0.82f + (0.18f * n);
+                image.SetPixel(x, y, new Color(pale, pale, pale, 0.5f));
             }
         }
 
@@ -79,11 +106,28 @@ public static class TerrainBuilder
         return texture;
     }
 
-    private static Node3D BuildFallback(Node parent, Heightfield field)
+    // One colour per metre (RGBA8, alpha = neutral roughness), built as raw bytes: millions of SetPixel calls would take seconds.
+    private static Image ColourMap(Heightfield field, Core.Data.Definitions.RegionDefinition? region)
+    {
+        int size = field.Samples - 1;
+        var bytes = new byte[size * size * 4];
+        System.Threading.Tasks.Parallel.For(0, size, z =>
+        {
+            for (int x = 0; x < size; x++)
+            {
+                Color colour = GroundAt(region, x, z);
+                int at = ((z * size) + x) * 4;
+                (bytes[at], bytes[at + 1], bytes[at + 2], bytes[at + 3]) = ((byte)(colour.R * 255), (byte)(colour.G * 255), (byte)(colour.B * 255), 128);
+            }
+        });
+        return Image.CreateFromData(size, size, false, Image.Format.Rgba8, bytes);
+    }
+
+    private static Node3D BuildFallback(Node parent, Heightfield field, Core.Data.Definitions.RegionDefinition? region)
     {
         var root = new Node3D { Name = "FallbackTerrain" };
         parent.AddChild(root);
-        var material = new StandardMaterial3D { AlbedoColor = new Color(0.28f, 0.42f, 0.19f), CullMode = BaseMaterial3D.CullModeEnum.Disabled };
+        var material = new StandardMaterial3D { VertexColorUseAsAlbedo = true, VertexColorIsSrgb = true, CullMode = BaseMaterial3D.CullModeEnum.Disabled };
         int chunks = (int)(field.Size / ChunkCoord.Size);
         int perSide = (int)(ChunkCoord.Size / FallbackStep) + 1;
         for (int cz = 0; cz < chunks; cz++)
@@ -100,6 +144,7 @@ public static class TerrainBuilder
                     {
                         float x = x0 + (i * FallbackStep);
                         float z = z0 + (j * FallbackStep);
+                        tool.SetColor(GroundAt(region, x, z));
                         tool.AddVertex(new Vector3(x, field.HeightAt(x, z), z));
                     }
                 }

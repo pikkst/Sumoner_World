@@ -21,6 +21,7 @@ public sealed class GodotNavigation : INavigation, IDisposable
     private const int SourceStep = 2;
     private const float ArrivalSlack = 1.5f;
     private const float Border = 4f;
+    private const float EdgeMargin = 1f;
 
     /// <summary>Metres per side of a baked tile.</summary>
     public const float TileSize = 256f;
@@ -55,6 +56,7 @@ public sealed class GodotNavigation : INavigation, IDisposable
         Rid map = NavigationServer3D.MapCreate();
         NavigationServer3D.MapSetCellSize(map, CellSize);
         NavigationServer3D.MapSetCellHeight(map, CellHeight);
+        NavigationServer3D.MapSetEdgeConnectionMargin(map, EdgeMargin);
         NavigationServer3D.MapSetActive(map, true);
         var navigation = new GodotNavigation(map);
         int tiles = (int)MathF.Ceiling(field.Size / TileSize);
@@ -110,7 +112,7 @@ public sealed class GodotNavigation : INavigation, IDisposable
         Interlocked.Add(ref _polygons, mesh.GetPolygonCount());
     }
 
-    // One tile: the ground a little past its edges is baked, and the mesh is cut at the tile's edges so neighbours meet.
+    // One tile: the ground a border past its edges is baked, and the border is cut off again so neighbours meet edge to edge.
     private static NavigationMesh BakeTile(Heightfield field, float x0, float z0)
     {
         var mesh = new NavigationMesh
@@ -122,7 +124,9 @@ public sealed class GodotNavigation : INavigation, IDisposable
             AgentMaxClimb = 0.5f,
             AgentMaxSlope = 40f,
             BorderSize = Border,
-            FilterBakingAabb = new Aabb(new Vector3(x0, -1000, z0), new Vector3(TileSize, 4000, TileSize)),
+            EdgeMaxError = 1f, // at most 1 with a border, or the tile's edges shrink by the agent radius and neighbours do not meet
+            // The baked area includes the border, which the bake then cuts off: the tile ends exactly at its edges.
+            FilterBakingAabb = new Aabb(new Vector3(x0 - Border, -1000, z0 - Border), new Vector3(TileSize + (2 * Border), 4000, TileSize + (2 * Border))),
         };
         var source = new NavigationMeshSourceGeometryData3D();
         source.AddFaces(Faces(field, x0 - Border, z0 - Border, TileSize + (2 * Border)), Transform3D.Identity);
@@ -158,6 +162,21 @@ public sealed class GodotNavigation : INavigation, IDisposable
         count = keep;
         float missed = new Vector2(end.X - goal.X, end.Z - goal.Z).Length();
         return missed <= ArrivalSlack ? PathStatus.Found : PathStatus.Partial;
+    }
+
+    /// <summary>
+    /// The status of a path across a tile edge (the tiles meet at x = 256, through the spawn) for the server's start check: the map
+    /// must join the tiles.
+    /// </summary>
+    public string AcrossTileEdge(Heightfield field)
+    {
+        ArgumentNullException.ThrowIfNull(field);
+        Span<NumericsVector3> waypoints = stackalloc NumericsVector3[16];
+        var from = new NumericsVector3(TileSize - 20, 0, TileSize + 10);
+        var to = new NumericsVector3(TileSize + 20, 0, TileSize + 10);
+        from.Y = field.HeightAt(from.X, from.Z);
+        to.Y = field.HeightAt(to.X, to.Z);
+        return FindPath(from, to, waypoints, out _).ToString();
     }
 
     /// <summary>Frees the map and region.</summary>
