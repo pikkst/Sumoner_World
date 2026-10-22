@@ -1,5 +1,5 @@
 # Sumoner World - Game Design Document
-Version: **0.4** · Date: 2026-10-21 · Owner: Sr Game Designer · Status: **Approved by stakeholder** (0.1 on 2026-10-19: PvE default, permanent creature death on Hardcore, 16-player target; 0.2 on 2026-10-21: summoned companions, §10; 0.3 on 2026-10-21: Summoner Academy, rank and faction, §11; Normal preset default; 0.4 on 2026-10-21: levels and rank caps, class-bound creatures, loot and gold, boss eggs)
+Version: **0.5** · Date: 2026-10-22 · Owner: Sr Game Designer · Status: **Approved by stakeholder** (0.5 on 2026-10-22: expansion mandate, all four classes, the Vale of Oaths, the story in `content/story.md`; 0.1 on 2026-10-19: PvE default, permanent creature death on Hardcore, 16-player target; 0.2 on 2026-10-21: summoned companions, §10; 0.3 on 2026-10-21: Summoner Academy, rank and faction, §11; Normal preset default; 0.4 on 2026-10-21: levels and rank caps, class-bound creatures, loot and gold, boss eggs)
 Rules: R28, R29, R50, R53, R57 · Related: `DEC-002` (monetization/art), `ADR-001` (tech), AI Bible v0.1 (`systems/ai_bible.md`), TDD v0.1 (`../technical/architecture/tdd.md`)
 
 > All numbers in this document are **design targets or starting values**. Real tuning values live in versioned data files (R08, R48), not in code or here.
@@ -8,7 +8,7 @@ Rules: R28, R29, R50, R53, R57 · Related: `DEC-002` (monetization/art), `ADR-00
 **Concept**: Sumoner World is an immersive open-world fantasy RPG. Players explore a living, evolving world, bind and bond with intelligent creatures, master magic, build their characters and shape their own destiny through combat, exploration, crafting and dynamic interaction with a living ecosystem.
 **Genre**: Open-world survival-RPG with creature bonding
 **Platform**: PC (Steam) · **Engine**: Godot 4.7.2 .NET
-**Audience**: Core / hardcore PC players (18–35) who play ARK, Valheim, Palworld or souls-likes and want creatures that matter
+**Audience**: Core / hardcore PC players (18–35) who play ARK, Valheim, Palworld or souls-likes and want creatures that matter. Private testers are aged 7–37 (DEC-003 0.2); the game is written for its own audience, not as a children's version
 **Multiplayer**: Shared persistent world on player-hosted dedicated servers + host-your-own co-op. Server-authoritative (R30).
 **One-line pitch**: *"Every creature remembers you."*
 
@@ -96,7 +96,7 @@ Creatures are **never captured**. The player proposes a **Pact**, a magical cont
 - All combat values are data-driven and validated on the server (R08, R30).
 
 ### 4. Magic
-- **4 schools at EA** (working names): **Primal** (nature, growth, beasts), **Storm** (lightning, wind, mobility), **Ember** (fire, ruin, wards) and **Umbral** (spirits, shadow, binding; the Necromancers' school, added in v0.3, §11). More schools come with expansions.
+- **4 schools at EA** (working names): **Primal** (nature, growth, beasts), **Storm** (lightning, wind, mobility), **Ember** (fire, ruin, wards) and **Umbral** (spirits, shadow, binding; the Necromancers' school, added in v0.3, §11). All four are playable with their classes (§11, expansion E3a). More schools come with expansions.
 - **Resonance:** the creatures you bond with strengthen related schools and unlock spell variants. Your party composition shapes your build.
 - Spells are crafted from **runes** (data-driven components), so the system can grow without core logic changes (R08, R09).
 
@@ -206,11 +206,11 @@ their own class.
 | Class (working names) | Tradition | Magic school | Creatures (examples) |
 |---|---|---|---|
 | **Elf** | forest, light and beast | Primal | pixie, young mossback, bogfox kit, hollow owl |
-| **Human** *(filled)* | discipline and formation | Storm | storm-hawk, plains hound *(new)* |
-| **Necromancer** | restless spirits; their creatures remember a past life | **Umbral** (4th school) | undead skeleton, wisp-hound *(new)* |
-| **Dwarf** *(proposed, filled)* | forge and fire | Ember | ember-salamander *(new)* |
+| **Human** | discipline and duty; Fort Calder | Storm | storm hawk, plains hound |
+| **Necromancer** | keepers of memory and of the dead; Lantern Hollow; their creatures remember a past life | **Umbral** (4th school) | wisp hound, bone sprite |
+| **Dwarf** | forge and fire; Emberdeep Gate | Ember | ember salamander, cinder mole |
 
-- Necromancer creatures are friendly-spooky, not gory, so they suit the family's youngest players. *(filled)*
+- Necromancer creatures are friendly-spooky, never gory: the Necromancers are the Vale's keepers of memory, not villains (story bible §3).
 
 **Summoner Rank.** **F, E, D, C, B, A, S, SS, SSS and God tier.** The ranking quest gives the first rank. Through the game the
 player **raises their rank** (rank trials, quests, deeds) but never changes class. Rank sets the player's **level cap** (§5),
@@ -220,20 +220,21 @@ player **raises their rank** (rank trials, quests, deeds) but never changes clas
 matches their rank**, chosen by the answers *(filled: the Keeper offers it, and the student offers a starter Pact that it always
 accepts, so it still begins as a real bond with a first core memory)*. The student can summon it from then on.
 
-**Delivery.** M2: the Academy, the ranking quest, ranks F–C *(filled: a newcomer starts between F and C)*, and **one playable
-class (Elf, Primal)**, with the others shown as coming. More classes, rank trials and the Umbral school come in M3.
+**Delivery.** M2: the Academy, the ranking quest, ranks F–C *(filled: a newcomer starts between F and C)*. With the M2
+expansion (stakeholder 2026-10-22) **all four classes are playable** with their schools, creatures, Keepers and home towns
+(E3a–E3c, E5). Rank trials come in M3.
 
 ---
 
 ## Content Specifications (EA target, v0.1)
 | Content | EA target | Notes |
 |---|---|---|
-| Regions / biomes | 1 region, 3 biomes (forest, highlands, marsh) | Plus 1 hidden spirit area |
+| Regions / biomes | 1 region, **the Vale of Oaths** (2 km in the M2 expansion): forest, highlands, marsh, ash hills, ruins | Plus 1 hidden spirit area; see `content/story.md` §5 |
 | Creature species | **20–25** | Deep behaviour > count. 4 shared rig types. |
 | Bosses / apex creatures | 4 | Each one can be bonded, under very hard Pact conditions |
-| Magic schools | 3 | Primal, Storm, Ember |
+| Magic schools | 4 | Primal, Storm, Umbral, Ember (one per class) |
 | Playtime | 20–40 h | Per market report |
-| Story | Light framing: "the broken Pacts", a world where summoners once betrayed creatures | Gives Pacts emotional weight |
+| Story | "The broken Pacts": the Breaking, the Binders and Warden Morvane; chapter 1 "Shards of the Oath" and a prologue per class | `content/story.md` (E2); gives Pacts emotional weight |
 
 Detailed content lists: Mid Game Designer, in `documentation/design/content/` (later M0/M1).
 
@@ -273,6 +274,8 @@ Premium early access at **$24.99** → 1.0 at **$29.99** → paid region expansi
 ## Changelog
 - **0.1 (2026-10-19):** First version. Pillars, loops, system intent, content targets, monetization and art references.
 - **0.1 approved (2026-10-19):** Stakeholder approved via PR #1 merge, including PvE-by-default, permanent creature death on Hardcore servers, and the 16-player server target (still to be validated at M1).
+- **0.5 (2026-10-22):** expansion mandate (stakeholder): all four classes playable (§11), the Vale of Oaths, the story bible
+  (`content/story.md`), four magic schools in play; testers 7–37 (DEC-003 0.2).
 - **0.4 (2026-10-21):** stakeholder decisions: player levels with rank caps (§5); creatures bound to classes, Pacts with other
   classes always fail, level difference eases or hardens Pacts (§1); companion levels and young/grown/elder stages, no death of
   old age, creature tier tied to the summoner's rank, world boss eggs (§10); the ranking quest decides class and rank from
