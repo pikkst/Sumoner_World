@@ -58,13 +58,19 @@ public readonly record struct ReputationSave(string Species, int Region, ulong P
 /// <param name="Progress">Class, rank, level and experience (M2-09); null in saves from before it existed (a new player's).</param>
 /// <param name="Inventory">Gold and items (M2-13); null in saves from before it existed (empty).</param>
 /// <param name="Equipped">Worn item ids by position (M2-14); empty strings for empty positions; null in older saves.</param>
+/// <param name="Quests">Taken and done quests by id (M2-19); null in older saves.</param>
 public readonly record struct PlayerSave(
-    ulong Account, Vector3 Position, Progression.PlayerProgress? Progress = null, InventorySave? Inventory = null, IReadOnlyList<string>? Equipped = null)
+    ulong Account,
+    Vector3 Position,
+    Progression.PlayerProgress? Progress = null,
+    InventorySave? Inventory = null,
+    IReadOnlyList<string>? Equipped = null,
+    IReadOnlyList<Quests.QuestSave>? Quests = null)
 {
     /// <summary>Equal when every field is, the worn ids compared position by position (a missing position is empty).</summary>
     public bool Equals(PlayerSave other) =>
         Account == other.Account && Position == other.Position && Progress == other.Progress && Equals(Inventory, other.Inventory)
-        && SameWorn(Equipped, other.Equipped);
+        && SameWorn(Equipped, other.Equipped) && (Quests ?? []).SequenceEqual(other.Quests ?? []);
 
     private static bool SameWorn(IReadOnlyList<string>? a, IReadOnlyList<string>? b)
     {

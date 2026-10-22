@@ -45,6 +45,31 @@ public sealed record PlayerRecord
     /// <summary>Worn item ids by position (M2-14); empty in older saves.</summary>
     [Key(9)]
     public IReadOnlyList<string> Equipped { get; init; } = [];
+
+    /// <summary>Taken and done quests (M2-19); empty in older saves.</summary>
+    [Key(10)]
+    public IReadOnlyList<QuestRecord> Quests { get; init; } = [];
+}
+
+/// <summary>A saved quest (M2-19).</summary>
+[MessagePackObject]
+public sealed record QuestRecord
+{
+    /// <summary>Quest id.</summary>
+    [Key(0)]
+    public string Quest { get; init; } = string.Empty;
+
+    /// <summary>Current step.</summary>
+    [Key(1)]
+    public int Step { get; init; }
+
+    /// <summary>Counts of the step's objectives.</summary>
+    [Key(2)]
+    public IReadOnlyList<int> Counts { get; init; } = [];
+
+    /// <summary>True when done.</summary>
+    [Key(3)]
+    public bool Done { get; init; }
 }
 
 /// <summary>A saved inventory slot.</summary>

@@ -359,6 +359,31 @@ public class DataRegistryLoaderTests
         Assert.Equal((EquipSlot.Weapon, 10), (registry.Items[registry.ItemIndex("wooden_staff")].Slot, registry.Items[registry.ItemIndex("wooden_staff")].Stats.Power));
     }
 
+    [Fact]
+    public void Quests_name_known_targets_and_only_earlier_quests()
+    {
+        List<DataFile> files = ReadShippedData();
+        Replace(files, "slice_quests.json", "\"target\": \"bogfox\"", "\"target\": \"dragon\"");
+        Replace(files, "slice_quests.json", "\"requires\": [\"berries_for_the_road\"]", "\"requires\": [\"bogfox_trouble\"]");
+        Replace(files, "slice_quests.json", "\"radius\": 10", "\"radius\": 0");
+
+        var error = Assert.Throws<DataValidationException>(() => DataRegistryLoader.Load(files));
+
+        string[] expected = ["target 'dragon'", "requires 'bogfox_trouble'", "radius"];
+        Assert.All(expected, fragment => Assert.Contains(error.Errors, message => message.Contains(fragment, StringComparison.Ordinal)));
+    }
+
+    [Fact]
+    public void The_shipped_quests_load_in_file_order()
+    {
+        DataRegistry registry = DataRegistryLoader.Load(ReadShippedData());
+
+        Assert.Equal(
+            ["berries_for_the_road", "a_staff_of_your_own", "bogfox_trouble", "a_friend_in_the_clearing"],
+            registry.Quests.Select(quest => quest.Id));
+        Assert.Equal(ObjectiveType.Reach, registry.Quests[3].Steps[0].Objectives[0].Type);
+    }
+
     private static void Replace(List<DataFile> files, string name, string find, string replace)
     {
         int index = files.FindIndex(file => file.Path.EndsWith(name, StringComparison.Ordinal));

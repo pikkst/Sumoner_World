@@ -18,12 +18,14 @@ internal sealed class CompanionListSender(CreatureWorld world, ITransport transp
     private readonly List<Companion> _current = [];
     private readonly Dictionary<ulong, (Companion[] Companions, ulong Gear)> _sent = [];
     private readonly InventoryListCodec _inventoryCodec = new();
+    private readonly QuestListSender _quests = new(world, transport);
     private readonly Dictionary<ulong, (int Gold, Core.Items.ItemCount[] Slots, WornItems Worn, int Crafting)> _sentInventory = [];
 
     /// <summary>Sends the account's list on <paramref name="connection"/> if it changed.</summary>
     public void Update(ConnectionId connection, ulong account)
     {
         UpdateInventory(connection, account);
+        _quests.Update(connection, account);
         Companions.Of(world, account, _current);
         ulong gear = GearFingerprint();
         if (_sent.TryGetValue(account, out (Companion[] Companions, ulong Gear) sent) && sent.Gear == gear
@@ -144,6 +146,7 @@ internal sealed class CompanionListSender(CreatureWorld world, ITransport transp
     {
         _sent.Remove(account);
         _sentInventory.Remove(account);
+        _quests.Forget(account);
     }
 
     private void UpdateInventory(ConnectionId connection, ulong account)

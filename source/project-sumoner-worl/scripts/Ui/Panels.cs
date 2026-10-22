@@ -10,7 +10,7 @@ namespace SumonerWorld.Game.Ui;
 public static class Panels
 {
     /// <summary>
-    /// Adds loot and gathering, the crafting window, the character window, the action bar and the ability book under
+    /// Adds loot and gathering, the crafting window, the character window, the action bar, the ability book and the quest log under
     /// <paramref name="parent"/>; <paramref name="layoutFile"/> is where the bar's layout is kept (empty: not kept).
     /// </summary>
     public static SelfTestPanels AddTo(
@@ -29,11 +29,12 @@ public static class Panels
         var character = new CharacterWindow(client, data, controls);
         var bar = new ActionBar(client, data, controls, combat, companions, layoutFile);
         var book = new AbilityBook(data, controls, bar.Run);
-        foreach (Node panel in new Node[] { items, crafting, character, bar, book })
+        var quests = new QuestLog(client, data, controls);
+        foreach (Node panel in new Node[] { items, crafting, character, bar, book, quests })
         {
             parent.AddChild(panel);
         }
 
-        return new SelfTestPanels(items, crafting, character, bar, data);
+        return new SelfTestPanels(items, crafting, character, bar, quests, data);
     }
 }

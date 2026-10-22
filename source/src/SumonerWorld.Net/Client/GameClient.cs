@@ -34,6 +34,7 @@ public sealed class GameClient : IClientSessionHandler
     private readonly DevInspectionCodec _inspectionCodec = new();
     private readonly CompanionListCodec _companionCodec = new();
     private readonly InventoryListCodec _inventoryCodec = new();
+    private readonly QuestListCodec _questCodec = new();
     private uint _lastIntent;
 
     /// <summary>Creates the client; <paramref name="movement"/> must match the server's.</summary>
@@ -65,6 +66,9 @@ public sealed class GameClient : IClientSessionHandler
 
     /// <summary>The player's gold and inventory, as the server last sent them (since protocol 16).</summary>
     public InventoryList Inventory { get; private set; } = new(0, []);
+
+    /// <summary>The player's quests, from the server (M2-19).</summary>
+    public IReadOnlyList<QuestEntry> Quests { get; private set; } = [];
 
     /// <summary>The player's pacted creatures, as the server last sent them (since protocol 9).</summary>
     public IReadOnlyList<CompanionEntry> Companions { get; private set; } = [];
@@ -213,6 +217,9 @@ public sealed class GameClient : IClientSessionHandler
                 break;
             case MessageType.InventoryList:
                 Inventory = _inventoryCodec.Read(ref reader);
+                break;
+            case MessageType.QuestList:
+                Quests = _questCodec.Read(ref reader).Entries;
                 break;
             case MessageType.CompanionList:
                 Companions = _companionCodec.Read(ref reader).Entries;

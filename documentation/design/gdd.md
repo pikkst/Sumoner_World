@@ -186,7 +186,8 @@ their personality and memory (§2), never only on stats.
    full (proposal: all core memories, then the most salient episodic ones).
 4. **Rarity classes:** how many and their names, and how rarity shows in the world without a "capture chance" display.
 5. **Stage count and caps** per species, and how equipment fits each body type.
-6. **Dungeons and quests** have no design yet (structure, rewards, how companions take part).
+6. **Dungeons and quests:** quests v1 are in `systems/quests.md` (M2-19, draft 0.1); dungeons and how companions take part in
+   quests have no design yet.
 
 ### 11. Summoner Academy, Rank and Class (stakeholder direction, v0.3, revised v0.4)
 Every new character starts as a **student who enters the Summoner Academy**. The first quest, the **ranking quest**, sets the

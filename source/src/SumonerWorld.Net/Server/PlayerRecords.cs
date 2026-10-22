@@ -16,7 +16,8 @@ internal static class PlayerRecords
             world.World.GetComponent<Position>(avatar).Value,
             world.World.GetComponent<PlayerProgress>(avatar),
             world.Economy.Export(account, world.Data),
-            EquipRules.Export(world.Data, world.World.GetComponent<Equipment>(avatar)));
+            EquipRules.Export(world.Data, world.World.GetComponent<Equipment>(avatar)),
+            world.Economy.Quests.Export(account, world.Data));
 
     /// <summary>Loads a saved player's inventory (their avatar takes the rest when it enters).</summary>
     public static void Restore(CreatureWorld world, PlayerSave saved)
@@ -25,6 +26,8 @@ internal static class PlayerRecords
         {
             world.Economy.Import(saved.Account, inventory, world.Data);
         }
+
+        world.Economy.Quests.Import(saved.Account, saved.Quests, world.Data);
     }
 
     /// <summary>A returning player's avatar gets their class, rank and level back; stats follow the level, at full health.</summary>

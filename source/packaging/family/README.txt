@@ -51,6 +51,8 @@ The game plays on the local dev server, which runs in Docker on this PC. Nothing
    into the bag to take it off. Right-click food to eat it. The tabs at the top show a companion
    at your side: dress it too (a bird wears only a hat and a charm), and drag things into its own
    bag (a bird carries little, a four-legged one more). Drag food from the bag onto the bar.
+   J opens your quests: take new ones with Accept. What to do next is shown at the top right, and a
+   line tells you when a quest is done and what you get.
    B opens crafting: click a recipe to make it. Stand still for a few seconds; if something hits
    you, you stop and lose nothing.
    K opens the companion panel: your companion's level, bond and skill tree. Teach it a skill with

@@ -1,0 +1,51 @@
+// Slice quests around the spawn point (quests spec §7, M2-19). Offered in the quest log (J); titles until localization.
+// The spawn point is (256, 256); the north clearing lies about 35 m north of it.
+{
+  "schemaVersion": 1,
+  "kind": "quests",
+  "entries": [
+    {
+      "id": "berries_for_the_road",
+      "title": "Berries for the Road",
+      "summary": "A summoner never travels hungry. Pick sweet berries from the bushes near the path.",
+      "steps": [
+        { "text": "Pick sweet berries from the bushes.", "objectives": [ { "type": "gather", "target": "sweet_berries", "count": 5 } ] }
+      ],
+      "rewards": { "xp": 30, "gold": 5, "items": [ { "item": "berry_meal", "count": 1 } ] }
+    },
+    {
+      "id": "a_staff_of_your_own",
+      "title": "A Staff of Your Own",
+      "summary": "Gather fallen branches and make a wooden staff (B opens crafting).",
+      "requires": ["berries_for_the_road"],
+      "steps": [
+        { "text": "Gather fallen branches.", "objectives": [ { "type": "gather", "target": "fallen_branch", "count": 3 } ] },
+        { "text": "Make a wooden staff and put it on (I).", "objectives": [ { "type": "craft", "target": "wooden_staff", "count": 1 } ] }
+      ],
+      "rewards": { "xp": 50, "gold": 10 }
+    },
+    {
+      "id": "bogfox_trouble",
+      "title": "Bogfox Trouble",
+      "summary": "Bogfoxes have been snapping at travellers. Teach two of them to keep their distance.",
+      "minLevel": 2,
+      "steps": [
+        { "text": "Defeat bogfoxes.", "objectives": [ { "type": "defeat", "target": "bogfox", "count": 2 } ] }
+      ],
+      "rewards": { "xp": 80, "gold": 15, "items": [ { "item": "sigil_ink", "count": 1 } ] }
+    },
+    {
+      "id": "a_friend_in_the_clearing",
+      "title": "A Friend in the Clearing",
+      "summary": "Creatures gather in the north clearing. Go there, earn a creature's trust and offer it a Pact.",
+      "steps": [
+        { "text": "Go to the north clearing.", "objectives": [ { "type": "reach", "place": "the north clearing", "x": 256, "z": 291, "radius": 10 } ] },
+        {
+          "text": "Feed a creature, then offer it a Pact.",
+          "objectives": [ { "type": "feed", "count": 1 }, { "type": "pact", "count": 1 } ]
+        }
+      ],
+      "rewards": { "xp": 60, "gold": 10, "items": [ { "item": "sweetroot_bundle", "count": 1 } ] }
+    }
+  ]
+}

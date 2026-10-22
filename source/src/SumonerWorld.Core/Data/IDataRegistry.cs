@@ -56,6 +56,9 @@ public interface IDataRegistry
     /// <summary>Recipes in file order (crafting spec §6); a recipe's index is what the client names it by.</summary>
     IReadOnlyList<RecipeDefinition> Recipes { get; }
 
+    /// <summary>Quests in file order (quests spec, M2-19); a quest's index is what the client names it by.</summary>
+    IReadOnlyList<QuestDefinition> Quests { get; }
+
     /// <summary>Index of the item with this id in <see cref="Items"/>; throws when unknown.</summary>
     int ItemIndex(string id);
 
