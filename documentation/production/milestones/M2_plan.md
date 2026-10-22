@@ -91,7 +91,7 @@ decision now and M2 can start straight away. The timeline dates then move forwar
 | **M2-15** Versioned saves | Player, inventory, bonds, progression and skill choices in the world store; schema versions with migration tests (R26) | 4d |
 | **M2-16** Slice region and content | A 30-minute path in the test region: Academy → Memory Grove → a gathering area → a predator den as the first "dungeon-like" encounter, 3–4 species | 5d |
 | **M2-17** HUD and family UX | Health, stamina, mana, companion status, key hints, settings (volume, mouse sensitivity); readable for children | 3d |
-| **M2-18** Slice test and polish | Bot run of the slice path in CI; family sessions (consent and questionnaire, DEC-003); bug triage to zero critical; family package | 4d + sessions |
+| **M2-18** Slice test and polish | *(after the expansion, `M2_expansion_plan.md`)* Bot run of the slice path in CI; test sessions (consent and questionnaire, DEC-003 0.2); bug triage to zero critical; test package | 4d + sessions |
 
 Total about 97 working days (with the Academy, D4 and M2-19 to M2-22).
 

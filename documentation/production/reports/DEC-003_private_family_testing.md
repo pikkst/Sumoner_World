@@ -1,5 +1,15 @@
 # DEC-003: Private family testing, no public playtest or benchmarks for now
-Date: 2026-10-21 · Author: Producer Agent · Status: **Adopted (stakeholder decision, 2026-10-21)**
+Date: 2026-10-21 · Author: Producer Agent · Status: **Adopted (stakeholder decision, 2026-10-21; revised 2026-10-22, see below)**
+
+## Revision 0.2 (stakeholder, 2026-10-22)
+- The testers are aged **7 to 37**. That is a normal range for this game, so the build is a **normal game package**, not a
+  "family package", and the game is **not** made into a children's version: the HUD stays plain and readable for everyone,
+  but content, difficulty and story are written for the game's own audience.
+- The package is now the **test package** (`source/scripts/package-game.sh` → `builds/SumonerWorld-<commit>.zip`, launchers
+  and README in `source/packaging/game/`).
+- Everything else stands: the game is private (Eventnexus OÜ), testing runs on the local Docker dev server, no outside
+  recruiting, no benchmarks for now.
+- The stakeholder also asked to expand the game (all classes, a bigger world, NPCs, a story): `milestones/M2_expansion_plan.md`.
 
 ## Decision (stakeholder's words, summarised)
 1. **The game stays private.** It is opened to anyone else only if the creator and the creator's family like it.
@@ -36,4 +46,5 @@ The M1 gate (2027-03-31) can still take place, but its USP readability and perfo
   family's PC.
 
 ## Changelog
+- **0.2 (2026-10-22):** Testers 7–37; normal game package, not a children's version (stakeholder).
 - **0.1 (2026-10-21):** Recorded the stakeholder's decision.

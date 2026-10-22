@@ -19,7 +19,7 @@ public static class RejectionNotice
 
         string text = session.RejectReason switch
         {
-            RejectReason.DataMismatch => "This game package does not match the server.\nPlease get the new family package and start it again.",
+            RejectReason.DataMismatch => "This game package does not match the server.\nPlease get the new game package and start it again.",
             RejectReason.ServerFull => "The server is full. Try again later.",
             _ => $"The server did not let you in ({session.RejectReason}).",
         };

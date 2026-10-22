@@ -1,7 +1,7 @@
 # HUD and Settings: System Spec v0.1 (M2-17)
 
 Status: **draft 0.1 (2026-10-22)**. The M2 plan asks for health, stamina, mana, companion status, key hints and settings
-(volume, mouse sensitivity), readable for children (testers are 4–14, DEC-003). Everything marked *(filled)* was chosen by
+(volume, mouse sensitivity), readable at a glance for every player (testers are 7–37, DEC-003 0.2). Everything marked *(filled)* was chosen by
 the design team and can be changed by the stakeholder.
 
 ## 1. Rules for every word on screen
@@ -37,7 +37,7 @@ Esc opens the settings when no other window is open (every window closes on Esc 
 | Text size (all windows and text) | 100 %, 125 %, 150 % | 100 % |
 | Show key hints on screen | on / off | on |
 
-- A change applies at once and is **kept per account** on the computer (`user://settings-<account>.txt`), so children who
+- A change applies at once and is **kept per account** on the computer (`user://settings-<account>.txt`), so players who
   share a computer each keep theirs. Broken or unknown values fall back to the default or the nearest allowed value.
 - There is no game sound yet; the volume already sets the master sound bus, so sound added later follows it.
 
