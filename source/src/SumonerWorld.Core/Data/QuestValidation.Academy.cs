@@ -7,8 +7,19 @@ internal static partial class QuestValidation
 {
     private static readonly string[] NpcRoles = ["headmaster", "arena_master", "keeper", "vendor"];
 
-    internal static void ValidateAcademy(AcademyDefinition academy, string where, List<QuestDefinition> quests, List<string> errors)
+    internal static void ValidateAcademy(
+        AcademyDefinition academy, string where, List<QuestDefinition> quests, List<SpeciesDefinition> species, List<string> errors)
     {
+        if (!species.Any(definition => definition.Id == academy.ConstructSpecies))
+        {
+            errors.Add($"{where}: constructSpecies '{academy.ConstructSpecies}' is not a species.");
+        }
+
+        if (academy.ArenaRadius <= 0 || academy.ArenaRadius >= academy.Radius)
+        {
+            errors.Add($"{where}: the arena lies inside the campus (0 < arenaRadius < radius).");
+        }
+
         var ids = new HashSet<string>(StringComparer.Ordinal);
         foreach (NpcDefinition npc in academy.Npcs)
         {

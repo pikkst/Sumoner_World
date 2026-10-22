@@ -155,6 +155,9 @@ public enum IntentKind : byte
     /// <summary>Answer a ranking question (since protocol 22): target = the Headmaster's index; argument = question × 4 + answer.</summary>
     Answer = 24,
 
+    /// <summary>Tell how a creature feels (since protocol 23): target = its stable id; argument = <c>Feeling</c>; detail 1 right, 0 wrong.</summary>
+    Read = 25,
+
     /// <summary>
     /// Cast a spell (since protocol 14): argument = index in the spells data; target = aim heading in 1/256 turns (bits 0–7),
     /// burst distance in decimetres (bits 8–23) and the ward's creature stable id (bits 24 and up, 0 = self).

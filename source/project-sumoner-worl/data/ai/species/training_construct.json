@@ -1,0 +1,69 @@
+// The Academy's training construct (Academy spec §3.1, M2-21b): a stone-and-wood figure in the arena that only stands there,
+// barely hits back and never accepts a Pact (it is not alive). Students practise fighting and offering a Pact on it.
+{
+  "schemaVersion": 1,
+  "kind": "species",
+  "entries": [
+    {
+      "id": "training_construct",
+      "nameKey": "species.training_construct.name",
+      "role": "grazer",
+      "bodyType": "biped",
+      "group": "solitary",
+      "boldness": {
+        "mean": 100,
+        "spread": 0
+      },
+      "loyalty": {
+        "mean": 0,
+        "spread": 0
+      },
+      "curiosity": {
+        "mean": -100,
+        "spread": 0
+      },
+      "temper": {
+        "mean": -100,
+        "spread": 0
+      },
+      "needs": {
+        "hunger": 0,
+        "rest": 100,
+        "safety": 0,
+        "social": 0,
+        "territory": 0
+      },
+      "bodyRadiusCm": 60,
+      "class": "elf",
+      "tier": "f",
+      "levels": {
+        "min": 1,
+        "max": 1
+      },
+      "pactThreshold": 1000,
+      "perception": {
+        "sightRange": 1,
+        "sightHalfAngle": 10,
+        "hearingRange": 1
+      },
+      "combat": {
+        "health": 60,
+        "stamina": 10,
+        "mana": 0,
+        "power": 1,
+        "guard": 0,
+        "poise": 1000,
+        "resist": {
+          "physical": 0,
+          "primal": 0
+        },
+        "moves": [
+          "charge"
+        ]
+      },
+      "goals": [
+        "Rest"
+      ]
+    }
+  ]
+}

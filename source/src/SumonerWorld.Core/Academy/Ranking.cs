@@ -21,6 +21,9 @@ public sealed class AcademyStanding
     /// <summary>Practical bonus to the rank score (the arena moments, M2-21b).</summary>
     public int Bonus { get; internal set; }
 
+    /// <summary>The practical moments done (M2-21b).</summary>
+    public PracticalMoments Moments { get; internal set; }
+
     /// <summary>True once the Headmaster gave the rank.</summary>
     public bool Ranked { get; internal set; }
 
@@ -32,10 +35,12 @@ public sealed class AcademyStanding
 /// <param name="Answers">Answer per question + 1.</param>
 /// <param name="Bonus">Practical bonus.</param>
 /// <param name="Ranked">True once ranked.</param>
-public sealed record AcademySave(IReadOnlyList<int> Answers, int Bonus, bool Ranked)
+/// <param name="Moments">Practical moments done (M2-21b).</param>
+public sealed record AcademySave(IReadOnlyList<int> Answers, int Bonus, bool Ranked, int Moments = 0)
 {
     /// <summary>Equal when every field is, the answers compared one by one.</summary>
-    public bool Equals(AcademySave? other) => other is not null && Bonus == other.Bonus && Ranked == other.Ranked && Answers.SequenceEqual(other.Answers);
+    public bool Equals(AcademySave? other) =>
+        other is not null && Bonus == other.Bonus && Ranked == other.Ranked && Moments == other.Moments && Answers.SequenceEqual(other.Answers);
 
     /// <inheritdoc />
     public override int GetHashCode() => HashCode.Combine(Bonus, Ranked);
@@ -61,7 +66,7 @@ public sealed class AcademyBook
     /// <summary>For saving (null when the account never answered).</summary>
     public AcademySave? Export(ulong account) =>
         _byAccount.TryGetValue(account, out AcademyStanding? standing)
-            ? new AcademySave([.. standing.Answers.Select(answer => (int)answer)], standing.Bonus, standing.Ranked)
+            ? new AcademySave([.. standing.Answers.Select(answer => (int)answer)], standing.Bonus, standing.Ranked, (int)standing.Moments)
             : null;
 
     /// <summary>Restores a saved standing.</summary>
@@ -81,6 +86,7 @@ public sealed class AcademyBook
 
         standing.Bonus = saved.Bonus;
         standing.Ranked = saved.Ranked;
+        standing.Moments = (PracticalMoments)saved.Moments;
     }
 
     /// <summary>Adds every standing, in account order, to a state hash.</summary>
@@ -96,6 +102,7 @@ public sealed class AcademyBook
             }
 
             hash.Add((ulong)standing.Bonus);
+            hash.Add((ulong)standing.Moments);
             hash.Add(standing.Ranked ? 1UL : 0UL);
         }
     }

@@ -194,6 +194,11 @@ public record struct HitTransaction(CreatureWorld Creatures, Entity Avatar, Stab
 
         int move = BasicMove(Creatures);
         float reach = (Creatures.Data.Moves[move].Shape.ReachCm / 100f) - BodySizes.PlayerRadius;
+        if (Academy.ArenaRules.SafeZone(Creatures, Avatar) is IntentResult safe)
+        {
+            return safe;
+        }
+
         return PlayerInteractions.InReach(Creatures, Avatar, creature, reach, Creatures.Sizes)
             ? CombatRules.CanStart(Creatures.World, Creatures.Data, Avatar, move)
             : IntentResult.Reject(IntentRejectReason.OutOfRange);

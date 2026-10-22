@@ -35,7 +35,7 @@ public sealed partial class PlaytestSelfTest(
     private const double StepSeconds = 1.2;
     private const double WatchSeconds = 6;
     private const int LastStep = 45;
-    private const int AcademyLastStep = 12;
+    private const int AcademyLastStep = 7;
 
     private double _clock;
     private double _walking;
@@ -327,8 +327,9 @@ public sealed partial class PlaytestSelfTest(
         return true;
     }
 
-    // The ranking at the Academy gate before anything else (M2-21): talk to the Headmaster, answer the eight questions (the
-    // first answer each time), hear the rank.
+    // The ranking at the Academy gate before anything else (M2-21): talk to the Headmaster, answer the first four questions (the
+    // first answer each time), then talk to the Arena Master, who sends the student to the arena (the fight there is covered by
+    // the tests: the self-test does not walk to it).
     private void AcademyStep(Ui.AcademyDialogue dialogue)
     {
         switch (_academy)
@@ -341,13 +342,13 @@ public sealed partial class PlaytestSelfTest(
                 capture("academy-question");
                 dialogue.Choose(0);
                 break;
-            case 10:
+            case 5:
                 log.Write(LogLevel.Info, "selftest.academy", dialogue.Text);
-                dialogue.Choose(0);
+                dialogue.Talk(1);
                 break;
-            case 11:
-                log.Write(LogLevel.Info, "selftest.academy", $"{dialogue.Text} | {client.OwnProfile}");
-                capture("ranking");
+            case 6:
+                log.Write(LogLevel.Info, "selftest.academy", $"{dialogue.Text} | tracker: {OneLine(panels.Quests.Tracker)}");
+                capture("arena-master");
                 break;
             case AcademyLastStep:
                 dialogue.Close();

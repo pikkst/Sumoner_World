@@ -61,6 +61,10 @@ public sealed record PlayerRecord
     /// <summary>True once ranked at the Academy (M2-21).</summary>
     [Key(13)]
     public bool AcademyRanked { get; init; }
+
+    /// <summary>Practical moments done at the Academy (M2-21b).</summary>
+    [Key(14)]
+    public int AcademyMoments { get; init; }
 }
 
 /// <summary>A saved quest (M2-19).</summary>

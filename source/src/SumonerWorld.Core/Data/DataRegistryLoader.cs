@@ -339,7 +339,7 @@ public static partial class DataRegistryLoader
             }
             else if (academy is not null)
             {
-                QuestValidation.ValidateAcademy(academy, _academies[0].Where, [.. _quests.Select(quest => quest.Entry)], Errors);
+                QuestValidation.ValidateAcademy(academy, _academies[0].Where, [.. _quests.Select(quest => quest.Entry)], _species, Errors);
             }
 
             if (Errors.Count > 0)

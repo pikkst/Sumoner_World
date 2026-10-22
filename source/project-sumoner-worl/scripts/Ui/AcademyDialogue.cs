@@ -15,7 +15,8 @@ namespace SumonerWorld.Game.Ui;
 /// one by one (click an answer or press 1–4) and, once all are answered, the ceremony. "Read again" shows the words again; Esc
 /// closes. The server checks every answer and decides the class and the rank.
 /// </summary>
-public sealed partial class AcademyDialogue(GameClient client, IDataRegistry data, InteractionControls controls, AcademyView view, Func<Godot.Vector3> player)
+public sealed partial class AcademyDialogue(
+    GameClient client, IDataRegistry data, InteractionControls controls, AcademyView view, Func<Godot.Vector3> player, Func<ulong> creature)
     : CanvasLayer
 {
     private PanelContainer? _window;
@@ -35,10 +36,12 @@ public sealed partial class AcademyDialogue(GameClient client, IDataRegistry dat
     public string Text => $"{_speaker?.Text}: {_text?.Text} [{string.Join(" | ", _shown?.Options ?? [])}]";
 
     /// <summary>Talks to the person in reach (E; also used by the self-test); false when nobody is in reach.</summary>
-    public bool Talk()
+    public bool Talk() => Talk(view.PersonNear(player()));
+
+    /// <summary>Talks to person <paramref name="npc"/> (the self-test picks one of two people standing side by side).</summary>
+    public bool Talk(int npc)
     {
-        int npc = view.PersonNear(player());
-        if (npc < 0 || data.Academy is not AcademyDefinition academy)
+        if (npc < 0 || data.Academy is not AcademyDefinition academy || npc >= academy.Npcs.Count)
         {
             return false;
         }
@@ -63,6 +66,10 @@ public sealed partial class AcademyDialogue(GameClient client, IDataRegistry dat
         {
             client.SendIntent(IntentKind.Answer, (ulong)_npc, (byte)((page.Question * AcademyDefinition.AnswerCount) + option));
             _text!.Text = "...";
+        }
+        else if (page.Kind == DialogueKind.Read)
+        {
+            controls.Send(IntentKind.Read, creature(), AcademyText.Feelings[option], (byte)option);
         }
         else if (page.Kind == DialogueKind.Ceremony)
         {
@@ -113,7 +120,7 @@ public sealed partial class AcademyDialogue(GameClient client, IDataRegistry dat
         var again = new Button { Text = "Read again", FocusMode = Control.FocusModeEnum.None };
         again.Pressed += () => _shown = null;
         bottom.AddChild(again);
-        bottom.AddChild(ItemLook.Text("   [1-4] answer   [Esc] close", 13));
+        bottom.AddChild(ItemLook.Text("   [1-6] choose   [Esc] close", 13));
         rows.AddChild(bottom);
     }
 
@@ -129,7 +136,7 @@ public sealed partial class AcademyDialogue(GameClient client, IDataRegistry dat
         {
             Close();
         }
-        else if (IsOpen && key.Keycode is >= Key.Key1 and <= Key.Key4)
+        else if (IsOpen && key.Keycode is >= Key.Key1 and <= Key.Key6)
         {
             Choose((int)(key.Keycode - Key.Key1));
         }
@@ -154,13 +161,17 @@ public sealed partial class AcademyDialogue(GameClient client, IDataRegistry dat
         }
 
         int near = view.PersonNear(player());
-        _prompt!.Text = near >= 0 && !IsOpen ? AcademyText.Prompt(academy.Npcs[near]) : string.Empty;
+        Godot.Vector3 at = player();
+        _prompt!.Text = IsOpen ? string.Empty
+            : near >= 0 ? AcademyText.Prompt(academy.Npcs[near])
+            : academy.IsSafe(at.X, at.Z) ? "Academy grounds: no fighting here. The arena is just inside the gate."
+            : string.Empty;
         if (!IsOpen)
         {
             return;
         }
 
-        if (near != _npc)
+        if (near < 0)
         {
             Close();
             return;
@@ -175,7 +186,7 @@ public sealed partial class AcademyDialogue(GameClient client, IDataRegistry dat
 
         int quest = RankingRules.RankingQuest(data);
         QuestEntry? ranking = client.Quests.Any(entry => entry.Quest == quest) ? client.Quests.First(entry => entry.Quest == quest) : null;
-        DialoguePage page = AcademyText.PageOf(academy, _npc, ranking, client.OwnProfile);
+        DialoguePage page = AcademyText.PageOf(academy, _npc, ranking, client.OwnProfile, quest >= 0 ? data.Quests[quest] : null);
         if (_override is string words)
         {
             page = new DialoguePage(academy.Npcs[_npc].Name, words, DialogueKind.Words, 0, []);

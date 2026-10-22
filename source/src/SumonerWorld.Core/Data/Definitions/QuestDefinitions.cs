@@ -29,6 +29,12 @@ public enum ObjectiveType
 
     /// <summary>Answering the Headmaster's ranking questions (M2-21).</summary>
     Answer,
+
+    /// <summary>Telling how a creature feels from its body (M2-21b).</summary>
+    Read,
+
+    /// <summary>Offering a Pact, whatever the answer (target = species or any; the Pact rehearsal, M2-21b).</summary>
+    Offer,
 }
 
 /// <summary>A quest (quests spec §1), from <c>data/quests/*.json</c>.</summary>

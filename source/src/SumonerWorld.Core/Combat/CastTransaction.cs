@@ -47,7 +47,7 @@ public record struct CastTransaction(CreatureWorld Creatures, Entity Avatar, int
         }
 
         int move = Creatures.Data.MoveIndex(Creatures.Data.Spells[Spell].Id);
-        return CombatRules.CanStart(Creatures.World, Creatures.Data, Avatar, move, Cost(move));
+        return Academy.ArenaRules.SafeZone(Creatures, Avatar) ?? CombatRules.CanStart(Creatures.World, Creatures.Data, Avatar, move, Cost(move));
     }
 
     /// <inheritdoc />

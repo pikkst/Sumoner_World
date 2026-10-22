@@ -17,6 +17,9 @@ public enum DialogueKind
 
     /// <summary>The ceremony is ready: one option, "Hear my rank".</summary>
     Ceremony,
+
+    /// <summary>The reading test: pick how the creature feels (M2-21b).</summary>
+    Read,
 }
 
 /// <summary>One page of a dialogue: who speaks, what they say and the options.</summary>
@@ -36,34 +39,81 @@ public static class AcademyText
     /// <summary>The option that starts the ceremony.</summary>
     public const string HearMyRank = "Hear my rank";
 
-    /// <summary>The page a person shows now.</summary>
-    public static DialoguePage PageOf(AcademyDefinition academy, int npc, QuestEntry? ranking, RosterEntry? profile)
+    /// <summary>The feelings the reading test offers, in <c>Feeling</c> order.</summary>
+    public static readonly IReadOnlyList<string> Feelings = ["Calm", "Scared", "Curious", "Angry", "Happy", "Sad"];
+
+    /// <summary>
+    /// The page a person shows now, from the ranking quest's current step (<paramref name="quest"/> is its definition):
+    /// the Headmaster asks the questions and holds the ceremony, the Arena Master leads the practical moments (M2-21b).
+    /// </summary>
+    public static DialoguePage PageOf(AcademyDefinition academy, int npc, QuestEntry? ranking, RosterEntry? profile, QuestDefinition? quest = null)
     {
         ArgumentNullException.ThrowIfNull(academy);
         NpcDefinition person = academy.Npcs[npc];
-        if (person.Role != "headmaster" || ranking is not QuestEntry quest)
+        if (ranking is not QuestEntry entry || quest is null || person.Role is not ("headmaster" or "arena_master"))
         {
             return Words(person, person.Greeting);
         }
 
-        if (quest.Status != (byte)QuestStatus.Active)
+        if (entry.Status != (byte)QuestStatus.Active)
         {
-            int rank = profile?.Rank ?? 0;
-            return Words(person, $"{RankLine(academy, rank)} Keeper Lisel will soon have someone for you to meet.");
+            return person.Role == "headmaster"
+                ? Words(person, $"{RankLine(academy, profile?.Rank ?? 0)} Keeper Lisel will soon have someone for you to meet.")
+                : Words(person, person.Greeting);
         }
 
-        return quest.Step switch
+        IReadOnlyList<QuestObjectiveDefinition> objectives = entry.Step < quest.Steps.Count ? quest.Steps[entry.Step].Objectives : [];
+        return person.Role == "headmaster" ? Headmaster(academy, person, entry, quest, objectives) : ArenaMaster(person, objectives);
+    }
+
+    private static DialoguePage Headmaster(
+        AcademyDefinition academy, NpcDefinition person, QuestEntry entry, QuestDefinition quest, IReadOnlyList<QuestObjectiveDefinition> objectives)
+    {
+        if (objectives.Any(objective => objective.Type == ObjectiveType.Answer))
         {
-            0 => Words(person, person.Greeting),
-            1 when quest[0] < academy.Questions.Count => new DialoguePage(
+            int asked = quest.Steps.Take(entry.Step).SelectMany(step => step.Objectives).Where(objective => objective.Type == ObjectiveType.Answer).Sum(objective => objective.Count);
+            int index = asked + entry[0];
+            return index < academy.Questions.Count
+                ? new DialoguePage(
+                    person.Name,
+                    $"Question {index + 1} of {academy.Questions.Count}. {academy.Questions[index].Text}",
+                    DialogueKind.Question,
+                    index,
+                    [.. academy.Questions[index].Answers.Select(answer => answer.Text)])
+                : Words(person, "Hmm, let me think about your answers...");
+        }
+
+        bool talkToMe = objectives.Any(objective => objective.Type == ObjectiveType.Talk && objective.Target == person.Id);
+        if (talkToMe && entry.Step == quest.Steps.Count - 1)
+        {
+            return new DialoguePage(person.Name, "Thank you. You answered every question. Now, let me tell you who you are.", DialogueKind.Ceremony, 0, [HearMyRank]);
+        }
+
+        return talkToMe || entry.Step == 0 ? Words(person, person.Greeting) : Words(person, "Go and see Arena Master Brann first. He stands right next to me.");
+    }
+
+    private static DialoguePage ArenaMaster(NpcDefinition person, IReadOnlyList<QuestObjectiveDefinition> objectives)
+    {
+        if (objectives.Any(objective => objective.Type == ObjectiveType.Read))
+        {
+            return new DialoguePage(
                 person.Name,
-                $"Question {quest[0] + 1} of {academy.Questions.Count}. {academy.Questions[quest[0]].Text}",
-                DialogueKind.Question,
-                quest[0],
-                [.. academy.Questions[quest[0]].Answers.Select(answer => answer.Text)]),
-            1 => Words(person, "Hmm, let me think about your answers..."),
-            _ => new DialoguePage(person.Name, "Thank you. You answered every question. Now, let me tell you who you are.", DialogueKind.Ceremony, 0, [HearMyRank]),
-        };
+                "A summoner reads creatures. Lock on to a creature with T (or stand next to one) and look at it. How does it feel?",
+                DialogueKind.Read,
+                0,
+                Feelings);
+        }
+
+        if (objectives.Any(objective => objective.Type is ObjectiveType.Defeat or ObjectiveType.Offer))
+        {
+            return Words(
+                person,
+                "The arena is just inside the gate. Beat the training construct (left click and your spells), then offer it a Pact with P. It will say no: it is not alive. That is fine, it is practice!");
+        }
+
+        return objectives.Any(objective => objective.Type == ObjectiveType.Talk && objective.Target == person.Id)
+            ? Words(person, "So you are the new student! Fighting is only allowed in the arena. Come, let us practise.")
+            : Words(person, "Well done! Go back to the Headmaster.");
     }
 
     /// <summary>The Headmaster's words at the ceremony, from the talk's result.</summary>

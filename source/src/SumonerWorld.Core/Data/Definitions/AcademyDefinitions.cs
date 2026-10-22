@@ -44,6 +44,32 @@ public sealed record AcademyDefinition
 
     /// <summary>The id of the quest whose answers and ceremony this is.</summary>
     public string RankingQuest { get; init; } = "the_ranking";
+
+    /// <summary>The Grand Arena's centre, x in metres (M2-21b): fighting is allowed only here inside the campus.</summary>
+    public float ArenaX { get; init; }
+
+    /// <summary>The arena's centre, z in metres.</summary>
+    public float ArenaZ { get; init; }
+
+    /// <summary>The arena's radius in metres.</summary>
+    public float ArenaRadius { get; init; } = 6;
+
+    /// <summary>The species of the training construct that stands in the arena.</summary>
+    public string ConstructSpecies { get; init; } = "training_construct";
+
+    /// <summary>Rank score a practical moment adds the first time (a reading right at the first try).</summary>
+    public int MomentBonus { get; init; } = 5;
+
+    /// <summary>Rank score a reading adds when it took more than one try.</summary>
+    public int LateReadBonus { get; init; } = 2;
+
+    /// <summary>True when <paramref name="x"/>, <paramref name="z"/> is inside the campus but outside the arena: no fighting there.</summary>
+    public bool IsSafe(float x, float z)
+    {
+        float campus = ((x - X) * (x - X)) + ((z - Z) * (z - Z));
+        float arena = ((x - ArenaX) * (x - ArenaX)) + ((z - ArenaZ) * (z - ArenaZ));
+        return campus <= Radius * Radius && arena > ArenaRadius * ArenaRadius;
+    }
 }
 
 /// <summary>One of the Academy's people (Academy spec §1): they stand, talk and give quests.</summary>

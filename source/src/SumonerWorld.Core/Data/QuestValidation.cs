@@ -62,7 +62,7 @@ internal static partial class QuestValidation
             bool found = objective.Type switch
             {
                 ObjectiveType.Gather or ObjectiveType.Craft => objective.Target.Length == 0 || known.Items.Contains(objective.Target),
-                ObjectiveType.Reach or ObjectiveType.Answer => objective.Target.Length == 0,
+                ObjectiveType.Reach or ObjectiveType.Answer or ObjectiveType.Read => objective.Target.Length == 0,
                 ObjectiveType.Talk => known.Npcs.Contains(objective.Target),
                 _ => objective.Target.Length == 0 || known.Species.Contains(objective.Target),
             };
