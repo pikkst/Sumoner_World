@@ -32,7 +32,10 @@ public sealed class QuestTests : IDisposable
         _world.CreateSystems().RegisterAll(_scheduler);
         _alice = _world.SpawnPlayerAvatar(Alice, Start);
         _world.SpawnPlayerAvatar(Bob, Start + new Vector3(2, 0, 0));
+        _world.Economy.Quests.Import(Alice, [Ranked], _world.Data);
     }
+
+    private static QuestSave Ranked => new("the_ranking", 0, [], Done: true);
 
     private PlayerQuests Mine => _world.Economy.Quests.Of(Alice);
 
@@ -89,7 +92,7 @@ public sealed class QuestTests : IDisposable
     [Fact]
     public void Steps_follow_one_another_and_crafting_counts()
     {
-        _world.Economy.Quests.Import(Alice, [new QuestSave("berries_for_the_road", 0, [], Done: true)], _world.Data);
+        _world.Economy.Quests.Import(Alice, [Ranked, new QuestSave("berries_for_the_road", 0, [], Done: true)], _world.Data);
         int staff = Quest("a_staff_of_your_own");
         Assert.True(Run(new AcceptQuestTransaction(_world, _alice, staff)).IsApplied);
 
@@ -160,7 +163,7 @@ public sealed class QuestTests : IDisposable
     {
         int berries = Quest("berries_for_the_road");
         int friend = Quest("a_friend_in_the_clearing");
-        _world.Economy.Quests.Import(Alice, [new QuestSave("berries_for_the_road", 0, [], Done: true)], _world.Data);
+        _world.Economy.Quests.Import(Alice, [Ranked, new QuestSave("berries_for_the_road", 0, [], Done: true)], _world.Data);
         Assert.True(Run(new AcceptQuestTransaction(_world, _alice, friend)).IsApplied);
         _world.Economy.Quests.Record(_world.Data, Alice, ObjectiveType.Reach, string.Empty, 1);
 

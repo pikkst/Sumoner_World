@@ -35,6 +35,15 @@ public static class Panels
             parent.AddChild(panel);
         }
 
-        return new SelfTestPanels(items, crafting, character, bar, quests, data);
+        AcademyDialogue? dialogue = null;
+        if (data.Academy is Core.Data.Definitions.AcademyDefinition academy)
+        {
+            var view = new AcademyView(academy, World.DevWorld.Ground.HeightAt);
+            dialogue = new AcademyDialogue(client, data, controls, view, feet);
+            parent.AddChild(view);
+            parent.AddChild(dialogue);
+        }
+
+        return new SelfTestPanels(items, crafting, character, bar, quests, dialogue, data);
     }
 }

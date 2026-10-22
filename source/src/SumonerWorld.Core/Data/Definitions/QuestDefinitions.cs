@@ -23,6 +23,12 @@ public enum ObjectiveType
 
     /// <summary>Standing within a radius of a place.</summary>
     Reach,
+
+    /// <summary>Talking to one of the Academy's people (target = npc id; M2-21).</summary>
+    Talk,
+
+    /// <summary>Answering the Headmaster's ranking questions (M2-21).</summary>
+    Answer,
 }
 
 /// <summary>A quest (quests spec §1), from <c>data/quests/*.json</c>.</summary>
@@ -42,6 +48,9 @@ public sealed record QuestDefinition
 
     /// <summary>Quests that must be done first.</summary>
     public IReadOnlyList<string> Requires { get; init; } = [];
+
+    /// <summary>Taken for every player as soon as they are offered it (the ranking quest, M2-21).</summary>
+    public bool AutoStart { get; init; }
 
     /// <summary>Steps, in order.</summary>
     public IReadOnlyList<QuestStepDefinition> Steps { get; init; } = [];

@@ -1,0 +1,20 @@
+// The ranking quest (Academy spec §3, M2-21): every new character takes it at once. Loaded before the slice quests, which need it.
+// The practical moments in the arena come in M2-21b.
+{
+  "schemaVersion": 1,
+  "kind": "quests",
+  "entries": [
+    {
+      "id": "the_ranking",
+      "title": "The Ranking",
+      "summary": "Every new summoner is ranked at the Academy. The Headmaster waits at the gate, just behind where you arrived.",
+      "autoStart": true,
+      "steps": [
+        { "text": "Talk to the Headmaster at the Academy gate (E).", "objectives": [ { "type": "talk", "target": "headmaster" } ] },
+        { "text": "Answer the Headmaster's questions. There are no wrong answers.", "objectives": [ { "type": "answer", "count": 8 } ] },
+        { "text": "Hear your rank from the Headmaster.", "objectives": [ { "type": "talk", "target": "headmaster" } ] }
+      ],
+      "rewards": { "xp": 40, "gold": 10, "items": [ { "item": "berry_meal", "count": 2 } ] }
+    }
+  ]
+}

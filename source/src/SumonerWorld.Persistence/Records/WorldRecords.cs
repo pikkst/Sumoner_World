@@ -49,6 +49,18 @@ public sealed record PlayerRecord
     /// <summary>Taken and done quests (M2-19); empty in older saves.</summary>
     [Key(10)]
     public IReadOnlyList<QuestRecord> Quests { get; init; } = [];
+
+    /// <summary>Ranking answers (answer + 1 per question, M2-21); null when never answered.</summary>
+    [Key(11)]
+    public IReadOnlyList<int>? AcademyAnswers { get; init; }
+
+    /// <summary>Practical bonus (M2-21).</summary>
+    [Key(12)]
+    public int AcademyBonus { get; init; }
+
+    /// <summary>True once ranked at the Academy (M2-21).</summary>
+    [Key(13)]
+    public bool AcademyRanked { get; init; }
 }
 
 /// <summary>A saved quest (M2-19).</summary>

@@ -73,7 +73,7 @@ public record struct AbandonQuestTransaction(CreatureWorld Creatures, Entity Ava
 /// <summary>
 /// Counts quest objectives from what happened this tick (quests spec §6): defeats (every fighter), gathers, crafts and Pacts
 /// (<see cref="QuestEvent"/>), feeds and helps; places twice a second. Ready quests give their rewards (experience, gold,
-/// items) as soon as the items fit. Runs after crafting and loot.
+/// items) as soon as the items fit. Runs after crafting, loot and the players' intents of the tick.
 /// </summary>
 public sealed class QuestSystem : ISimulationSystem
 {
@@ -82,6 +82,7 @@ public sealed class QuestSystem : ISimulationSystem
     private readonly CreatureWorld _world;
     private readonly ComponentStore<PlayerAvatar> _players;
     private readonly ComponentStore<Position> _positions;
+    private readonly int[] _autoStart;
 
     /// <summary>Creates the system for a world.</summary>
     public QuestSystem(CreatureWorld world)
@@ -90,13 +91,14 @@ public sealed class QuestSystem : ISimulationSystem
         _world = world;
         _players = world.World.Store<PlayerAvatar>();
         _positions = world.World.Store<Position>();
+        _autoStart = [.. Enumerable.Range(0, world.Data.Quests.Count).Where(quest => world.Data.Quests[quest].AutoStart)];
     }
 
     /// <summary>Quests done since the start.</summary>
     public int Completed { get; private set; }
 
     /// <inheritdoc />
-    public SimulationStage Stage => SimulationStage.Transactions;
+    public SimulationStage Stage => SimulationStage.EventDispatch; // after the server's intents (Transactions), which publish most events
 
     /// <inheritdoc />
     public void Execute(in SimulationTick tick)
@@ -104,9 +106,13 @@ public sealed class QuestSystem : ISimulationSystem
         QuestBook book = _world.Economy.Quests;
         foreach (QuestEvent happened in _world.Events.Read<QuestEvent>())
         {
-            string id = happened.Type is ObjectiveType.Gather or ObjectiveType.Craft
-                ? _world.Data.Items[happened.Key].Id
-                : _world.Data.Species[happened.Key].Id;
+            string id = happened.Type switch
+            {
+                ObjectiveType.Gather or ObjectiveType.Craft => _world.Data.Items[happened.Key].Id,
+                ObjectiveType.Talk => _world.Data.Academy!.Npcs[happened.Key].Id,
+                ObjectiveType.Answer => string.Empty,
+                _ => _world.Data.Species[happened.Key].Id,
+            };
             book.Record(_world.Data, happened.Account, happened.Type, id, happened.Count);
         }
 
@@ -143,6 +149,11 @@ public sealed class QuestSystem : ISimulationSystem
         for (int p = 0; p < avatars.Length; p++)
         {
             ulong account = _players.Components[p].AccountId;
+            if (_autoStart.Length > 0)
+            {
+                AutoStart(book.Of(account), avatars[p]);
+            }
+
             if (book.Find(account) is not PlayerQuests quests)
             {
                 continue;
@@ -163,6 +174,18 @@ public sealed class QuestSystem : ISimulationSystem
                     quests.Finish(progress.Quest);
                     Completed++;
                 }
+            }
+        }
+    }
+
+    // Quests every player takes as soon as they are offered them (the ranking quest).
+    private void AutoStart(PlayerQuests quests, Entity avatar)
+    {
+        foreach (int quest in _autoStart)
+        {
+            if (QuestBook.CanAccept(_world.Data, quests, quest, _world.World.GetComponent<PlayerProgress>(avatar).Level) == QuestRefusal.None)
+            {
+                quests.Take(quest);
             }
         }
     }

@@ -35,10 +35,12 @@ public sealed partial class PlaytestSelfTest(
     private const double StepSeconds = 1.2;
     private const double WatchSeconds = 6;
     private const int LastStep = 45;
+    private const int AcademyLastStep = 12;
 
     private double _clock;
     private double _walking;
     private int _step = -1;
+    private int _academy;
 
     /// <summary>All steps were done and the last answer had time to arrive.</summary>
     public bool Done { get; private set; }
@@ -48,6 +50,19 @@ public sealed partial class PlaytestSelfTest(
     {
         if (Done || !worldShown())
         {
+            return;
+        }
+
+        if (_academy <= AcademyLastStep && panels.Dialogue is Ui.AcademyDialogue dialogue)
+        {
+            _clock += delta;
+            if (_clock >= StepSeconds)
+            {
+                _clock = 0;
+                AcademyStep(dialogue);
+                _academy++;
+            }
+
             return;
         }
 
@@ -295,8 +310,8 @@ public sealed partial class PlaytestSelfTest(
             case 44:
                 PressKey(Key.J);
                 log.Write(LogLevel.Info, "selftest.quests", panels.Quests.Describe());
-                panels.Quests.Accept(0);
-                panels.Quests.Accept(3);
+                panels.Quests.Accept(1);
+                panels.Quests.Accept(4);
                 break;
             case 45:
                 log.Write(LogLevel.Info, "selftest.quests", $"{controls.Feedback} | {panels.Quests.Describe()} | tracker: {OneLine(panels.Quests.Tracker)}");
@@ -310,6 +325,37 @@ public sealed partial class PlaytestSelfTest(
         }
 
         return true;
+    }
+
+    // The ranking at the Academy gate before anything else (M2-21): talk to the Headmaster, answer the eight questions (the
+    // first answer each time), hear the rank.
+    private void AcademyStep(Ui.AcademyDialogue dialogue)
+    {
+        switch (_academy)
+        {
+            case 0:
+                log.Write(LogLevel.Info, "selftest.academy", $"talk: {(dialogue.Talk() ? "the Headmaster is in reach" : "nobody in reach")}");
+                break;
+            case 1:
+                log.Write(LogLevel.Info, "selftest.academy", dialogue.Text);
+                capture("academy-question");
+                dialogue.Choose(0);
+                break;
+            case 10:
+                log.Write(LogLevel.Info, "selftest.academy", dialogue.Text);
+                dialogue.Choose(0);
+                break;
+            case 11:
+                log.Write(LogLevel.Info, "selftest.academy", $"{dialogue.Text} | {client.OwnProfile}");
+                capture("ranking");
+                break;
+            case AcademyLastStep:
+                dialogue.Close();
+                break;
+            default:
+                dialogue.Choose(0);
+                break;
+        }
     }
 
     // A move the first companion has learned (from its skill tree and the companion list), or null.
@@ -391,6 +437,13 @@ public sealed partial class PlaytestSelfTest(
 /// <param name="Character">The character window.</param>
 /// <param name="Bar">The action bar.</param>
 /// <param name="Quests">The quest log and tracker.</param>
+/// <param name="Dialogue">Talking to the Academy's people (null without an Academy in the data).</param>
 /// <param name="Data">The data both sides load.</param>
 public sealed record SelfTestPanels(
-    Items.ItemControls Items, Items.CraftingPanel Crafting, Ui.CharacterWindow Character, Ui.ActionBar Bar, Ui.QuestLog Quests, Core.Data.IDataRegistry Data);
+    Items.ItemControls Items,
+    Items.CraftingPanel Crafting,
+    Ui.CharacterWindow Character,
+    Ui.ActionBar Bar,
+    Ui.QuestLog Quests,
+    Ui.AcademyDialogue? Dialogue,
+    Core.Data.IDataRegistry Data);

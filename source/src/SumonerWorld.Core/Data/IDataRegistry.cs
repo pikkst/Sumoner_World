@@ -59,6 +59,9 @@ public interface IDataRegistry
     /// <summary>Quests in file order (quests spec, M2-19); a quest's index is what the client names it by.</summary>
     IReadOnlyList<QuestDefinition> Quests { get; }
 
+    /// <summary>The Summoner Academy (M2-21), or null when the data has none.</summary>
+    AcademyDefinition? Academy { get; }
+
     /// <summary>Index of the item with this id in <see cref="Items"/>; throws when unknown.</summary>
     int ItemIndex(string id);
 

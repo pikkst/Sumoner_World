@@ -72,6 +72,18 @@ Stakeholder (2026-10-21): **the class and rank come from the student's choices i
 - The reading test uses clear, exaggerated body language; wrong answers are met kindly ("Look at its tail: is it tucked in?").
 - Rank names are shown with a short, encouraging line ("Rank D: a promising student").
 
+## 7. Implementation notes (M2-21a)
+- **Data:** `data/academy/academy.json` (campus, people, the eight questions, rank thresholds and lines, open classes) and
+  `data/academy/ranking_quest.json` (`the_ranking`, taken automatically by every new character). The slice quests need it done.
+- **The campus** lies just south of the spawn point; the Headmaster waits at its north gate, 3.5 m behind where players
+  arrive. The Arena Master and Keeper Lisel stand inside (the arena and the first creature come in M2-21b and M2-22).
+- **Talking:** near a person, "[E] talk to …"; E opens the dialogue box (Read again, 1–4 to answer, Esc). The quest system v1
+  gained `talk` and `answer` objectives (quests spec).
+- **Ranking:** answers are kept per player on the server (saved); at the ceremony the server adds answer points × 3, the
+  practical bonus (0 until M2-21b) and a seeded roll of −15…+15, and sets class (Elf in M2; another leaning is told) and rank
+  F–C once. Rank sets the level cap and Bond Capacity (M2-20).
+- **Not yet:** the arena and the practical moments, the safe zone, the vendor (M2-21b and later).
+
 ## Changelog
 - **0.2 (2026-10-21):** approved with the stakeholder's answers: the ranking quest now decides class and rank from **answers to
   questions plus randomness** (replacing the skill-only Arena Trial and the affinity gates); the class is for life; the first

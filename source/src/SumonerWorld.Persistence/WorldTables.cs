@@ -67,6 +67,9 @@ internal sealed class WorldTables(WorldStore store)
                     Items = [.. (player.Inventory?.Items ?? []).Select(item => new SlotRecord { Item = item.Item, Count = item.Count })],
                     Equipped = player.Equipped ?? [],
                     Quests = [.. (player.Quests ?? []).Select(quest => new QuestRecord { Quest = quest.Quest, Step = quest.Step, Counts = quest.Counts, Done = quest.Done })],
+                    AcademyAnswers = player.Academy?.Answers,
+                    AcademyBonus = player.Academy?.Bonus ?? 0,
+                    AcademyRanked = player.Academy?.Ranked ?? false,
                 });
                 insert.ExecuteNonQuery();
             }
@@ -133,7 +136,10 @@ internal sealed class WorldTables(WorldStore store)
                 PlayerProgress? progress = record.Class is byte playerClass ? new PlayerProgress(playerClass, record.Rank, record.Level, record.Xp) : null;
                 InventorySave? inventory = record.Gold is int gold ? new InventorySave(gold, [.. record.Items.Select(item => new SavedItem(item.Item, item.Count))]) : null;
                 IReadOnlyList<QuestSave> quests = [.. record.Quests.Select(quest => new QuestSave(quest.Quest, quest.Step, quest.Counts, quest.Done))];
-                players.Add(new PlayerSave((ulong)reader.GetInt64(0), new Vector3(record.X, record.Y, record.Z), progress, inventory, record.Equipped, quests));
+                SumonerWorld.Core.Academy.AcademySave? academy = record.AcademyAnswers is IReadOnlyList<int> answers
+                    ? new SumonerWorld.Core.Academy.AcademySave(answers, record.AcademyBonus, record.AcademyRanked)
+                    : null;
+                players.Add(new PlayerSave((ulong)reader.GetInt64(0), new Vector3(record.X, record.Y, record.Z), progress, inventory, record.Equipped, quests, academy));
             }
         }
 

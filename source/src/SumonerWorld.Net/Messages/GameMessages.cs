@@ -147,6 +147,15 @@ public enum IntentKind : byte
     AbandonQuest = 22,
 
     /// <summary>
+    /// Talk to one of the Academy's people (since protocol 22): target = person index; detail = 0, or a ceremony
+    /// (<c>TalkResult</c>: rank and class leaning) when the Headmaster gives the rank.
+    /// </summary>
+    Talk = 23,
+
+    /// <summary>Answer a ranking question (since protocol 22): target = the Headmaster's index; argument = question × 4 + answer.</summary>
+    Answer = 24,
+
+    /// <summary>
     /// Cast a spell (since protocol 14): argument = index in the spells data; target = aim heading in 1/256 turns (bits 0–7),
     /// burst distance in decimetres (bits 8–23) and the ward's creature stable id (bits 24 and up, 0 = self).
     /// </summary>

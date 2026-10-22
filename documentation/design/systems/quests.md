@@ -53,5 +53,12 @@ creature end at the creature, which still accepts or refuses a Pact itself, GDD 
 Four short quests around the spawn point teach the slice loop: gather berries, craft a staff, deal with bogfoxes, and make a
 friend in the grove (reach the grove, then a Pact).
 
+## 8. Academy additions (M2-21a)
+The Academy spec §2 (approved) lists more objective kinds; `talk` (to one of the Academy's people) and `answer` (the ranking
+questions) now exist, and a quest can be `autoStart` (taken by every player as soon as it is offered: the ranking quest).
+`spare` and `read` come with the arena moments (M2-21b); a creature reward with the first creature (M2-22). Quest progress is
+counted after the players' intents of each tick.
+
 ## Changelog
+- **0.2 (2026-10-22):** talk and answer objectives, autoStart, counting after intents (M2-21a).
 - **0.1 (2026-10-22):** first draft with M2-19, filled by the design team.
