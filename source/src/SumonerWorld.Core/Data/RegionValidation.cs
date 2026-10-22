@@ -11,7 +11,12 @@ internal static class RegionValidation
     private static readonly string[] Looks = ["none", "den", "town", "outpost", "ruins", "camp"];
 
     internal static void Validate(
-        RegionDefinition region, string where, List<SpeciesDefinition> species, List<(GatherNodeDefinition Entry, string Where)> nodes, List<string> errors)
+        RegionDefinition region,
+        string where,
+        List<SpeciesDefinition> species,
+        List<(GatherNodeDefinition Entry, string Where)> nodes,
+        List<ItemDefinition> items,
+        List<string> errors)
     {
         var places = new HashSet<string>(StringComparer.Ordinal);
         foreach (PlaceDefinition place in region.Places)
@@ -34,6 +39,7 @@ internal static class RegionValidation
 
         ValidateBiomes(region, where, errors);
         ValidatePeople(region, where, errors);
+        ValidateTrade(region, where, items, errors);
         var groups = new HashSet<int>();
         foreach (SpawnerDefinition spawner in region.Spawners)
         {
@@ -90,6 +96,27 @@ internal static class RegionValidation
                     errors.Add($"{where}: person '{person.Id}' stands or walks outside the region's walkable part.");
                     break;
                 }
+            }
+        }
+    }
+
+    // Shops sell known items at no less than they are worth; rooms cost something (E5b).
+    private static void ValidateTrade(RegionDefinition region, string where, List<ItemDefinition> items, List<string> errors)
+    {
+        foreach (NpcDefinition person in region.People)
+        {
+            foreach (ShopEntryDefinition entry in person.Shop)
+            {
+                ItemDefinition? item = items.FirstOrDefault(definition => definition.Id == entry.Item);
+                if (item is null || entry.Price < Math.Max(1, item.GoldValue))
+                {
+                    errors.Add($"{where}: {person.Id} sells '{entry.Item}', which needs to be a known item at no less than its value.");
+                }
+            }
+
+            if (person.RestPrice < 0 || person.Buys.Any(string.IsNullOrWhiteSpace))
+            {
+                errors.Add($"{where}: {person.Id} needs a rest price of 0 or more and no empty buy kinds.");
             }
         }
     }

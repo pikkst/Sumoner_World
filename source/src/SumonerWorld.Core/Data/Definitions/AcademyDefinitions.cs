@@ -147,6 +147,15 @@ public sealed record NpcDefinition
     /// stand at <see cref="X"/>, <see cref="Z"/>.
     /// </summary>
     public IReadOnlyList<RoutePoint> Route { get; init; } = [];
+
+    /// <summary>What they sell, each at its price in gold (E5b; empty = nothing).</summary>
+    public IReadOnlyList<ShopEntryDefinition> Shop { get; init; } = [];
+
+    /// <summary>What they buy (E5b): item categories (<c>food</c>, <c>material</c>…) or tags (<c>ore</c>, <c>plant</c>…), at the item's value.</summary>
+    public IReadOnlyList<string> Buys { get; init; } = [];
+
+    /// <summary>An innkeeper's price for a rest that brings health, stamina and mana back in full (E5b; 0 = no rooms).</summary>
+    public int RestPrice { get; init; }
 }
 
 /// <summary>One ranking question (Academy spec §3.1).</summary>
@@ -183,4 +192,14 @@ public sealed record RoutePoint
 
     /// <summary>Z.</summary>
     public float Z { get; init; }
+}
+
+/// <summary>One thing a vendor sells (E5b).</summary>
+public sealed record ShopEntryDefinition
+{
+    /// <summary>The item id.</summary>
+    public required string Item { get; init; }
+
+    /// <summary>Gold each (at least what the item is worth, so nothing can be bought to sell back at a profit).</summary>
+    public int Price { get; init; }
 }

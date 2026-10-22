@@ -183,6 +183,11 @@ public static class InteractionText
                 : "Nothing to gather here yet. It grows back by tomorrow.";
         }
 
+        if (kind is IntentKind.Buy or IntentKind.Sell or IntentKind.Rest)
+        {
+            return TradeResult(kind, result, creature);
+        }
+
         if (kind == IntentKind.Cast)
         {
             return result.IsApplied ? $"{creature}!" : result.Reason switch
@@ -232,6 +237,29 @@ public static class InteractionText
                 _ => $"The {creature} turns away from your Pact.",
             },
             _ => string.Empty,
+        };
+    }
+
+    /// <summary>The line for a trade or a rest (E5b); <paramref name="name"/> is what changed hands, e.g. <c>3 Berry meal</c>.</summary>
+    public static string TradeResult(IntentKind kind, IntentResult result, string name)
+    {
+        if (result.IsApplied)
+        {
+            return kind switch
+            {
+                IntentKind.Buy => $"You buy {name}.",
+                IntentKind.Sell => $"You sell {name}.",
+                _ => "You rest by the fire. Health, stamina and mana are full again.",
+            };
+        }
+
+        return result.Reason == IntentRejectReason.OutOfRange ? "Come closer to trade." : (Core.Items.TradeRefusal)result.Detail switch
+        {
+            Core.Items.TradeRefusal.NotEnoughGold => "You do not have enough gold.",
+            Core.Items.TradeRefusal.BagFull => "Your bag is full.",
+            Core.Items.TradeRefusal.DoesNotBuy => $"They do not buy {name}.",
+            Core.Items.TradeRefusal.NotForSale => "That is not for sale.",
+            _ => "Nothing happens.",
         };
     }
 
