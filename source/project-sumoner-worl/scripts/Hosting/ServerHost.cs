@@ -50,6 +50,7 @@ public sealed partial class ServerHost : Node
     private GodotNavigation? _navigation;
     private GodotPhysicsQueries? _physics;
     private bool _physicsChecked;
+    private long _started;
     private PosixSignalRegistration? _sigterm;
     private PosixSignalRegistration? _sigint;
     private volatile bool _stopRequested;
@@ -220,13 +221,15 @@ public sealed partial class ServerHost : Node
             LogLevel.Info,
             "world.ground",
             $"{DevWorld.Ground.Size} m terrain: collision added, navigation baked near the spawn ({_navigation.TilesBaked} of {_navigation.TileCount} tiles, {_navigation.Polygons} polygons) in {System.Diagnostics.Stopwatch.GetElapsedTime(start).TotalSeconds:F1} s; the rest follows in the background");
+        _started = System.Diagnostics.Stopwatch.GetTimestamp();
         return _navigation;
     }
 
     private void CheckPhysicsOnce()
     {
-        // Jolt sees new bodies after a physics step: compare its ground with the heightfield a second after start.
-        if (_physicsChecked || _physics is null || _world!.Clock.Current.Index < SimulationSettings.DefaultTicksPerSecond)
+        // Jolt sees new bodies after a physics step, the navigation map its tiles after a sync: check two seconds after this
+        // server started (not world time, which is far along in a loaded world).
+        if (_physicsChecked || _physics is null || System.Diagnostics.Stopwatch.GetElapsedTime(_started).TotalSeconds < 2)
         {
             return;
         }
