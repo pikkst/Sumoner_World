@@ -207,8 +207,15 @@ public sealed record CombatDefinition
     /// <summary>Ticks the summoning sigil takes before the creature arrives.</summary>
     public required int SummonCastTicks { get; init; }
 
-    /// <summary>Active summons a player may have (AI Bible §10.4: starting value 2; the rank sets it from M2-20).</summary>
-    public required int BondCapacity { get; init; }
+    /// <summary>
+    /// Active summons a player may have, by Summoner Rank F, E, D, … God (AI Bible §10.4, Academy spec §3.3, M2-20); a rank past
+    /// the end of the list has the last value.
+    /// </summary>
+    public required IReadOnlyList<int> BondCapacityByRank { get; init; }
+
+    /// <summary>The Bond Capacity of a rank (0 = F).</summary>
+    public int BondCapacityOf(int rank) =>
+        BondCapacityByRank.Count == 0 ? 1 : BondCapacityByRank[Math.Clamp(rank, 0, BondCapacityByRank.Count - 1)];
 
     /// <summary>How creatures grow (companions spec §3–4, M2-09).</summary>
     public GrowthDefinition Growth { get; init; } = new();

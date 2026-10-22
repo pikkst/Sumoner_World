@@ -129,4 +129,18 @@ public class InteractionTextTests
         Assert.Equal("Call that companion to your side first.", InteractionText.Result(IntentKind.Equip, IntentResult.Reject(IntentRejectReason.InvalidTarget), "x"));
         Assert.Equal("charm", InteractionText.PositionName(EquipPosition.Charm2));
     }
+
+    [Fact]
+    public void Profiles_show_class_rank_level_cap_experience_and_bond_capacity()
+    {
+        var growth = new SumonerWorld.Core.Progression.GrowthRules(ShippedData.Current.Combat.Growth);
+        var profile = new RosterEntry(1002, 0, 2, 3, 150);
+
+        Assert.Equal("Summoner 1002\nElf · Rank D · Level 3", InteractionText.Nameplate(profile));
+        string lines = InteractionText.ProfileLines(profile, growth, ShippedData.Current.Combat);
+        Assert.Contains("(cap 30)", lines, StringComparison.Ordinal);
+        Assert.Contains($"/ {growth.XpFor(4)} for level 4", lines, StringComparison.Ordinal);
+        Assert.Contains("Bond Capacity 2", lines, StringComparison.Ordinal);
+        Assert.Contains("rank up", InteractionText.ProfileLines(profile with { Rank = 0, Level = 10 }, growth, ShippedData.Current.Combat), StringComparison.Ordinal);
+    }
 }

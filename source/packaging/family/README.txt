@@ -47,7 +47,9 @@ The game plays on the local dev server, which runs in Docker on this PC. Nothing
    obeys at once; one that is unsure pauses or does it its own way; one may even refuse.
    Loot: a defeated creature leaves a bag for everyone who fought it; walk onto your bag to pick it up.
    H gathers from a berry bush, a sweetroot patch or fallen branches nearby (they grow back by the next day).
-   I opens your bag and character: drag gear onto the slots on your figure to put it on, and back
+   Above other players you see their name, class, rank and level. Your own rank decides your highest
+   level and how many companions you can call at once (rank F: one).
+   I opens your bag and character (your rank, level and experience are at the top): drag gear onto the slots on your figure to put it on, and back
    into the bag to take it off. Right-click food to eat it. The tabs at the top show a companion
    at your side: dress it too (a bird wears only a hat and a charm), and drag things into its own
    bag (a bird carries little, a four-legged one more). Drag food from the bag onto the bar.

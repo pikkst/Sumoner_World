@@ -28,7 +28,7 @@
       "staggerTicks": 12,
       "summonManaCost": 20,
       "summonCastTicks": 30,
-      "bondCapacity": 2,
+      "bondCapacityByRank": [1, 1, 2, 2, 3, 3, 4, 4, 5, 5],
       "growth": {
         "xpFactor": 40, "xpExponentPercent": 150,
         "damagePerCombatXp": 2, "defeatXp": 20, "metresPerTravelXp": 50, "workTaskXp": 5,

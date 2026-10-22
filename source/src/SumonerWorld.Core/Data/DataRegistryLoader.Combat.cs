@@ -6,6 +6,7 @@ namespace SumonerWorld.Core.Data;
 public static partial class DataRegistryLoader
 {
     private const int MaxMoveTicks = 300;
+    private const int RankCount = 10;
     private const int MaxReachCm = 3000;
     private const int MaxDamage = 10_000;
     private const int MaxStat = 100_000;
@@ -102,7 +103,12 @@ public static partial class DataRegistryLoader
         CheckRange(entry.StaggerTicks, 1, MaxMoveTicks, "staggerTicks", where, errors);
         CheckRange(entry.SummonManaCost, 0, MaxStat, "summonManaCost", where, errors);
         CheckRange(entry.SummonCastTicks, 1, MaxStat, "summonCastTicks", where, errors);
-        CheckRange(entry.BondCapacity, 1, Bonding.BondingRules.MaxBondCapacity, "bondCapacity", where, errors);
+        for (int rank = 0; rank < entry.BondCapacityByRank.Count; rank++)
+        {
+            CheckRange(entry.BondCapacityByRank[rank], rank == 0 ? 1 : entry.BondCapacityByRank[rank - 1], Bonding.BondingRules.MaxBondCapacity, $"bondCapacityByRank[{rank}]", where, errors);
+        }
+
+        CheckRange(entry.BondCapacityByRank.Count, 1, RankCount, "bondCapacityByRank", where, errors);
         GrowthDefinition growth = entry.Growth ?? new GrowthDefinition();
         CheckRange(growth.XpFactor, 1, MaxStat, "growth.xpFactor", where, errors);
         CheckRange(growth.XpExponentPercent, 100, 300, "growth.xpExponentPercent", where, errors);

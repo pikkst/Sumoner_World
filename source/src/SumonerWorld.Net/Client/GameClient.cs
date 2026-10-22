@@ -35,6 +35,7 @@ public sealed class GameClient : IClientSessionHandler
     private readonly CompanionListCodec _companionCodec = new();
     private readonly InventoryListCodec _inventoryCodec = new();
     private readonly QuestListCodec _questCodec = new();
+    private readonly PlayerRosterCodec _rosterCodec = new();
     private uint _lastIntent;
 
     /// <summary>Creates the client; <paramref name="movement"/> must match the server's.</summary>
@@ -69,6 +70,26 @@ public sealed class GameClient : IClientSessionHandler
 
     /// <summary>The player's quests, from the server (M2-19).</summary>
     public IReadOnlyList<QuestEntry> Quests { get; private set; } = [];
+
+    /// <summary>Every player's public profile, from the server (M2-20).</summary>
+    public IReadOnlyList<RosterEntry> Roster { get; private set; } = [];
+
+    /// <summary>The player's own profile from the roster, once it has arrived (M2-20).</summary>
+    public RosterEntry? OwnProfile => Session.Session is Welcome welcome ? ProfileOf(welcome.AccountId) : null;
+
+    /// <summary>A player's profile from the roster, if they are in it.</summary>
+    public RosterEntry? ProfileOf(ulong account)
+    {
+        foreach (RosterEntry entry in Roster)
+        {
+            if (entry.Account == account)
+            {
+                return entry;
+            }
+        }
+
+        return null;
+    }
 
     /// <summary>The player's pacted creatures, as the server last sent them (since protocol 9).</summary>
     public IReadOnlyList<CompanionEntry> Companions { get; private set; } = [];
@@ -220,6 +241,9 @@ public sealed class GameClient : IClientSessionHandler
                 break;
             case MessageType.QuestList:
                 Quests = _questCodec.Read(ref reader).Entries;
+                break;
+            case MessageType.PlayerRoster:
+                Roster = _rosterCodec.Read(ref reader).Entries;
                 break;
             case MessageType.CompanionList:
                 Companions = _companionCodec.Read(ref reader).Entries;

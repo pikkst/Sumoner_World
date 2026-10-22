@@ -67,6 +67,8 @@ public class MessageCodecTests
         Assert.Equal((11, -1), (worn.Worn[0], worn.Worn[1]));
         QuestEntry[] quests = [new(0, 3, 0), new(2, 1, 1, 4, 0, 1, 0)];
         Assert.Equal(quests, RoundTrip(new QuestListCodec(), new QuestList(quests)).Entries);
+        RosterEntry[] roster = [new(1001, 0, 3, 12, 4567), new(9_000_000_002, 1, 0, 1, 0)];
+        Assert.Equal(roster, RoundTrip(new PlayerRosterCodec(), new PlayerRoster(roster)).Entries);
     }
 
     [Fact]

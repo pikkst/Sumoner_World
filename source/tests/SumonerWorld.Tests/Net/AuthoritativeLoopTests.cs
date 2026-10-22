@@ -387,6 +387,21 @@ public class AuthoritativeLoopTests
     }
 
     [Fact]
+    public void Every_player_sees_the_others_class_rank_and_level()
+    {
+        using var lan = new Lan(0);
+        var veteran = new PlayerProgress((int)SummonerClass.Elf, (int)Rank.D, 12, lan.World.Growth.XpFor(12));
+        lan.Server.RestorePlayers([new PlayerSave(1001, new Vector3(100, 0, 120), veteran)]);
+        lan.Join(1001);
+        GameClient bob = lan.Join(1002);
+        lan.Run(60, _ => MoveInput.None);
+
+        Assert.Equal([1001UL, 1002UL], bob.Roster.Select(entry => entry.Account));
+        Assert.Equal(((byte)Rank.D, (byte)12), (bob.ProfileOf(1001)!.Value.Rank, bob.ProfileOf(1001)!.Value.Level));
+        Assert.Equal((byte)1, bob.OwnProfile!.Value.Level);
+    }
+
+    [Fact]
     public void Inputs_far_ahead_after_an_outage_skip_forward_instead_of_stalling()
     {
         using var lan = new Lan(0);

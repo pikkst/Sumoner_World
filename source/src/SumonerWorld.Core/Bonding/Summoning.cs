@@ -112,7 +112,8 @@ public static class Companions
 /// <summary>
 /// A player calls a pacted creature (AI Bible §10.4, GDD §1, M2-06): validated, then atomic (R27, R34). Validation: the avatar can
 /// act (not in a move, casting, down, staggered or dodging), the creature exists and is pacted to the player, not summoned yet, the
-/// player has <see cref="CombatDefinition.SummonManaCost"/> mana and fewer active summons than <see cref="CombatDefinition.BondCapacity"/>.
+/// player has <see cref="CombatDefinition.SummonManaCost"/> mana and fewer active summons than their rank's Bond Capacity
+/// (<see cref="CombatDefinition.BondCapacityOf"/>, M2-20).
 /// The commit pays the mana, marks the creature summoned (Bonding Contract) and starts the <see cref="SigilCast"/>; the creature
 /// arrives at the player's side when the cast ends (<see cref="SummoningSystem"/>). There is no range: a summon calls the creature
 /// from wherever it is.
@@ -139,7 +140,7 @@ public record struct SummonTransaction(CreatureWorld Creatures, Entity Avatar, S
             : bond.Summoned ? SummonRefusal.AlreadySummoned
             : Busy(world, Avatar) ? SummonRefusal.Busy
             : world.GetComponent<Combatant>(Avatar).Mana < rules.SummonManaCost ? SummonRefusal.NoMana
-            : Companions.Summoned(Creatures, account) >= rules.BondCapacity ? SummonRefusal.CapacityReached
+            : Companions.Summoned(Creatures, account) >= rules.BondCapacityOf(world.GetComponent<Progression.PlayerProgress>(Avatar).Rank) ? SummonRefusal.CapacityReached
             : SummonRefusal.None;
         return refusal switch
         {

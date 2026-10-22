@@ -66,6 +66,29 @@ public static class InteractionText
     /// <summary>The player's level line in the HUD, e.g. <c>Elf · Rank F · Level 3</c> (M2-09).</summary>
     public static string PlayerLine(SummonerClass summonerClass, Rank rank, int level) => $"{summonerClass} · Rank {rank} · Level {level}";
 
+    /// <summary>The name shown for a player until players choose names: <c>Summoner 1002</c> (M2-20).</summary>
+    public static string PlayerName(ulong account) => $"Summoner {account}";
+
+    /// <summary>A player's nameplate above their head: name, class, rank and level (M2-20).</summary>
+    public static string Nameplate(RosterEntry profile) =>
+        $"{PlayerName(profile.Account)}\n{PlayerLine((SummonerClass)profile.Class, (Rank)profile.Rank, profile.Level)}";
+
+    /// <summary>
+    /// The player's own profile lines (M2-20): class, rank and level with the rank's level cap, experience to the next level and
+    /// Bond Capacity.
+    /// </summary>
+    public static string ProfileLines(RosterEntry profile, GrowthRules growth, Core.Data.Definitions.CombatDefinition combat)
+    {
+        ArgumentNullException.ThrowIfNull(growth);
+        ArgumentNullException.ThrowIfNull(combat);
+        int cap = GrowthRules.Cap((Rank)profile.Rank);
+        string xp = profile.Level >= cap
+            ? $"XP {profile.Xp} (level cap {cap}: rank up to grow further)"
+            : $"XP {profile.Xp} / {growth.XpFor(profile.Level + 1)} for level {profile.Level + 1}";
+        return $"{PlayerLine((SummonerClass)profile.Class, (Rank)profile.Rank, profile.Level)} (cap {cap})\n{xp}\n"
+            + $"Bond Capacity {combat.BondCapacityOf(profile.Rank)}: companions you can call at once";
+    }
+
     /// <summary>The line when a companion learned a combo with the player (M2-12): it is the player's style it learned.</summary>
     public static string ComboLearned(string creature, string combo) => $"Your {creature} learned your style: {SkillName(combo)}! It will join in when you cast it.";
 
